@@ -17,14 +17,15 @@ A good starting place for new github repos.
 - ✅ [CODEOWNERS](.github/CODEOWNERS)
 - ✅ [justfile](justfile)
 - ✅ [Github Action for Markdownlint](.github/workflows)
+- ✅ [A few extra labels for issues](https://github.com/fini-net/template-repo/labels)
 
 ## Usage
 
-Make a new repo and use this repo as your template.
-
-Remember to replace any `chicks-net`, `fini-net`, and `template-repo` referenes
-with the right values for your project.  (Github templates do not offer 
-variable substitution, but we still have to call them templaes for some reason.)
+1. Make a new repo and use this repo as your template.
+1. Remember to replace any `chicks-net`, `fini-net`, and `template-repo` references
+  with the right values for your project.  (Github templates do not offer
+  variable substitution, but we still have to call them templaes for some reason.)
+1. Ditch the "Template Status" and "Usage" sections in the `README.md`.
 
 ## Contibuting
 
