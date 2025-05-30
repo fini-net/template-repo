@@ -7,11 +7,9 @@
 
 A good starting place for new github repos.
 
-## Tempalte Status
+## Template Status
 
-Working towards checking off the github community guidelines check marks.
-
-- ?? [All github community standards are checked off](https://github.com/fini-net/template-repo/community)
+- ✅ [All github community standards are checked off](https://github.com/fini-net/template-repo/community)
 - ✅ [gitattributes](.gitattributes)
 - ✅ [gitignore](.gitignore) with comments
 - ✅ [Issue Templates](.github/ISSUE_TEMPLATE)
@@ -25,7 +23,8 @@ Working towards checking off the github community guidelines check marks.
 Make a new repo and use this repo as your template.
 
 Remember to replace any `chicks-net`, `fini-net`, and `template-repo` referenes
-with the right values for your project.
+with the right values for your project.  (Github templates do not offer 
+variable substitution, but we still have to call them templaes for some reason.)
 
 ## Contibuting
 
