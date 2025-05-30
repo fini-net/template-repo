@@ -1,13 +1,31 @@
 # FINI template-repo
 
-A good starting place for new github repos
+![GitHub Issues](https://img.shields.io/github/issues/fini-net/template-repo)
+![GitHub Pull Requests](https://img.shields.io/github/issues-pr/fini-net/template-repo)
+![GitHub License](https://img.shields.io/github/license/fini-net/template-repo)
+![GitHub watchers](https://img.shields.io/github/watchers/fini-net/template-repo)
 
-## Status
+A good starting place for new github repos.
+
+## Tempalte Status
 
 Working towards checking off the github community guidelines check marks.
 
-- [gitattributes](.gitattributes)
-- [gitignore](.gitignore) with comments
+- ?? [All github community standards are checked off](https://github.com/fini-net/template-repo/community)
+- ✅ [gitattributes](.gitattributes)
+- ✅ [gitignore](.gitignore) with comments
+- ✅ [Issue Templates](.github/ISSUE_TEMPLATE)
+- ✅ [PR Template](.github/pull_request_template.md)
+- ✅ [CODEOWNERS](.github/CODEOWNERS)
+- ✅ [justfile](justfile)
+- ✅ [Github Action for Markdownlint](.github/workflows)
+
+## Usage
+
+Make a new repo and use this repo as your template.
+
+Remember to replace any `chicks-net`, `fini-net`, and `template-repo` referenes
+with the right values for your project.
 
 ## Contibuting
 
