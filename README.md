@@ -10,22 +10,22 @@ A good starting place for new github repos.
 ## Template Status
 
 - ✅ [All github community standards are checked off](https://github.com/fini-net/template-repo/community)
-- ✅ [gitattributes](.gitattributes)
+- ✅ [gitattributes](.gitattributes) based on [gitattributes](https://github.com/gitattributes/gitattributes)
 - ✅ [gitignore](.gitignore) with comments
 - ✅ [Issue Templates](.github/ISSUE_TEMPLATE)
 - ✅ [PR Template](.github/pull_request_template.md)
 - ✅ [CODEOWNERS](.github/CODEOWNERS)
-- ✅ [justfile](justfile)
+- ✅ [justfile](justfile) with command line workflow for pull requests
 - ✅ [Github Action for Markdownlint](.github/workflows)
 - ✅ [A few extra labels for issues](https://github.com/fini-net/template-repo/labels)
 
 ## Usage
 
-1. Make a new repo and use this repo as your template.
+1. Make a new repo and use this repo as your template.  You might have to fork it first.
 1. Remember to replace any `chicks-net`, `fini-net`, and `template-repo` references
   with the right values for your project.  (Github templates do not offer
-  variable substitution, but we still have to call them templaes for some reason.)
-1. Ditch the "Template Status" and "Usage" sections in the `README.md`.
+  variable substitution, but we still have to call them templates for some reason.)
+1. Ditch the "Template Status", "Usage", and "Kudos" sections in the `README.md`.
 
 ## Contibuting
 
