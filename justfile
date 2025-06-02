@@ -22,7 +22,7 @@ sync:
 
 # PR create 3.0
 [group('Process')]
-pr: on_a_branch
+pr: _on_a_branch
     #!/usr/bin/env bash
     set -euxo pipefail # strict mode
 
@@ -60,24 +60,24 @@ pr: on_a_branch
 [group('Process')]
 merge:
     gh pr merge -s -d
-    just sync
+    just sync # mostly redundant, but just in case
 
 # start a new branch
 [group('Process')]
-branch branchname: main_branch
+branch branchname: _main_branch
     #!/usr/bin/env bash
     NOW=`just utcdate`
     git co -b "chicks/$NOW-{{ branchname }}"
 
 # view PR in web browser
 [group('Process')]
-prweb: on_a_branch
+prweb: _on_a_branch
     gh pr view --web
 
 # error if not on a git branch
 [group('sanity check')]
 [no-cd]
-on_a_branch:
+_on_a_branch:
     #!/bin/bash
 
     # thanks to https://stackoverflow.com/a/12142066/2002471
@@ -90,7 +90,7 @@ on_a_branch:
 # error if not on the release branch
 [group('sanity check')]
 [no-cd]
-main_branch:
+_main_branch:
     #!/bin/bash
 
     # thanks to https://stackoverflow.com/a/12142066/2002471

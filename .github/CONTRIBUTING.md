@@ -28,6 +28,47 @@ unless a screen shot is the only way to convey your problem.
 - Open a pull request on github.
 - Check the github actions on your PR to see if there's anything to fix.
 
+## Development requirements
+
+- `just`
+- `gh` - github CLI
+- `bash`
+
+## Development process
+
 The [justfile](../justfile) is used for centralizing snippets for build
 and many other purposes.  Run `just` anywhere in the repo to see which
 subcommands are available here.
+
+The full development cycle works via the command line.
+
+1. Starting with a cloned repo, run `just branch $some-name`
+1. Make some changes and make sure your last commit message convey your overall
+   purpose.
+1. Run `just pr` and it will create a PR based on your last commit message.
+1. Optionally, you can make other commits or update the PR description.
+1. Finally, `just merge` will merge the PR with squashed commit history and
+   cleaned up branches locally and remotely.  You'll end up with a repo back
+   on `main` (release) branch with the latest `git pull`ed.
+
+```bash
+% just
+just --list
+Available recipes:
+    [Compliance]
+    compliance_check  # our own compliance check
+
+    [Process]
+    branch branchname # start a new branch
+    merge             # merge PR and return to starting point
+    pr                # PR create 3.0
+    prweb             # view PR in web browser
+    sync              # escape from branch, back to starting point
+
+    [Utility]
+    utcdate           # print UTC date in ISO format
+
+    [example]
+    list              # list recipes (default works without naming it)
+Your justfile is waiting for more scripts and snippets
+```
