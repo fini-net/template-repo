@@ -15,7 +15,8 @@ A good starting place for new github repos.
 - ✅ [Issue Templates](.github/ISSUE_TEMPLATE)
 - ✅ [PR Template](.github/pull_request_template.md)
 - ✅ [CODEOWNERS](.github/CODEOWNERS)
-- ✅ [justfile](justfile) with command line workflow for pull requests
+- ✅ [justfile](justfile) with
+  [command line workflow for pull requests](.github/CONTRIBUTING.md#development-process)
 - ✅ [Github Action for Markdownlint](.github/workflows)
 - ✅ [A few extra labels for issues](https://github.com/fini-net/template-repo/labels)
 
@@ -30,7 +31,8 @@ A good starting place for new github repos.
 ## Contibuting
 
 - [Code of Conduct](.github/CODE_OF_CONDUCT.md)
-- [Contributing Guide](.github/CONTRIBUTING.md)
+- [Contributing Guide](.github/CONTRIBUTING.md) includes a step-by-step guide to our
+  [development processs](.github/CONTRIBUTING.md#development-process).
 
 ## Support
 

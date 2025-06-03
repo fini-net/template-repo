@@ -1,6 +1,6 @@
 # Contributing to this project
 
-This has started as a personal project, but I am doing to publicly on github
+This has started as a personal project, but I am doing it publicly on github
 with the hope that it is helpful to some folks.  If you notice something that
 could be better, please file an [issue](../../../issues).
 
@@ -23,7 +23,7 @@ unless a screen shot is the only way to convey your problem.
 
 - Major changes should probably be discussed in an [issue](../../../issues) first.
 - Fork the repo on github.
-- Make a branch in your repo.
+- Make a branch in your branch on your repo.
 - Add commits with good commit meessages.
 - Open a pull request on github.
 - Check the github actions on your PR to see if there's anything to fix.
@@ -37,19 +37,21 @@ unless a screen shot is the only way to convey your problem.
 ## Development process
 
 The [justfile](../justfile) is used for centralizing snippets for build
-and many other purposes.  Run `just` anywhere in the repo to see which
-subcommands are available here.
+and development purposes.
 
 The full development cycle works via the command line.
 
 1. Starting with a cloned repo, run `just branch $some-name`
-1. Make some changes and make sure your last commit message convey your overall
-   purpose.
+1. Make some changes and make sure your last commit message conveys your
+   overall purpose.
 1. Run `just pr` and it will create a PR based on your last commit message.
 1. Optionally, you can make other commits or update the PR description.
 1. Finally, `just merge` will merge the PR with squashed commit history and
    cleaned up branches locally and remotely.  You'll end up with a repo back
    on `main` (release) branch with the latest `git pull`ed.
+
+Run `just` anywhere in the repo to see which subcommands are available here.
+You should get a more colorful version of this:
 
 ```bash
 % just
