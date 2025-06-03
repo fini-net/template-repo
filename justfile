@@ -226,3 +226,8 @@ compliance_check:
         echo "{{RED}}You do NOT have a justfile.  Feeling the FOMO yet?{{NORMAL}}"
         echo "{{RED}}And this should not be possible.  Tell me how you got here.{{NORMAL}}"
     fi
+
+# make a release
+[group('Process')]
+release rel_version: _on_a_branch
+   gh release create {{rel_version}} --generate-notes
