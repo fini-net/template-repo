@@ -229,5 +229,5 @@ compliance_check:
 
 # make a release
 [group('Process')]
-release rel_version: _on_a_branch
+release rel_version:
    gh release create {{rel_version}} --generate-notes
