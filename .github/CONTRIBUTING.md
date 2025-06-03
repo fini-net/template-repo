@@ -58,19 +58,21 @@ You should get a more colorful version of this:
 just --list
 Available recipes:
     [Compliance]
-    compliance_check  # our own compliance check
+    compliance_check    # our own compliance check
 
     [Process]
-    branch branchname # start a new branch
-    merge             # merge PR and return to starting point
-    pr                # PR create 3.0
-    prweb             # view PR in web browser
-    sync              # escape from branch, back to starting point
+    branch branchname   # start a new branch
+    merge               # merge PR and return to starting point
+    pr                  # PR create 3.0
+    prweb               # view PR in web browser
+    release rel_version # make a release
+    sync                # escape from branch, back to starting point
 
     [Utility]
-    utcdate           # print UTC date in ISO format
+    clean_readme        # generate a clean README
+    utcdate             # print UTC date in ISO format
 
     [example]
-    list              # list recipes (default works without naming it)
+    list                # list recipes (default works without naming it)
 Your justfile is waiting for more scripts and snippets
 ```
