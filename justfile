@@ -16,7 +16,7 @@ list:
 # escape from branch, back to starting point
 [group('Process')]
 sync:
-    git checkout main
+    git checkout {{ release_branch }}
     git pull
     git stp
 
@@ -82,7 +82,7 @@ _on_a_branch:
 
     # thanks to https://stackoverflow.com/a/12142066/2002471
 
-    if [[ $(git rev-parse --abbrev-ref HEAD) == "main" ]]; then
+    if [[ $(git rev-parse --abbrev-ref HEAD) == "{{ release_branch }}" ]]; then
       echo "{{RED}}You are on branch '{{ release_branch }}' (the release branch) so you are not ready to start a PR.{{NORMAL}}"
       exit 100
     fi
@@ -95,7 +95,7 @@ _main_branch:
 
     # thanks to https://stackoverflow.com/a/12142066/2002471
 
-    if [[ ! $(git rev-parse --abbrev-ref HEAD) == "main" ]]; then
+    if [[ ! $(git rev-parse --abbrev-ref HEAD) == "{{ release_branch }}" ]]; then
       echo "You are on a branch that is not the release branch so you are not ready to start a new branch."
       exit 100
     fi
@@ -161,43 +161,43 @@ compliance_check:
     if [[ -e LICENSE ]]; then
         echo "{{GREEN}}[gh] You have a license, good for you.{{NORMAL}}"
     else
-        echo "{{RED}}You do NOT have a license, are you feeling ok?{{NORMAL}}"
+        echo "{{RED}}[gh] You do NOT have a license, are you feeling ok?{{NORMAL}}"
     fi
 
     if [[ -e .github/CODE_OF_CONDUCT.md ]]; then
         echo "{{GREEN}}[gh] You have a Code of Conduct, respect.{{NORMAL}}"
     else
-        echo "{{RED}}You do NOT have a Code of Conduct.  So anything goes around here?{{NORMAL}}"
+        echo "{{RED}}[gh] You do NOT have a Code of Conduct.  So anything goes around here?{{NORMAL}}"
     fi
 
     if [[ -e .github/CONTRIBUTING.md ]]; then
         echo "{{GREEN}}[gh] You have a Contributing Guide, how giving.{{NORMAL}}"
     else
-        echo "{{RED}}You do NOT have a Contributing Guide.  Hopefully they'll figure it out on their own.{{NORMAL}}"
+        echo "{{RED}}[gh] You do NOT have a Contributing Guide.  Hopefully they'll figure it out on their own.{{NORMAL}}"
     fi
 
     if [[ -e .github/SECURITY.md ]]; then
         echo "{{GREEN}}[gh] You have a Security Guide, very comforting.{{NORMAL}}"
     else
-        echo "{{RED}}You do NOT have a Security Guide.  Don't call the cops.{{NORMAL}}"
+        echo "{{RED}}[gh] You do NOT have a Security Guide.  Don't call the cops.{{NORMAL}}"
     fi
 
     if [[ -e .github/pull_request_template.md ]]; then
         echo "{{GREEN}}[gh] You have a pull request template, not too pushy.{{NORMAL}}"
     else
-        echo "{{RED}}You do NOT have a pull request template.  Prepare for anything.{{NORMAL}}"
+        echo "{{RED}}[gh] You do NOT have a pull request template.  Prepare for anything.{{NORMAL}}"
     fi
 
     if [[ -d .github/ISSUE_TEMPLATE ]]; then
         echo "{{GREEN}}[gh] You have Issue Templates, life is good.{{NORMAL}}"
     else
-        echo "{{RED}}You do NOT have Issue Templates.  I must take issue with that.{{NORMAL}}"
+        echo "{{RED}}[gh] You do NOT have Issue Templates.  I must take issue with that.{{NORMAL}}"
     fi
 
     if [[ $(gh repo view --json description | jq -r '.description' | wc -c) -gt 16 ]]; then
         echo "{{GREEN}}[gh] You have a repo description, more evidence that you are undescribable.{{NORMAL}}"
     else
-        echo "{{RED}}You do NOT have a repo description, can you write a word or two please?{{NORMAL}}"
+        echo "{{RED}}[gh] You do NOT have a repo description, can you write a word or two please?{{NORMAL}}"
     fi
 
     # github also checks for something about the repo admins
