@@ -16,7 +16,7 @@ Try to leave the headings as they are.
 Do not violate the projects official Code of Conduct in the process.
 -->
 
-## Is your feature request related to a problem? Please describe.
+## Describe the problem that led to you needing this feature
 
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
 
@@ -32,3 +32,5 @@ Why is this feature a better idea than any of the other options you've considere
 ## Additional context
 
 Add any other context or screenshots about the feature request here.
+
+Add any version numbers or error messages as text content if possible.
