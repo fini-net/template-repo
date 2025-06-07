@@ -66,6 +66,6 @@ I went with the [GPL2 license](LICENSE), but the MIT license is also worth consi
 
 ## Thanks
 
-* I've really enjoyed building projects with [just](https://just.systems/man/en/).
-* The [GitHub CLI](https://cli.github.com/) makes browser-free workflows not only
+- I've really enjoyed building projects with [just](https://just.systems/man/en/).
+- The [GitHub CLI](https://cli.github.com/) makes browser-free workflows not only
   possible, but fun.
