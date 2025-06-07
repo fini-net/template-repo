@@ -7,7 +7,7 @@ assignees: ''
 
 ---
 
-# Feature Request
+Feature Request
 
 <!--
 Please replace the paragraphs in each section with that sort of information.
