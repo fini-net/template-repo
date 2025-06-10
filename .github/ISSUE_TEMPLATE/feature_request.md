@@ -32,5 +32,4 @@ Do not violate the projects official Code of Conduct in the process.
 ## Additional context
 
 > Add any other context or screenshots about the feature request here.
-
 > Add any version numbers or error messages as text content if possible.
