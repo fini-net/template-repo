@@ -57,7 +57,6 @@ I went with the [GPL2 license](LICENSE), but the MIT license is also worth consi
   templates I've found on github.
 - [Cookiecutter Data Science](https://github.com/drivendataorg/cookiecutter-data-science)
   is cool, but it isn't actually a template repo.
-  `just clean-readme` will give you a clean README, but there are other files to fix.
 - [gh-best-practices-template](https://github.com/jlcanovas/gh-best-practices-template)
   is doing great at checking off all of the boxes.  They've including funding and citations
   which I haven't tried yet.  I'm not a fan of how all of the Markdown files are in the
