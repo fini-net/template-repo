@@ -67,7 +67,7 @@ merge: _on_a_branch
 branch branchname: _main_branch
     #!/usr/bin/env bash
     NOW=`just utcdate`
-    git co -b "chicks/$NOW-{{ branchname }}"
+    git co -b "$USER/$NOW-{{ branchname }}"
 
 # view PR in web browser
 [group('Process')]
@@ -123,14 +123,14 @@ clean_readme:
     echo "repo={{BLUE}}$GITHUB_REPO{{NORMAL}}"
 
     cat > README.md << END_OF_HEREDOC
-    # FINI template-repo
+    # ${GITHUB_REPO}
 
     ![GitHub Issues](https://img.shields.io/github/issues/${GITHUB_ORG}/${GITHUB_REPO})
     ![GitHub Pull Requests](https://img.shields.io/github/issues-pr/${GITHUB_ORG}/${GITHUB_REPO})
     ![GitHub License](https://img.shields.io/github/license/${GITHUB_ORG}/${GITHUB_REPO})
     ![GitHub watchers](https://img.shields.io/github/watchers/${GITHUB_ORG}/${GITHUB_REPO})
 
-    A good starting place for new github repos.
+    A good starting place for something. (TODO)
 
     ## Contibuting
 
