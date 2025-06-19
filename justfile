@@ -58,9 +58,9 @@ pr: _on_a_branch
 
 # merge PR and return to starting point
 [group('Process')]
-merge: _on_a_branch
+merge: _on_a_branch && sync
     gh pr merge -s -d
-    just sync # mostly redundant, but just in case
+    # `&& sync` is mostly redundant, but just in case
 
 # start a new branch
 [group('Process')]
