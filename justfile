@@ -41,8 +41,8 @@ clean_readme:
     - [Contributing Guide](.github/CONTRIBUTING.md) includes a step-by-step guide to our
       [development processs](.github/CONTRIBUTING.md#development-process).
 
-    ## Support
+    ## Support & Security
 
     - [Getting Support](.github/SUPPORT.md)
-    - [Security](.github/SECURITY.md)
+    - [Security Policy](.github/SECURITY.md)
     END_OF_HEREDOC

@@ -40,10 +40,10 @@ is a nice checklist of things to consider with a new repo.
 - [Contributing Guide](.github/CONTRIBUTING.md) includes a step-by-step guide to our
   [development processs](.github/CONTRIBUTING.md#development-process).
 
-## Support
+## Support & Security
 
 - [Getting Support](.github/SUPPORT.md)
-- [Security](.github/SECURITY.md)
+- [Security Policy](.github/SECURITY.md)
 
 ## License
 
