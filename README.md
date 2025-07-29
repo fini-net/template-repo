@@ -17,7 +17,9 @@ A good template for github repos with best practices adoption.
 - ✅ [CODEOWNERS](.github/CODEOWNERS) that is self-documented
 - ✅ [justfile](justfile) with
   [command line workflow for pull requests](.github/CONTRIBUTING.md#development-process)
-- ✅ [Github Action for Markdownlint](.github/workflows)
+- ✅ [Github Actions](.github/workflows) are already setup for:
+  - ✅ [Markdownlint](https://github.com/DavidAnson/markdownlint-cli2-action) keeps your READMEs standards-compliant
+  - ✅ [Checkov](https://github.com/bridgecrewio/checkov) will help keep our github actions secure
 - ✅ [A few extra labels for issues](https://github.com/fini-net/template-repo/labels)
 - ✅ [README](README.md) with badges
 
