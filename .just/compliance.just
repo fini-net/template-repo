@@ -80,3 +80,9 @@ compliance_check:
         echo "{{RED}}You do NOT have a justfile.  Feeling the FOMO yet?{{NORMAL}}"
         echo "{{RED}}And this should not be possible.  Tell me how you got here.{{NORMAL}}"
     fi
+
+    if [[ -e .editorconfig ]]; then
+        echo "{{GREEN}}You have an {{BLUE}}.editorconfig{{GREEN}}, keeping tabs and spaces segregated.{{NORMAL}}"
+    else
+        echo "{{RED}}You do NOT have an .editorconfig.  Will your world explode when the tabs and spaces get together?{{NORMAL}}"
+    fi
