@@ -36,6 +36,8 @@ unless a screen shot is the only way to convey your problem.
 
 ## Development process
 
+![dev-process animation](../docs/dev-process.gif)
+
 The [justfile](../justfile) is used for centralizing snippets for build
 and development purposes.
 
