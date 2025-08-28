@@ -14,9 +14,9 @@ sync:
     git pull
     git stp
 
-# PR create 3.1
+# PR create 3.2
 [group('Process')]
-pr: _on_a_branch
+pr: _has_commits
     #!/usr/bin/env bash
     set -euxo pipefail # strict mode
 
@@ -84,14 +84,30 @@ _on_a_branch:
 # error if not on the release branch
 [group('sanity check')]
 [no-cd]
+_has_commits: _on_a_branch
+    #!/bin/bash
+
+    # thanks to https://stackoverflow.com/a/24668421/2002471
+
+    CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+    #echo $CURRENT_BRANCH
+
+    if [[ $(git cherry -v {{ release_branch }} "$CURRENT_BRANCH" | wc -l) -eq 0 ]]; then
+      echo "You are on a branch that {{RED}}does not have any commits{{NORMAL}}."
+      exit 101
+    fi
+
+# error if not on the release branch
+[group('sanity check')]
+[no-cd]
 _main_branch:
     #!/bin/bash
 
     # thanks to https://stackoverflow.com/a/12142066/2002471
 
     if [[ ! $(git rev-parse --abbrev-ref HEAD) == "{{ release_branch }}" ]]; then
-      echo "You are on a branch that is not the release branch so you are not ready to start a new branch."
-      exit 100
+      echo "You are on a {{BLUE}}branch that is not the release branch{{NORMAL}} so you are not ready to start a new branch."
+      exit 102
     fi
 
 # print UTC date in ISO format
