@@ -42,7 +42,7 @@ A good template for github repos with best practices adoption.
 [Here is a nice checklist](https://github.com/jlcanovas/gh-best-practices-template/blob/main/guidelines.md)
 of things to consider with a new repo.
 
-## Contibuting
+## Contributing
 
 - [Code of Conduct](.github/CODE_OF_CONDUCT.md)
 - [Contributing Guide](.github/CONTRIBUTING.md) includes a step-by-step guide to our
