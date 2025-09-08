@@ -35,7 +35,7 @@ clean_readme:
 
     A good starting place for something. (TODO)
 
-    ## Contibuting
+    ## Contributing
 
     - [Code of Conduct](.github/CODE_OF_CONDUCT.md)
     - [Contributing Guide](.github/CONTRIBUTING.md) includes a step-by-step guide to our
