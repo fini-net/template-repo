@@ -27,12 +27,14 @@ pr: _has_commits && pr_checks
 
     bodyfile=$(mktemp /tmp/justfile.XXXXXX)
 
-    echo "## Done:" >> $bodyfile
+    echo "## Done" >> $bodyfile
     echo "" >> $bodyfile
     echo "- {{ last_commit_message }}" >> $bodyfile
     echo "" >> $bodyfile
     echo "" >> $bodyfile
-    echo "(Automated in \`justfile\`.)" >> $bodyfile
+    echo "## Meta" >> $bodyfile
+    echo "" >> $bodyfile
+    echo "(Automated in \`.just/gh-process.just\`.)" >> $bodyfile
 
     echo ''
     cat "$bodyfile"
