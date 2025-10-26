@@ -13,7 +13,7 @@ A good template for github repos with best practices adoption.
   - ✅ This [README](README) with badges
   - ✅ [Contributor Covenant](https://www.contributor-covenant.org)-based Code of Conduct
   - ✅ [Contributing Guide](.github/CONTRIBUTING.md) includes a step-by-step guide to our
-    [command line development processs](.github/CONTRIBUTING.md#development-process).
+    [command line development process](.github/CONTRIBUTING.md#development-process).
   - ✅ [GPL2](LICENSE) license
   - ✅ [Security Policy](.github/SECURITY.md)
   - ✅ [Issue Templates](.github/ISSUE_TEMPLATE/)
@@ -46,7 +46,7 @@ of things to consider with a new repo.
 
 - [Code of Conduct](.github/CODE_OF_CONDUCT.md)
 - [Contributing Guide](.github/CONTRIBUTING.md) includes a step-by-step guide to our
-  [development processs](.github/CONTRIBUTING.md#development-process).
+  [development process](.github/CONTRIBUTING.md#development-process).
 
 ## Support & Security
 
