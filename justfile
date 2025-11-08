@@ -12,7 +12,7 @@ list:
 # generate a clean README
 [group('Utility')]
 [no-cd]
-clean_readme:
+clean_readme: _on_a_branch
     #!/usr/bin/env bash
     set -euo pipefail # strict mode without tracing
 
@@ -46,3 +46,5 @@ clean_readme:
     - [Getting Support](.github/SUPPORT.md)
     - [Security Policy](.github/SECURITY.md)
     END_OF_HEREDOC
+
+    echo "{{BLUE}}You can remove the clean_readme recipe from /justfile also.{{NORMAL}}"
