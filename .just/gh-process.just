@@ -96,7 +96,7 @@ _has_commits: _on_a_branch
     CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
     #echo $CURRENT_BRANCH
 
-    if [[ $(git cherry -v {{ release_branch }} "$CURRENT_BRANCH" | wc -l) -eq 0 ]]; then
+    if [[ $(git cherry -v "{{ release_branch }}" "$CURRENT_BRANCH" | wc -l) -eq 0 ]]; then
         echo "You are on a branch that {{RED}}does not have any commits{{NORMAL}}."
         exit 101
     fi
