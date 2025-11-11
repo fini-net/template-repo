@@ -24,15 +24,15 @@ pr: _has_commits && pr_checks
     set +x # leave tracing off...
 
     CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-    #COMMIT_COUNT=$(git cherry -v {{ release_branch }} "$CURRENT_BRANCH" | wc -l)
+    #COMMIT_COUNT=$(git cherry -v "{{ release_branch }}" "$CURRENT_BRANCH" | wc -l)
 
     # first commit message becomes PR title
-    FIRST_COMMIT_MESSAGE=$(git cherry -v {{ release_branch }} "$CURRENT_BRANCH" | sed -e 's/^[+] [0-9a-f]* //' | head -1)
+    FIRST_COMMIT_MESSAGE=$(git cherry -v "{{ release_branch }}" "$CURRENT_BRANCH" | sed -e 's/^[+] [0-9a-f]* //' | head -1)
 
     bodyfile=$(mktemp /tmp/justfile.XXXXXX)
     echo "## Done" >> $bodyfile
     echo "" >> $bodyfile
-    git cherry -v {{ release_branch }} "$CURRENT_BRANCH" | sed -e 's/^[+] [0-9a-f]* /- /' >> $bodyfile
+    git cherry -v "{{ release_branch }}" "$CURRENT_BRANCH" | sed -e 's/^[+] [0-9a-f]* /- /' >> $bodyfile
     echo "" >> $bodyfile
     echo "" >> $bodyfile
     echo "## Meta" >> $bodyfile
