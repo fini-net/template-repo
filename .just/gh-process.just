@@ -12,7 +12,7 @@ sync:
     git pull
     git stp
 
-# PR create 3.5
+# PR create 3.6
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
