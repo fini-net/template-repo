@@ -65,7 +65,7 @@ Available recipes:
     [Process]
     branch branchname   # start a new branch
     merge               # merge PR and return to starting point
-    pr                  # PR create 3.6
+    pr                  # PR create 3.7
     pr_checks           # watch GHAs then check for Copilot suggestions
     prweb               # view PR in web browser
     release rel_version # make a release
