@@ -8,7 +8,7 @@ release_branch := "main"
 # escape from branch, back to starting point
 [group('Process')]
 sync:
-    git checkout {{ release_branch }}
+    git checkout "{{ release_branch }}"
     git pull
     git stp
 
