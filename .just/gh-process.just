@@ -17,7 +17,7 @@ pr: _has_commits && pr_checks
     set -euxo pipefail # strict mode
 
     # handle optional pre-pr hook (for things like hugo)
-    if [[ ! -e ".just/pr-hook.just" ]]; then
+    if [[ -e ".just/pr-hook.just" ]]; then
         # _pr-hook is hidden because we think it is internal
         just _pr-hook
     fi
