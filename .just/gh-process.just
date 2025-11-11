@@ -10,11 +10,12 @@ sync:
     git pull
     git stp
 
-# PR create 3.6
+# PR create 3.7
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
     set -euxo pipefail # strict mode
+    set +x # leave tracing off...
 
     # handle optional pre-pr hook (for things like hugo)
     if [[ -e ".just/pr-hook.just" ]]; then
@@ -24,8 +25,6 @@ pr: _has_commits && pr_checks
 
     git stp
     git pushup
-
-    set +x # leave tracing off...
 
     CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
     #COMMIT_COUNT=$(git cherry -v "{{ release_branch }}" "$CURRENT_BRANCH" | wc -l)
@@ -55,8 +54,8 @@ pr: _has_commits && pr_checks
         exit 0
     fi
 
-    echo "{{BLUE}}sleeping for 10s because github is lazy with their API{{NORMAL}}"
-    sleep 10
+    echo "{{BLUE}}sleeping for 8s because github is lazy with their API{{NORMAL}}"
+    sleep 8
 
 # merge PR and return to starting point
 [group('Process')]
