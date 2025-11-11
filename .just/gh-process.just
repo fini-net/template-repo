@@ -3,11 +3,7 @@
 # TODO: merge with hugo fork of this somehow
 
 # some useful variables
-host := `uname -n`
 release_branch := "main"
-
-# thanks to https://stackoverflow.com/a/7293026/2002471 for the perfect git incantation
-last_commit_message := `git log -1 --pretty=%B | grep '.'`
 
 # escape from branch, back to starting point
 [group('Process')]
@@ -27,12 +23,16 @@ pr: _has_commits && pr_checks
 
     set +x # leave tracing off...
 
-    bodyfile=$(mktemp /tmp/justfile.XXXXXX)
-    #TODO: handle multiple commits on the branch
+    CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+    #COMMIT_COUNT=$(git cherry -v {{ release_branch }} "$CURRENT_BRANCH" | wc -l)
 
+    # first commit message becomes PR title
+    FIRST_COMMIT_MESSAGE=$(git cherry -v {{ release_branch }} "$CURRENT_BRANCH" | sed -e 's/^[+] [0-9a-f]* //' | head -1)
+
+    bodyfile=$(mktemp /tmp/justfile.XXXXXX)
     echo "## Done" >> $bodyfile
     echo "" >> $bodyfile
-    echo "- {{ last_commit_message }}" >> $bodyfile
+    git cherry -v {{ release_branch }} "$CURRENT_BRANCH" | sed -e 's/^[+] [0-9a-f]* /- /' >> $bodyfile
     echo "" >> $bodyfile
     echo "" >> $bodyfile
     echo "## Meta" >> $bodyfile
@@ -43,7 +43,7 @@ pr: _has_commits && pr_checks
     cat "$bodyfile"
     echo ''
 
-    gh pr create --title "{{ last_commit_message }}" --body-file "$bodyfile"
+    gh pr create --title "$FIRST_COMMIT_MESSAGE" --body-file "$bodyfile"
     rm "$bodyfile"
 
     if [[ ! -e ".github/workflows" ]]; then
