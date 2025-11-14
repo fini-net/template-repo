@@ -1,5 +1,8 @@
 # git/gh process justfile
 
+# check out the RELEASE_NOTES.md for the detailed history of this file
+# the README.md in this directory also might be useful to you
+
 # some useful variables
 release_branch := "main"
 
