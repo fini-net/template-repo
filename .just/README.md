@@ -9,3 +9,6 @@ project for updates.
 
 We use the [repos-summary script](https://github.com/chicks-net/chicks-home/blob/main/bin/repos-summary)
 to see which of our repos need updates of the just files.
+
+You can read our [release notes](RELEASE_NOTES.md) to learn more about
+the history of how we have evolved the github PR process.
