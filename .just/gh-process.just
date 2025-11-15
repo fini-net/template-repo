@@ -11,9 +11,9 @@ release_branch := "main"
 sync:
     git checkout "{{ release_branch }}"
     git pull
-    git stp
+    git status --porcelain # stp
 
-# PR create 3.7
+# PR create 3.8
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -26,8 +26,8 @@ pr: _has_commits && pr_checks
         just _pr-hook
     fi
 
-    git stp
-    git pushup
+    git status --porcelain # stp
+    git push -u origin HEAD # pushup
 
     CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
     #COMMIT_COUNT=$(git cherry -v "{{ release_branch }}" "$CURRENT_BRANCH" | wc -l)
@@ -71,7 +71,7 @@ merge: _on_a_branch && sync
 branch branchname: _main_branch
     #!/usr/bin/env bash
     NOW=`just utcdate`
-    git co -b "$USER/$NOW-{{ branchname }}"
+    git checkout -b "$USER/$NOW-{{ branchname }}"
 
 # view PR in web browser
 [group('Process')]

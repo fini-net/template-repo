@@ -2,14 +2,21 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
-## Planned Changes
+## November 2025 - The Polish Updates
 
-- Remove requirement to use
-  [my git aliases](https://github.com/chicks-net/chicks-home/blob/main/.gitconfig)
-  for this to work by expanding all of the `git` commands to
-  work on stock `git` installs.
+### v3.8 - Git Alias Expansion
 
-## November 2025 - The Polish Update
+Expanded all git aliases to use standard git commands, making this justfile
+work for everyone without requiring custom git configuration. Previously,
+you needed my personal git aliases (`stp`, `pushup`, `co`) configured to use
+this workflow. Now it just works out of the box.
+
+- `git stp` → `git status --porcelain`
+- `git pushup` → `git push -u origin HEAD`
+- `git co` → `git checkout`
+
+Added inline comments showing the old alias names for reference, so if you're
+used to seeing `stp` in the output, you know what's happening.
 
 ### v3.7 - Pre-PR Hook Support (#32, #33)
 

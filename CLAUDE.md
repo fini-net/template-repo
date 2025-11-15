@@ -14,7 +14,7 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 
 1. `just branch <name>` - Create a new feature branch (format: `$USER/YYYY-MM-DD-<name>`)
 2. Make changes and commit (last commit message becomes PR title)
-3. `just pr` - Create PR, push changes, and watch checks (waits 10s for GitHub API)
+3. `just pr` - Create PR, push changes, and watch checks (waits 8s for GitHub API)
 4. `just merge` - Squash merge PR, delete branch, return to main, and pull latest
 5. `just sync` - Return to main branch and pull latest (escape hatch)
 
@@ -27,31 +27,36 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 - `just compliance_check` - Run custom repo compliance checks
 - `just utcdate` - Print UTC date in ISO format (used in branch names)
 
-### Git aliases used
-
-The justfile assumes these git aliases exist:
-
-- `git stp` - Show status (likely `status --short` or similar)
-- `git pushup` - Push and set upstream tracking
-- `git co` - Checkout
-
 ## Architecture
 
 ### Modular justfile structure
 
-The main `justfile` imports two modules:
+The main `justfile` imports three modules:
 
-- `.just/compliance.just` - Custom compliance checks for repo health
-- `.just/gh-process.just` - Git/GitHub workflow automation
+- `.just/compliance.just` - Custom compliance checks for repo health (validates all GitHub community standards)
+- `.just/gh-process.just` - Git/GitHub workflow automation (core PR lifecycle)
+- `.just/pr-hook.just` - Optional pre-PR hooks for project-specific automation (e.g., Hugo rebuilds)
+
+### Git/GitHub workflow details
+
+The `.just/gh-process.just` module implements the entire PR lifecycle:
+
+- **Branch creation** - Dated branches with `$USER/YYYY-MM-DD-<name>` format
+- **PR creation** - First commit message becomes PR title, all commits listed in body
+- **Sanity checks** - Prevents empty PRs, enforces branch strategy via hidden recipes (`_on_a_branch`, `_has_commits`, `_main_branch`)
+- **AI integration** - After PR checks complete, displays GitHub Copilot and Claude Code review comments in terminal
+- **Merge automation** - Squash merge, delete remote branch, return to main, pull latest
 
 ### GitHub Actions
 
-Four workflows run on PRs and pushes to main:
+Six workflows run on PRs and pushes to main:
 
 - **markdownlint** - Enforces markdown standards using `markdownlint-cli2`
-- **checkov** - Security scanning for GitHub Actions
+- **checkov** - Security scanning for GitHub Actions (continues on error, outputs SARIF)
 - **actionlint** - Lints GitHub Actions workflow files
-- **auto-assign** - Automatically assigns issues
+- **auto-assign** - Automatically assigns issues/PRs to `chicks-net`
+- **claude-code-review** - Claude AI review automation
+- **claude** - Additional Claude integration
 
 ### Markdown linting
 
@@ -71,6 +76,13 @@ When using this template for a new project, search and replace:
 
 - `fini-net` → your GitHub org
 - `template-repo` → your repo name
-- `chicks-net` → your references
+- `chicks-net` → your references (especially in `.github/workflows/auto-assign.yml`)
 
 Run `just clean_readme` to strip template documentation from README.
+
+## Important implementation notes
+
+- All git commands in `.just/gh-process.just` use standard git (no aliases required)
+- The `pr` recipe runs optional pre-PR hooks if `.just/pr-hook.just` exists
+- PR checks poll every 5 seconds for faster feedback
+- Release notes for workflow changes are tracked in `.just/RELEASE_NOTES.md`
