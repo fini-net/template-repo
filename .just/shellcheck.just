@@ -41,6 +41,9 @@ shellcheck:
         }
 
         # detect recipe name (line not starting with whitespace, containing a colon)
+        # Claude is concerned this will match non-recipes, but the shebang check
+        # must also trigger, which is unlikely below a variable name or other
+        # mismatches.
         /^[a-zA-Z_]/ && /:/ {
             # extract recipe name (everything before the colon)
             match($0, /^[a-zA-Z_][a-zA-Z0-9_-]*/)
