@@ -100,7 +100,7 @@ shellcheck:
                 echo $((SCRIPTS_CHECKED + 1)) > "$SCRIPTS_FILE"
 
                 # run shellcheck
-                if ! shellcheck -x "$scriptfile"; then
+                if ! shellcheck -x -s bash "$scriptfile"; then
                     echo "{{RED}}Issues found in $jfile recipe '$recipe'{{NORMAL}}"
                     ISSUES_FOUND=$(cat "$ISSUES_FILE")
                     echo $((ISSUES_FOUND + 1)) > "$ISSUES_FILE"
