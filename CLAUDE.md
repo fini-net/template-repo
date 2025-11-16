@@ -25,17 +25,19 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 - `just release <version>` - Create a GitHub release with auto-generated notes
 - `just clean_readme` - Generate a clean README from template (strips template documentation)
 - `just compliance_check` - Run custom repo compliance checks
+- `just shellcheck` - Run shellcheck on all bash scripts in just recipes
 - `just utcdate` - Print UTC date in ISO format (used in branch names)
 
 ## Architecture
 
 ### Modular justfile structure
 
-The main `justfile` imports three modules:
+The main `justfile` imports four modules:
 
 - `.just/compliance.just` - Custom compliance checks for repo health (validates all GitHub community standards)
 - `.just/gh-process.just` - Git/GitHub workflow automation (core PR lifecycle)
 - `.just/pr-hook.just` - Optional pre-PR hooks for project-specific automation (e.g., Hugo rebuilds)
+- `.just/shellcheck.just` - Shellcheck linting for bash scripts in just recipes
 
 ### Git/GitHub workflow details
 
@@ -46,6 +48,16 @@ The `.just/gh-process.just` module implements the entire PR lifecycle:
 - **Sanity checks** - Prevents empty PRs, enforces branch strategy via hidden recipes (`_on_a_branch`, `_has_commits`, `_main_branch`)
 - **AI integration** - After PR checks complete, displays GitHub Copilot and Claude Code review comments in terminal
 - **Merge automation** - Squash merge, delete remote branch, return to main, pull latest
+
+### Shellcheck integration
+
+The `.just/shellcheck.just` module extracts and validates bash scripts:
+
+- **Script extraction** - Uses awk to identify recipes with bash shebangs (`#!/usr/bin/env bash` or `#!/bin/bash`)
+- **Automatic detection** - Scans all justfiles in repo (main `justfile` and `.just/*.just`)
+- **Temporary file handling** - Creates temporary files for each script and runs shellcheck with `-x -s bash` flags
+- **Detailed reporting** - Shows which file and recipe each issue is in, with colored output
+- **Exit code** - Returns 1 if issues found, 0 if all scripts pass
 
 ### GitHub Actions
 
@@ -86,3 +98,4 @@ Run `just clean_readme` to strip template documentation from README.
 - The `pr` recipe runs optional pre-PR hooks if `.just/pr-hook.just` exists
 - PR checks poll every 5 seconds for faster feedback
 - Release notes for workflow changes are tracked in `.just/RELEASE_NOTES.md`
+- The `.just` directory contains modular just recipes that can be copied to other projects for updates
