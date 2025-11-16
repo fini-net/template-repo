@@ -60,12 +60,13 @@ You should get a more colorful version of this:
 just --list
 Available recipes:
     [Compliance]
-    compliance_check    # our own compliance check
+    compliance_check    # our own repo compliance check
+    shellcheck          # run shellcheck on all bash scripts in just recipes
 
     [Process]
     branch branchname   # start a new branch
     merge               # merge PR and return to starting point
-    pr                  # PR create 3.7
+    pr                  # PR create 3.8
     pr_checks           # watch GHAs then check for Copilot suggestions
     prweb               # view PR in web browser
     release rel_version # make a release
