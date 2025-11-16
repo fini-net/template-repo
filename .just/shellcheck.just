@@ -4,7 +4,7 @@
 [group('Compliance')]
 shellcheck:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -euo pipefail # strict mode
 
     echo "{{MAGENTA}}Running shellcheck on bash scripts in just recipes...{{NORMAL}}"
 
