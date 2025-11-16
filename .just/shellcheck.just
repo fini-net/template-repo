@@ -52,14 +52,20 @@ shellcheck:
             next
         }
 
-        # if in a script, collect lines
+        # if in a script, collect indented lines
         in_script && /^[[:space:]]+/ {
             script_content = script_content $0 "\n"
             next
         }
 
-        # end of script (non-indented line or empty line after script started)
-        in_script && !/^[[:space:]]+/ {
+        # if in a script, collect empty lines (preserve blank lines in scripts)
+        in_script && /^[[:space:]]*$/ {
+            script_content = script_content $0 "\n"
+            next
+        }
+
+        # end of script (non-empty, non-indented line starts a new recipe)
+        in_script && /^[^[:space:]]/ {
             if (script_content != "") {
                 script_num++
                 filename = tmpdir "/script_" script_num ".sh"
