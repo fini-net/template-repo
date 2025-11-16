@@ -12,14 +12,14 @@ shellcheck:
     JUSTFILES=(justfile .just/*.just)
 
     # temporary directory for extracted scripts and tracking
-    TMPDIR=$(mktemp -d)
+    CHECKS_TMPDIR=$(mktemp -d)
 
     # shellcheck disable=SC2064
-    trap "rm -rf $TMPDIR" EXIT
+    trap "rm -rf $CHECKS_TMPDIR" EXIT
 
     # use files for tracking across subshells
-    ISSUES_FILE="$TMPDIR/issues_count"
-    SCRIPTS_FILE="$TMPDIR/scripts_count"
+    ISSUES_FILE="$CHECKS_TMPDIR/issues_count"
+    SCRIPTS_FILE="$CHECKS_TMPDIR/scripts_count"
     echo "0" > "$ISSUES_FILE"
     echo "0" > "$SCRIPTS_FILE"
 
@@ -32,7 +32,7 @@ shellcheck:
         echo "{{BLUE}}Checking $JUSTFILE...{{NORMAL}}"
 
         # extract shell scripts using awk
-        awk -v justfile="$JUSTFILE" -v tmpdir="$TMPDIR" '
+        awk -v justfile="$JUSTFILE" -v tmpdir="$CHECKS_TMPDIR" '
         BEGIN {
             in_script = 0
             recipe_name = ""
