@@ -1,4 +1,4 @@
-# our own compliance check
+# our own repo compliance check
 [group('Compliance')]
 compliance_check:
     #!/usr/bin/env bash
