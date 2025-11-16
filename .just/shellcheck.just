@@ -13,6 +13,8 @@ shellcheck:
 
     # temporary directory for extracted scripts and tracking
     TMPDIR=$(mktemp -d)
+
+    # shellcheck disable=SC2064
     trap "rm -rf $TMPDIR" EXIT
 
     # use files for tracking across subshells
