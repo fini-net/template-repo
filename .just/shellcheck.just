@@ -127,7 +127,7 @@ shellcheck:
     ISSUES_FOUND=$(cat "$ISSUES_FILE")
 
     echo ""
-    echo "{{BLUE}}Checked $SCRIPTS_CHECKED shell scripts{{NORMAL}}"
+    echo "{{MAGENTA}}Checked $SCRIPTS_CHECKED shell scripts{{NORMAL}}"
 
     if [[ $ISSUES_FOUND -eq 0 ]]; then
         echo "{{GREEN}}No shellcheck issues found!{{NORMAL}}"
