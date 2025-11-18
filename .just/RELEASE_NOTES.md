@@ -4,7 +4,35 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2025 - The Polish Updates
 
-### v3.8 - Git Alias Expansion
+### v3.9 - Shellcheck Error Fixes (#40)
+
+Before adding the shellcheck tooling in v3.8bis, we knew there were a bunch of
+shellcheck warnings in the gh-process module itself. This release fixes all
+of those issues - better variable quoting, improved conditional syntax, and
+other shellcheck best practices. Nothing user-facing changed, but the code is
+now cleaner and more robust. This should also mean that our future AI code
+reviews will have less trivial stuff to complain about.
+
+**Related PRs:** [#40](https://github.com/fini-net/template-repo/pull/40)
+
+### v3.8bis - Shellcheck Integration (#37, #39)
+
+Added a whole new module for linting bash scripts embedded in just recipes.
+The `shellcheck` recipe extracts bash scripts from all justfiles in the repo,
+writes them to temporary files, and runs shellcheck on each one. It's pretty
+meta - using just to check just recipes.
+
+- New `.just/shellcheck.just` module with 138 lines of awk magic
+- Automatically finds recipes with bash shebangs
+- Detailed reporting showing which file and recipe each issue is in
+- Purple section headings because why not
+- Returns proper exit codes for CI integration
+
+This immediately found issues in our own code, which led to v3.9.
+
+**Related PRs:** [#37](https://github.com/fini-net/template-repo/pull/37), [#39](https://github.com/fini-net/template-repo/pull/39)
+
+### v3.8 - Git Alias Expansion (#35)
 
 Expanded all git aliases to use standard git commands, making this justfile
 work for everyone without requiring custom git configuration. Previously,
@@ -17,6 +45,8 @@ this workflow. Now it just works out of the box.
 
 Added inline comments showing the old alias names for reference, so if you're
 used to seeing `stp` in the output, you know what's happening.
+
+**Related PRs:** [#35](https://github.com/fini-net/template-repo/pull/35)
 
 ### v3.7 - Pre-PR Hook Support (#32, #33)
 
