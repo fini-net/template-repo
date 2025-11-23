@@ -6,12 +6,13 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:en.wikipedia.org)",
+      "WebSearch",
+      "Bash(markdownlint-cli2:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr diff:*)",
       "Bash(git log:*)",
-      "WebSearch",
-      "Bash(markdownlint-cli2:*)",
-      "Bash(identify:*)"
+      "Bash(identify:*)",
+      "Bash(just shellcheck:*)"
     ],
     "deny": [],
     "ask": []
