@@ -17,8 +17,7 @@ sync:
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
-    set -euxo pipefail # strict mode
-    set +x # leave tracing off...
+    set -euo pipefail # strict mode
 
     # handle optional pre-pr hook (for things like hugo)
     if [[ -e ".just/pr-hook.just" ]]; then
@@ -182,8 +181,7 @@ pr_checks:
 [group('Process')]
 pr_update: _on_a_branch
     #!/usr/bin/env bash
-    set -euxo pipefail # strict mode
-    set +x # leave tracing off...
+    set -euo pipefail # strict mode
 
     CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
@@ -232,7 +230,7 @@ pr_update: _on_a_branch
 [group('Process')]
 pr_verify: _on_a_branch
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -euo pipefail # strict mode
 
     # read stdin into a temp file
     stdin_content=$(mktemp /tmp/justfile.XXXXXX)
