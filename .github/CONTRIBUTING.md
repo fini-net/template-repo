@@ -66,8 +66,10 @@ Available recipes:
     [Process]
     branch branchname   # start a new branch
     merge               # merge PR and return to starting point
-    pr                  # PR create 3.8
+    pr                  # PR create v4.0
     pr_checks           # watch GHAs then check for Copilot suggestions
+    pr_update           # update the Done section of PR description with current commits
+    pr_verify           # add or append to Verify section from stdin
     prweb               # view PR in web browser
     release rel_version # make a release
     sync                # escape from branch, back to starting point
