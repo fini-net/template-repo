@@ -183,6 +183,11 @@ pr_update: _on_a_branch
     #!/usr/bin/env bash
     set -euo pipefail # strict mode
 
+    if \! gh pr view &>/dev/null; then
+        echo "No PR found for current branch"
+        exit 1
+    fi
+
     CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
     # get current PR body
