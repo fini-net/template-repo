@@ -121,6 +121,18 @@ _main_branch:
         exit 102
     fi
 
+# error if not on a branch with a pull request
+[group('sanity check')]
+[no-cd]
+_on_a_pull_request: _on_a_branch
+    #!/bin/bash
+    set -euo pipefail # strict mode
+
+    if \! gh pr view &>/dev/null; then
+        echo "No PR found for current branch"
+        exit 1
+    fi
+
 # print UTC date in ISO format
 [group('Utility')]
 [no-cd]
@@ -134,7 +146,7 @@ release rel_version:
 
 # watch GHAs then check for Copilot suggestions
 [group('Process')]
-pr_checks:
+pr_checks: _on_a_pull_request
     #!/usr/bin/env bash
 
     gh pr checks --watch -i 5
@@ -179,14 +191,9 @@ pr_checks:
 
 # update the Done section of PR description with current commits
 [group('Process')]
-pr_update: _on_a_branch
+pr_update: _on_a_pull_request
     #!/usr/bin/env bash
     set -euo pipefail # strict mode
-
-    if \! gh pr view &>/dev/null; then
-        echo "No PR found for current branch"
-        exit 1
-    fi
 
     CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
@@ -233,7 +240,7 @@ pr_update: _on_a_branch
 
 # add or append to Verify section from stdin
 [group('Process')]
-pr_verify: _on_a_branch
+pr_verify: _on_a_pull_request
     #!/usr/bin/env bash
     set -euo pipefail # strict mode
 
