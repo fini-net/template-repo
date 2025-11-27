@@ -13,7 +13,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v3.9
+# PR create v4.0
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -177,3 +177,133 @@ pr_checks:
     # did Claude comment?
     echo -e "\n\n🟧🟠🔶🔸 Claude:"
     gh pr view --json comments --jq '[.comments[] | select(.author.login == "claude")] | last | .body'
+
+# update the Done section of PR description with current commits
+[group('Process')]
+pr_update: _on_a_branch
+    #!/usr/bin/env bash
+    set -euxo pipefail # strict mode
+    set +x # leave tracing off...
+
+    CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+
+    # get current PR body
+    bodyfile=$(mktemp /tmp/justfile.XXXXXX)
+    gh pr view --json body --jq '.body' > "$bodyfile"
+
+    # create new Done section
+    new_done_section=$(mktemp /tmp/justfile.XXXXXX)
+    {
+        echo "## Done"
+        echo ""
+        git cherry -v "{{ release_branch }}" "$CURRENT_BRANCH" | sed -e 's/^[+] [0-9a-f]* /- /'
+        echo ""
+    } > "$new_done_section"
+
+    # extract everything after Done section (preserve other sections)
+    other_sections=$(mktemp /tmp/justfile.XXXXXX)
+    awk '/^## Done/,/^## / {if (/^## / && !/^## Done/) {found=1}} found {print}' "$bodyfile" > "$other_sections"
+
+    # if no other sections found after Done, preserve everything after Done
+    if [ ! -s "$other_sections" ]; then
+        # look for content after the Done section's commit list
+        awk 'BEGIN {in_done=0; after_done=0}
+             /^## Done/ {in_done=1; next}
+             in_done && /^$/ {empty_count++; if (empty_count >= 2) after_done=1; next}
+             in_done && /^- / {next}
+             after_done {print}' "$bodyfile" > "$other_sections"
+    fi
+
+    # combine new Done section with preserved sections
+    updated_body=$(mktemp /tmp/justfile.XXXXXX)
+    cat "$new_done_section" "$other_sections" > "$updated_body"
+
+    echo ''
+    cat "$updated_body"
+    echo ''
+
+    # update PR body
+    gh pr edit --body-file "$updated_body"
+
+    # cleanup
+    rm "$bodyfile" "$new_done_section" "$other_sections" "$updated_body"
+
+# add or append to Verify section from stdin
+[group('Process')]
+pr_verify: _on_a_branch
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # read stdin into a temp file
+    stdin_content=$(mktemp /tmp/justfile.XXXXXX)
+    cat > "$stdin_content"
+
+    # get current PR body
+    bodyfile=$(mktemp /tmp/justfile.XXXXXX)
+    gh pr view --json body --jq '.body' > "$bodyfile"
+
+    # get current datetime
+    DATETIME=$(date '+%Y-%m-%d %H:%M:%S %Z')
+
+    # check if Verify section exists
+    if grep -q '^## Verify' "$bodyfile"; then
+        # append to existing Verify section
+        updated_body=$(mktemp /tmp/justfile.XXXXXX)
+        awk -v datetime="$DATETIME" '
+            /^## Verify/ {
+                in_verify=1
+                print
+                next
+            }
+            /^## / && in_verify {
+                # found next section, insert content before it
+                print ""
+                print "### " datetime
+                print ""
+                print "```"
+                system("cat '"$stdin_content"'")
+                print "```"
+                print ""
+                in_verify=0
+            }
+            { print }
+            END {
+                # if still in verify section at end, append content
+                if (in_verify) {
+                    print ""
+                    print "### " datetime
+                    print ""
+                    print "```"
+                    system("cat '"$stdin_content"'")
+                    print "```"
+                }
+            }
+        ' "$bodyfile" > "$updated_body"
+    else
+        # create new Verify section before Meta section
+        updated_body=$(mktemp /tmp/justfile.XXXXXX)
+        awk -v datetime="$DATETIME" '
+            /^## Meta/ {
+                # insert Verify section before Meta
+                print "## Verify"
+                print ""
+                print "### " datetime
+                print ""
+                print "```"
+                system("cat '"$stdin_content"'")
+                print "```"
+                print ""
+            }
+            { print }
+        ' "$bodyfile" > "$updated_body"
+    fi
+
+    echo ''
+    cat "$updated_body"
+    echo ''
+
+    # update PR body
+    gh pr edit --body-file "$updated_body"
+
+    # cleanup
+    rm "$stdin_content" "$bodyfile" "$updated_body"
