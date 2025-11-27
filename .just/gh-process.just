@@ -130,7 +130,7 @@ _on_a_pull_request: _on_a_branch
 
     if \! gh pr view &>/dev/null; then
         echo "No PR found for current branch"
-        exit 1
+        exit 103
     fi
 
 # print UTC date in ISO format
