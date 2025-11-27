@@ -4,6 +4,36 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2025 - The Polish Updates
 
+### v4.0 - PR Description Management (#44)
+
+Added two new recipes for managing pull request descriptions dynamically:
+
+- **`pr_update`** - Updates the "Done" section of the PR description with the
+  current list of commits from the branch. Extracts commits using `git cherry`,
+  preserves other sections (Meta, Verify, etc.), and updates the PR body via
+  `gh pr edit`. Useful when you add commits after PR creation and want to keep
+  the description in sync.
+
+- **`pr_verify`** - Adds or appends content to a "Verify" section in the PR
+  description. Reads from stdin, timestamps each entry, and formats as a code
+  block. If no Verify section exists, creates one before the Meta section. If
+  one exists, appends new timestamped entries. Perfect for logging test results
+  or verification steps.
+
+Both recipes include a new sanity check (`_on_a_pull_request`) that verifies
+you're on a branch with an active pull request before attempting updates. This
+prevents cryptic errors when running these commands outside of PR context.
+
+Other improvements in this release:
+
+- Simplified bash strict mode settings (removed `-x` tracing flag)
+- Standardized PR existence checks across recipes
+- Better error handling with exit code 103 for missing PRs
+- Initialize awk variables properly to avoid undefined behavior
+- Updated documentation to show new recipes
+
+**Related PRs:** [#44](https://github.com/fini-net/template-repo/pull/44)
+
 ### v3.9 - Shellcheck Error Fixes (#40)
 
 Before adding the shellcheck tooling in v3.8bis, we knew there were a bunch of
