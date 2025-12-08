@@ -4,6 +4,36 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2025 - The Polish Updates
 
+### v4.1 - Release Monitoring and Iteration Workflow (#46)
+
+Added three new recipes to improve release management and iterative PR workflows:
+
+- **`release_age`** - Checks how long ago the last release was published and
+  provides actionable feedback. Displays the release tag, publication date, age
+  in days, and commit count since release. Warns (in yellow) if the release is
+  more than 60 days old, suggesting it might be time for a new release. Works
+  cross-platform with both GNU date (Linux) and BSD date (macOS). Uses `gh`
+  API for robust JSON parsing of release data.
+
+- **`claude_review`** - Broke out Claude Code review comment display into its
+  own standalone recipe. Previously only callable via `pr_checks`, it can now
+  be run independently to quickly see Claude's latest PR comment without
+  re-running all the checks. Still chains automatically from `pr_checks` for
+  the full workflow.
+
+- **`again`** - Convenience recipe for iterative PR development. Chains
+  together the common workflow of pushing new commits, updating the PR
+  description with current commits, and re-watching the PR checks. Saves
+  typing when you're in the flow of making changes, getting feedback, and
+  iterating. Includes a 2-second sleep between PR update and check watching
+  to give GitHub's API time to catch up.
+
+These recipes improve different phases of the development cycle - `release_age`
+for project maintenance awareness, `claude_review` for quick feedback access,
+and `again` for rapid PR iteration.
+
+**Related PRs:** [#46](https://github.com/fini-net/template-repo/pull/46)
+
 ### v4.0 - PR Description Management (#44)
 
 Added two new recipes for managing pull request descriptions dynamically:
