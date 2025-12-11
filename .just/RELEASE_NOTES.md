@@ -4,7 +4,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## December 2025 - Finer refinements
 
-### v4.2 - Prerequisites Installation Script
+### v4.2 - Prerequisites Installation Script (#48)
 
 Added a standalone shell script to automate installation and verification of all
 prerequisites needed to run the just recipes in this repository:
@@ -22,6 +22,8 @@ The script is fully executable, passes shellcheck validation, and provides a
 friendly user experience with color-coded output and helpful error messages.
 Run `./.just/install-prerequisites.sh` to check your environment or install
 missing tools.
+
+**Related PRs:** [#48](https://github.com/fini-net/template-repo/pull/48)
 
 ### v4.1 - Release Monitoring and Iteration Workflow (#46)
 
