@@ -4,6 +4,22 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## December 2025 - Finer refinements
 
+### v4.3 - Release Tag Visibility
+
+Enhanced the `release` recipe to automatically pull the newly created tag so it's
+immediately visible in your local repository. Previously, after running
+`just release v1.2.3`, the tag would exist on GitHub but wouldn't show up in
+`git tag` locally until you manually ran `git pull`. Now the workflow handles
+this for you.
+
+- Added `git pull` command after `gh release create`
+- Included 1-second sleep to allow GitHub API to finish processing
+- Makes the release workflow feel more complete and immediate
+
+This is a small quality-of-life improvement that removes a tiny paper cut from
+the release process. When you create a release, you should see it locally right
+away without extra steps.
+
 ### v4.2 - Prerequisites Installation Script (#48)
 
 Added a standalone shell script to automate installation and verification of all
