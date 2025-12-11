@@ -4,6 +4,24 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## December 2025 - Finer refinements
 
+### v4.4 - PR Update Blank Line Preservation
+
+Fixed a bug in the `pr_update` recipe where blank lines after the Done section
+were being incorrectly removed. The AWK script that preserves sections after
+Done had a logic error - after setting `after_done=1`, it continued to match
+and skip blank lines because the condition `in_done && /^$/` remained true
+even after transitioning to the "after done" state.
+
+- Added `!after_done` guard to blank line and commit matching conditions
+- Prevents eating blank lines once we've moved past the Done section
+- Preserves original spacing between sections (e.g., Done and Meta)
+
+The fix ensures that when `pr_update` regenerates the Done section with current
+commits, it maintains proper markdown formatting with blank lines separating
+different sections of the PR description.
+
+**Related PRs:** [#50](https://github.com/fini-net/template-repo/pull/50)
+
 ### v4.3 - Release Tag Visibility
 
 Enhanced the `release` recipe to automatically pull the newly created tag so it's
