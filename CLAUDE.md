@@ -100,4 +100,4 @@ Run `just clean_readme` to strip template documentation from README.
 - Release notes for workflow changes are tracked in `.just/RELEASE_NOTES.md`
 - The `.just` directory contains modular just recipes that can be copied to other projects for updates
 - just catches errors from commands when the recipe isn't a "#!" form that runs another scripting engine
-- just colors come from built-in constants https://just.systems/man/en/constants.html
+- just colors come from built-in constants <https://just.systems/man/en/constants.html>
