@@ -2,7 +2,26 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
-## November 2025 - The Polish Updates
+## December 2025 - Finer refinements
+
+### v4.2 - Prerequisites Installation Script
+
+Added a standalone shell script to automate installation and verification of all
+prerequisites needed to run the just recipes in this repository:
+
+- **`install-prerequisites.sh`** - Intelligent installation helper that checks
+  for all required tools (just, gh, shellcheck, markdownlint-cli2, jq) and
+  either auto-installs them (macOS with Homebrew) or provides the appropriate
+  installation commands (Linux with apt-get, dnf, or pacman). Shows what's
+  already installed vs. what's missing with clear colored output. Includes
+  proper error handling for missing package managers and Node.js/npm for
+  markdownlint-cli2. Makes onboarding new contributors or setting up new
+  development environments significantly smoother.
+
+The script is fully executable, passes shellcheck validation, and provides a
+friendly user experience with color-coded output and helpful error messages.
+Run `./.just/install-prerequisites.sh` to check your environment or install
+missing tools.
 
 ### v4.1 - Release Monitoring and Iteration Workflow (#46)
 
@@ -33,6 +52,8 @@ for project maintenance awareness, `claude_review` for quick feedback access,
 and `again` for rapid PR iteration.
 
 **Related PRs:** [#46](https://github.com/fini-net/template-repo/pull/46)
+
+## November 2025 - The Polish Updates
 
 ### v4.0 - PR Description Management (#44)
 
