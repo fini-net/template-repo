@@ -13,7 +13,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v4.2
+# PR create v4.3
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -143,6 +143,8 @@ _on_a_pull_request: _on_a_branch
 [group('Process')]
 release rel_version:
     gh release create {{rel_version}} --generate-notes
+    sleep 1
+    git pull
 
 # watch GHAs then check for Copilot suggestions
 [group('Process')]
