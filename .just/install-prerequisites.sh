@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 # Install prerequisites for just recipes
+#
+# Usage: ./.just/install-prerequisites.sh
+#
+# This script checks for required tools (just, gh, shellcheck, markdownlint-cli2, jq)
+# and helps install them:
+#
+# - macOS: Automatically installs missing tools using Homebrew
+# - Linux: Displays installation commands for manual execution
+# - Other: Shows links to installation documentation
+#
+# Run multiple times to verify installations completed successfully.
 
 set -euo pipefail # strict mode
 
@@ -82,36 +93,82 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
         exit 1
     fi
 
+    INSTALL_SUCCESS=()
+    INSTALL_FAILED=()
+
     for tool in "${MISSING[@]}"; do
         case "$tool" in
             just)
                 echo -e "${CYAN}Installing just...${NC}"
-                brew install just
+                if brew install just; then
+                    INSTALL_SUCCESS+=("just")
+                else
+                    INSTALL_FAILED+=("just")
+                    echo -e "${RED}Failed to install just${NC}"
+                fi
                 ;;
             gh)
                 echo -e "${CYAN}Installing GitHub CLI...${NC}"
-                brew install gh
-                echo -e "${YELLOW}Don't forget to authenticate: gh auth login${NC}"
+                if brew install gh; then
+                    INSTALL_SUCCESS+=("gh")
+                    echo -e "${YELLOW}Don't forget to authenticate: gh auth login${NC}"
+                else
+                    INSTALL_FAILED+=("gh")
+                    echo -e "${RED}Failed to install gh${NC}"
+                fi
                 ;;
             shellcheck)
                 echo -e "${CYAN}Installing shellcheck...${NC}"
-                brew install shellcheck
+                if brew install shellcheck; then
+                    INSTALL_SUCCESS+=("shellcheck")
+                else
+                    INSTALL_FAILED+=("shellcheck")
+                    echo -e "${RED}Failed to install shellcheck${NC}"
+                fi
                 ;;
             markdownlint-cli2)
                 echo -e "${CYAN}Installing markdownlint-cli2...${NC}"
                 if ! command -v npm &> /dev/null; then
                     echo -e "${RED}npm is not installed! Install Node.js first.${NC}"
                     echo "Install Node.js: brew install node"
-                    exit 1
+                    INSTALL_FAILED+=("markdownlint-cli2")
+                elif npm install -g markdownlint-cli2; then
+                    INSTALL_SUCCESS+=("markdownlint-cli2")
+                else
+                    INSTALL_FAILED+=("markdownlint-cli2")
+                    echo -e "${RED}Failed to install markdownlint-cli2${NC}"
                 fi
-                npm install -g markdownlint-cli2
                 ;;
             jq)
                 echo -e "${CYAN}Installing jq...${NC}"
-                brew install jq
+                if brew install jq; then
+                    INSTALL_SUCCESS+=("jq")
+                else
+                    INSTALL_FAILED+=("jq")
+                    echo -e "${RED}Failed to install jq${NC}"
+                fi
                 ;;
         esac
     done
+
+    echo ""
+    if [[ ${#INSTALL_SUCCESS[@]} -gt 0 ]]; then
+        echo -e "${GREEN}Successfully installed:${NC}"
+        for tool in "${INSTALL_SUCCESS[@]}"; do
+            echo -e "  ${GREEN}✓${NC} $tool"
+        done
+    fi
+
+    if [[ ${#INSTALL_FAILED[@]} -gt 0 ]]; then
+        echo ""
+        echo -e "${RED}Failed to install:${NC}"
+        for tool in "${INSTALL_FAILED[@]}"; do
+            echo -e "  ${RED}✗${NC} $tool"
+        done
+        echo ""
+        echo -e "${YELLOW}Run this script again to retry or install manually.${NC}"
+        exit 1
+    fi
 
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     echo -e "${BLUE}Detected Linux. Showing installation commands...${NC}"
