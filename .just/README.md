@@ -23,15 +23,35 @@ to see which of our repos need updates of the just files.
 
 Core PR lifecycle management with these features:
 
+#### Branch Management
+
 - **Branch creation** - `just branch <name>` creates dated branches in `$USER/YYYY-MM-DD-<name>` format
-- **PR creation** - `just pr` creates PRs using first commit message as title, all commits in body
-- **PR checks monitoring** - Watches GitHub Actions checks with 5-second polling
-- **AI integration** - Displays GitHub Copilot and Claude Code review comments after checks complete
-- **PR merge** - `just merge` squash merges, deletes remote branch, returns to main, and pulls latest
 - **Branch escape** - `just sync` returns to main branch and pulls latest changes
+- **UTC date utility** - `just utcdate` prints UTC date in ISO format (used internally for branch names)
+
+#### PR Creation and Updates
+
+- **PR creation** - `just pr` creates PRs using first commit message as title, all commits in body
+- **PR description updates** - `just pr_update` regenerates the Done section with current commits while preserving other sections
+- **PR verification logs** - `just pr_verify` adds or appends timestamped content to a Verify section (reads from stdin)
+- **Iterative workflow** - `just again` chains push, PR update, and checks monitoring for rapid iteration
 - **Web viewing** - `just prweb` opens current PR in browser
-- **Releases** - `just release <version>` creates GitHub releases with auto-generated notes
-- **Sanity checks** - Hidden recipes (`_on_a_branch`, `_has_commits`, `_main_branch`) prevent mistakes
+
+#### PR Checks and AI Reviews
+
+- **PR checks monitoring** - `just pr_checks` watches GitHub Actions checks with 5-second polling
+- **AI integration** - Displays both GitHub Copilot and Claude Code review comments after checks complete
+- **Standalone Claude review** - `just claude_review` shows Claude's latest PR comment without re-running checks
+
+#### Merge and Release
+
+- **PR merge** - `just merge` squash merges, deletes remote branch, returns to main, and pulls latest
+- **Releases** - `just release <version>` creates GitHub releases with auto-generated notes and pulls the new tag locally
+- **Release monitoring** - `just release_age` checks how long ago the last release was published, warns if >60 days old
+
+#### Safety and Automation
+
+- **Sanity checks** - Hidden recipes (`_on_a_branch`, `_has_commits`, `_main_branch`, `_on_a_pull_request`) prevent mistakes
 - **Pre-PR hooks** - Optional integration with `pr-hook.just` for project-specific automation
 
 ### compliance.just - Repository Health Checks
@@ -74,3 +94,16 @@ Optional pre-PR automation hook:
 - **Placeholder implementation** - Currently just prints a message
 - **Customizable** - Replace with project-specific tasks (e.g., Hugo rebuilds, asset compilation)
 - **Hidden recipe** - Uses `_pr-hook` naming to indicate internal use only
+
+### install-prerequisites.sh - Prerequisites Installation Helper
+
+Standalone shell script that automates installation and verification of all required tools:
+
+- **Automatic detection** - Checks for all required tools: `just`, `gh`, `shellcheck`, `markdownlint-cli2`, `jq`
+- **Smart installation** - On macOS with Homebrew, automatically installs missing tools
+- **Manual guidance** - On Linux, provides appropriate installation commands for apt-get, dnf, or pacman
+- **Clear reporting** - Shows what's already installed vs. what's missing with color-coded output
+- **Error handling** - Detects missing package managers, provides helpful error messages
+- **Verification mode** - Run multiple times to verify installations completed successfully
+
+Run `./.just/install-prerequisites.sh` to check your environment or install missing tools. Makes onboarding new contributors significantly smoother.
