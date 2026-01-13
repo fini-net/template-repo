@@ -1,0 +1,17 @@
+# .repo.toml
+
+# TODO: mirrors later
+
+[about]
+description = "A template repo that checks all of the github community standards boxes and then some"
+topics = ["github", "template", "compliance", "github-repository", "template-repository", "template-generic-repo"]
+license = "GPL-2.0-only"
+
+[urls]
+git_ssh = "git@github.com:fini-net/template-repo.git"
+web_url = "https://github.com/fini-net/template-repo"
+
+[flags]
+claude = true
+claude-review = true
+copilot-review = true
