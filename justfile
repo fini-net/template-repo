@@ -4,7 +4,7 @@ import? '.just/compliance.just'
 import? '.just/gh-process.just'
 import? '.just/pr-hook.just'
 import? '.just/shellcheck.just'
-import? '.just/cue-verify.yml'
+import? '.just/cue-verify.just'
 
 # list recipes (default works without naming it)
 [group('example')]
