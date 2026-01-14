@@ -6,19 +6,12 @@ cue-verify:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    # Color constants (just doesn't expand these in bash scripts)
-    GREEN='\033[0;32m'
-    RED='\033[0;31m'
-    YELLOW='\033[1;33m'
-    BLUE='\033[0;34m'
-    NORMAL='\033[0m'
-
     # Stage 1: Cue validates TOML structure and types
     cue vet .repo.toml docs/repo-toml.cue
-    echo -e "${GREEN}Cue structure validation passed.${NORMAL}"
+    echo "{{GREEN}}Cue structure validation passed.{{NORMAL}}"
 
     # Stage 2: Validate flags match actual configuration
-    echo -e "${BLUE}Verifying .repo.toml flags match repository configuration...${NORMAL}"
+    echo "{{BLUE}}Verifying .repo.toml flags match repository configuration...{{NORMAL}}"
 
     # Extract flags from .repo.toml using cue export + jq
     CLAUDE_FLAG=$(cue export .repo.toml | jq -r '.flags.claude // false')
@@ -34,11 +27,11 @@ cue-verify:
     # Validate claude flag
     if [[ "$CLAUDE_FLAG" == "true" ]]; then
         if [[ ! -e ".github/workflows/claude.yml" ]]; then
-            echo -e "${RED}[flags.claude] Missing required file: .github/workflows/claude.yml${NORMAL}"
+            echo "{{RED}}[flags.claude] Missing required file: .github/workflows/claude.yml{{NORMAL}}"
             ERRORS=$((ERRORS + 1))
         fi
         if [[ ! -e ".github/workflows/claude-code-review.yml" ]]; then
-            echo -e "${RED}[flags.claude] Missing required file: .github/workflows/claude-code-review.yml${NORMAL}"
+            echo "{{RED}}[flags.claude] Missing required file: .github/workflows/claude-code-review.yml{{NORMAL}}"
             ERRORS=$((ERRORS + 1))
         fi
     fi
@@ -46,11 +39,11 @@ cue-verify:
     # Validate claude-review flag
     if [[ "$CLAUDE_REVIEW_FLAG" == "true" ]]; then
         if [[ ! -e ".github/workflows/claude-code-review.yml" ]]; then
-            echo -e "${RED}[flags.claude-review] Missing required file: .github/workflows/claude-code-review.yml${NORMAL}"
+            echo "{{RED}}[flags.claude-review] Missing required file: .github/workflows/claude-code-review.yml{{NORMAL}}"
             ERRORS=$((ERRORS + 1))
         fi
         if [[ ! -e ".just/gh-process.just" ]]; then
-            echo -e "${RED}[flags.claude-review] Missing required file: .just/gh-process.just${NORMAL}"
+            echo "{{RED}}[flags.claude-review] Missing required file: .just/gh-process.just{{NORMAL}}"
             ERRORS=$((ERRORS + 1))
         fi
     fi
@@ -58,7 +51,7 @@ cue-verify:
     # Validate copilot-review flag
     if [[ "$COPILOT_REVIEW_FLAG" == "true" ]]; then
         if [[ -z "$ORG_NAME" ]]; then
-            echo -e "${RED}[flags.copilot-review] Cannot extract organization name from .repo.toml${NORMAL}"
+            echo "{{RED}}[flags.copilot-review] Cannot extract organization name from .repo.toml{{NORMAL}}"
             ERRORS=$((ERRORS + 1))
         else
             # Try to check if org has Copilot via GitHub API
@@ -69,12 +62,12 @@ cue-verify:
                 EXIT_CODE=$?
                 if [[ $EXIT_CODE -eq 22 ]]; then
                     # HTTP 404 - org doesn't have Copilot
-                    echo -e "${RED}[flags.copilot-review] Organization '$ORG_NAME' does not have GitHub Copilot enabled${NORMAL}"
+                    echo "{{RED}}[flags.copilot-review] Organization '$ORG_NAME' does not have GitHub Copilot enabled{{NORMAL}}"
                     ERRORS=$((ERRORS + 1))
                 else
                     # Permission or network error - warn but don't fail
-                    echo -e "${YELLOW}[flags.copilot-review] Warning: Cannot verify Copilot status (exit code: $EXIT_CODE)${NORMAL}"
-                    echo -e "${YELLOW}  This may be due to API permissions or network issues${NORMAL}"
+                    echo "{{YELLOW}}[flags.copilot-review] Warning: Cannot verify Copilot status (exit code: $EXIT_CODE){{NORMAL}}"
+                    echo "{{YELLOW}}  This may be due to API permissions or network issues{{NORMAL}}"
                 fi
             fi
         fi
@@ -83,8 +76,8 @@ cue-verify:
     # Report results
     if [[ $ERRORS -gt 0 ]]; then
         echo ""
-        echo -e "${RED}Flag verification failed with $ERRORS error(s)${NORMAL}"
+        echo "{{RED}}Flag verification failed with $ERRORS error(s){{NORMAL}}"
         exit 1
     fi
 
-    echo -e "${GREEN}Flag verification passed.${NORMAL}"
+    echo "{{GREEN}}Flag verification passed.{{NORMAL}}"
