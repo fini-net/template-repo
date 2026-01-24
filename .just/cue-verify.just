@@ -73,6 +73,46 @@ cue-verify:
         fi
     fi
 
+    # Stage 3: Validate GitHub metadata sync
+    echo "{{BLUE}}Verifying description and topics match GitHub...{{NORMAL}}"
+
+    # Extract description and topics from .repo.toml
+    TOML_DESC=$(cue export .repo.toml | jq -r '.about.description // ""')
+    TOML_TOPICS=$(cue export .repo.toml | jq -r '.about.topics // [] | sort | join(",")')
+
+    # Extract repo name from web_url
+    REPO_NAME=$(cue export .repo.toml | jq -r '.urls.web_url // ""' | sed -E 's|.*/([^/]+)/?$|\1|')
+
+    # Check if we can extract org and repo names
+    if [[ -z "$ORG_NAME" || -z "$REPO_NAME" ]]; then
+        echo "{{YELLOW}}Warning: Cannot extract org/repo name from .repo.toml - skipping GitHub sync check{{NORMAL}}"
+    else
+        # Fetch metadata from GitHub API
+        if GH_DATA=$(gh api "repos/$ORG_NAME/$REPO_NAME" 2>/dev/null); then
+            GH_DESC=$(echo "$GH_DATA" | jq -r '.description // ""')
+            GH_TOPICS=$(echo "$GH_DATA" | jq -r '.topics // [] | sort | join(",")')
+
+            # Compare description
+            if [[ "$TOML_DESC" != "$GH_DESC" ]]; then
+                echo "{{RED}}[about.description] Mismatch with GitHub{{NORMAL}}"
+                echo "  .repo.toml: $TOML_DESC"
+                echo "  GitHub:     $GH_DESC"
+                ERRORS=$((ERRORS + 1))
+            fi
+
+            # Compare topics
+            if [[ "$TOML_TOPICS" != "$GH_TOPICS" ]]; then
+                echo "{{RED}}[about.topics] Mismatch with GitHub{{NORMAL}}"
+                echo "  .repo.toml: $TOML_TOPICS"
+                echo "  GitHub:     $GH_TOPICS"
+                ERRORS=$((ERRORS + 1))
+            fi
+        else
+            echo "{{YELLOW}}Warning: Cannot fetch GitHub metadata (API error){{NORMAL}}"
+            echo "{{YELLOW}}  This may be due to API permissions or network issues{{NORMAL}}"
+        fi
+    fi
+
     # Report results
     if [[ $ERRORS -gt 0 ]]; then
         echo ""
