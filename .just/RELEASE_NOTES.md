@@ -2,7 +2,38 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
-## December 2025 - Finer refinements
+## January 2026 - Experience leads to more opportunities
+
+### v4.6 - Conditional AI Review Display (#63)
+
+Added repository metadata extraction system that enables flag-based conditional
+display of AI code reviews. Previously, Copilot and Claude reviews were always
+displayed after PR checks completed, regardless of whether they were enabled or
+relevant for the project. Now you can control this behavior via `.repo.toml`
+flags.
+
+The new `.just/repo-toml.just` module generates a sourceable shell script
+(`.just/repo-toml.sh`) containing all repository metadata as shell variables.
+This eliminates repeated parsing of `.repo.toml` throughout the codebase and
+provides a single source of truth for configuration data.
+
+- **`repo_toml_generate`** - Exports `.repo.toml` to shell variables with automatic
+  derivation of org/repo names from URLs, conversion of TOML arrays to both bash
+  arrays and CSV strings, and feature flags as strings ("true"/"false")
+- **`repo_toml_check`** - Validates generated file exists and checks staleness
+  (warns if `.repo.toml` modified since last generation)
+- **Conditional reviews** - Modified `pr_checks` and `claude_review` recipes to
+  source the generated metadata and only display reviews when corresponding flags
+  (`copilot-review`, `claude-review`) are enabled in `.repo.toml`
+- **Graceful degradation** - If generated file is missing, warns user and defaults
+  flags to false rather than failing hard
+
+The generated file is gitignored since it's environment-specific and regenerated
+on demand. This architecture enables future recipes to access repository metadata
+without parsing overhead, and provides a clean pattern for flag-based feature
+toggles across the workflow.
+
+**Related PRs:** [#63](https://github.com/fini-net/template-repo/pull/63)
 
 ### v4.5 - Smart Polling for PR Checks
 
@@ -25,6 +56,8 @@ The polling function is declared separately so it can be exported to `gum spin`'
 subshell context. Uses colored output (GREEN for success, YELLOW for timeout) and
 the `USING_GUM` environment variable to conditionally show progress indicators
 based on available tooling.
+
+## December 2025 - Finer refinements
 
 ### v4.4 - PR Update Blank Line Preservation
 

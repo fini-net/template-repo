@@ -21,7 +21,9 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:www.chicks.net)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(just repo_toml_generate:*)",
+      "Bash(just repo_toml_check:*)"
     ],
     "deny": [],
     "ask": []

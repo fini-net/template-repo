@@ -32,6 +32,8 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 - `just shellcheck` - Run shellcheck on all bash scripts in just recipes
 - `just cue-verify` - Verify `.repo.toml` validity and flag configuration
 - `just cue-sync-from-github` - Sync description and topics from GitHub API into `.repo.toml`
+- `just repo_toml_generate` - Generate shell variables from `.repo.toml`
+- `just repo_toml_check` - Check if generated file is up-to-date
 - `just claude_permissions_sort` - Sort Claude Code permissions in canonical order
 - `just claude_permissions_check` - Check Claude Code permissions structure
 - `just utcdate` - Print UTC date in ISO format (used in branch names)
@@ -40,7 +42,7 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 
 ### Modular justfile structure
 
-The main `justfile` imports six modules:
+The main `justfile` imports seven modules:
 
 - `.just/compliance.just` - Custom compliance checks for repo health (validates all GitHub community standards)
 - `.just/gh-process.just` - Git/GitHub workflow automation (core PR lifecycle)
@@ -48,6 +50,18 @@ The main `justfile` imports six modules:
 - `.just/shellcheck.just` - Shellcheck linting for bash scripts in just recipes
 - `.just/cue-verify.just` - File format validation using Cue
 - `.just/claude.just` - Claude Code permission management
+- `.just/repo-toml.just` - Repository metadata extraction and shell variable generation
+
+### Repository metadata extraction
+
+The `.just/repo-toml.just` module provides shell variable generation:
+
+- **Variable generation** - Exports `.repo.toml` data as sourceable shell variables
+- **Automatic derivation** - Computes `ORG_NAME` and `REPO_NAME` from URLs
+- **Format conversion** - Handles TOML arrays as both bash arrays and CSV strings
+- **Conditional logic** - Enables flag-based feature toggling in recipes
+
+The generated `.just/repo-toml.sh` file is gitignored and regenerated on demand using `just repo_toml_generate`.
 
 ### Git/GitHub workflow details
 
@@ -57,7 +71,7 @@ The `.just/gh-process.just` module implements the entire PR lifecycle:
 - **PR creation** - First commit message becomes PR title, all commits listed in "Done" section of PR body
 - **Sanity checks** - Prevents empty PRs, enforces branch strategy via hidden recipes (`_on_a_branch`, `_has_commits`, `_main_branch`, `_on_a_pull_request`, `_wait_for_checks`)
 - **Check watching** - Polls GitHub checks every 5 seconds with smart waiting (waits up to 30s for checks to start)
-- **AI integration** - After PR checks complete, displays GitHub Copilot and Claude Code review comments in terminal
+- **AI integration** - After PR checks complete, conditionally displays GitHub Copilot and Claude Code review comments based on `.repo.toml` flags (`copilot-review` and `claude-review`)
 - **Merge automation** - Squash merge, delete remote branch, return to main, pull latest
 - **PR updates** - `pr_update` refreshes the "Done" section with current commits; `pr_verify` adds timestamped verification outputs
 

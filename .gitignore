@@ -43,3 +43,6 @@ go.work.sum
 
 # tasks for this repo are in github actions
 /TODO.md
+
+# Generated repo metadata (run 'just repo_toml_generate' to regenerate)
+/.just/repo-toml.sh

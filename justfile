@@ -6,6 +6,7 @@ import? '.just/pr-hook.just'
 import? '.just/shellcheck.just'
 import? '.just/cue-verify.just'
 import? '.just/claude.just'
+import? '.just/repo-toml.just'
 
 # list recipes (default works without naming it)
 [group('example')]
