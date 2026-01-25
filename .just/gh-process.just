@@ -58,8 +58,6 @@ pr: _has_commits && pr_checks
         exit 0
     fi
 
-    just _wait_for_checks
-
 # merge PR and return to starting point
 [group('Process')]
 merge: _on_a_branch && sync
@@ -191,7 +189,7 @@ release rel_version:
 
 # watch GHAs then check for Copilot suggestions
 [group('Process')]
-pr_checks: _on_a_pull_request && claude_review
+pr_checks: _wait_for_checks && claude_review
     #!/usr/bin/env bash
 
     gh pr checks --watch -i 5
@@ -441,5 +439,4 @@ release_age:
 again:
     git push
     just pr_update
-    sleep 2
     just pr_checks
