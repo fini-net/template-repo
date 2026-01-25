@@ -4,6 +4,28 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## December 2025 - Finer refinements
 
+### v4.5 - Smart Polling for PR Checks
+
+Replaced the fixed 8-second sleep in the `pr` recipe with an intelligent polling
+loop that waits for GitHub checks to actually start running. Previously, we'd
+always wait 8 seconds after creating a PR before watching checks - wasting time
+when GitHub responded quickly (2-3 seconds) and occasionally failing when GitHub
+was slow (10+ seconds).
+
+The new `_wait_for_checks` recipe polls the GitHub API every 2 seconds with a
+30-second timeout, exiting immediately when checks appear. This provides:
+
+- **Faster feedback** - No wasted time when GitHub responds quickly (typically 2-6s vs fixed 8s)
+- **More reliable** - Handles slow API responses gracefully (up to 30 seconds)
+- **Better UX** - Animated spinner via `gum spin` shows "Waiting for GitHub checks to start..."
+- **Graceful degradation** - Falls back to simple progress dots when `gum` not available
+- **Smart timeout** - Continues with warning message if checks never appear
+
+The polling function is declared separately so it can be exported to `gum spin`'s
+subshell context. Uses colored output (GREEN for success, YELLOW for timeout) and
+the `USING_GUM` environment variable to conditionally show progress indicators
+based on available tooling.
+
 ### v4.4 - PR Update Blank Line Preservation
 
 Fixed a bug in the `pr_update` recipe where blank lines after the Done section

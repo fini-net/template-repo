@@ -13,7 +13,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v4.4
+# PR create v4.5
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -57,9 +57,6 @@ pr: _has_commits && pr_checks
         echo "{{BLUE}}there are no workflows in this repo so there are no PR checks to watch{{NORMAL}}"
         exit 0
     fi
-
-    echo "{{BLUE}}sleeping for 8s because github is lazy with their API{{NORMAL}}"
-    sleep 8
 
 # merge PR and return to starting point
 [group('Process')]
@@ -133,6 +130,50 @@ _on_a_pull_request: _on_a_branch
         exit 103
     fi
 
+# wait for GitHub checks to start (with polling)
+[group('sanity check')]
+[no-cd]
+_wait_for_checks: _on_a_pull_request
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    MAX_WAIT=30
+    POLL_INTERVAL=2
+
+    # Polling function that can be wrapped by gum or run standalone
+    poll_for_checks() {
+        elapsed=0
+        while (( elapsed < MAX_WAIT )); do
+            # Check if any checks exist
+            checks=$(gh pr checks --json state,name 2>/dev/null || echo "[]")
+
+            if [ "$checks" != "[]" ] && [ -n "$checks" ]; then
+                echo "{{GREEN}}Checks detected after ${elapsed}s{{NORMAL}}"
+                return 0
+            fi
+
+            sleep $POLL_INTERVAL
+            elapsed=$((elapsed + POLL_INTERVAL))
+
+            # Only show dots if not using gum
+            if [ "${USING_GUM:-0}" = "0" ]; then
+                echo -n "."
+            fi
+        done
+
+        echo ""
+        echo "{{YELLOW}}No checks found after ${MAX_WAIT}s - continuing anyway{{NORMAL}}"
+        return 0
+    }
+
+    # Use gum spin if available, otherwise fall back to simple progress
+    if command -v gum &> /dev/null; then
+        USING_GUM=1 gum spin --spinner dot --title "Waiting for GitHub checks to start..." -- bash -c "MAX_WAIT=$MAX_WAIT; POLL_INTERVAL=$POLL_INTERVAL; $(declare -f poll_for_checks); poll_for_checks"
+    else
+        echo "{{BLUE}}Waiting for GitHub checks to start...{{NORMAL}}"
+        USING_GUM=0 poll_for_checks
+    fi
+
 # print UTC date in ISO format
 [group('Utility')]
 [no-cd]
@@ -148,7 +189,7 @@ release rel_version:
 
 # watch GHAs then check for Copilot suggestions
 [group('Process')]
-pr_checks: _on_a_pull_request && claude_review
+pr_checks: _wait_for_checks && claude_review
     #!/usr/bin/env bash
 
     gh pr checks --watch -i 5
@@ -398,5 +439,4 @@ release_age:
 again:
     git push
     just pr_update
-    sleep 2
     just pr_checks
