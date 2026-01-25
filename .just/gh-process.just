@@ -143,7 +143,7 @@ _wait_for_checks: _on_a_pull_request
     # Polling function that can be wrapped by gum or run standalone
     poll_for_checks() {
         elapsed=0
-        while [ $elapsed -lt $MAX_WAIT ]; do
+        while (( elapsed < MAX_WAIT )); do
             # Check if any checks exist
             checks=$(gh pr checks --json state,name 2>/dev/null || echo "[]")
 
@@ -168,7 +168,7 @@ _wait_for_checks: _on_a_pull_request
 
     # Use gum spin if available, otherwise fall back to simple progress
     if command -v gum &> /dev/null; then
-        USING_GUM=1 gum spin --spinner dot --title "Waiting for GitHub checks to start..." -- bash -c "$(declare -f poll_for_checks); poll_for_checks"
+        USING_GUM=1 gum spin --spinner dot --title "Waiting for GitHub checks to start..." -- bash -c "MAX_WAIT=$MAX_WAIT; POLL_INTERVAL=$POLL_INTERVAL; $(declare -f poll_for_checks); poll_for_checks"
     else
         echo "{{BLUE}}Waiting for GitHub checks to start...{{NORMAL}}"
         USING_GUM=0 poll_for_checks
