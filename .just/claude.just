@@ -1,30 +1,31 @@
 # Claude Code management recipes
 
+claude_settings_file := ".claude/settings.local.json"
+
 # Sort Claude Code permissions in canonical order
 [group('Claude Code')]
 claude_permissions_sort:
     #!/usr/bin/env bash
     set -euo pipefail # strict mode without tracing
 
-    SETTINGS_FILE=".claude/settings.local.json"
     BACKUP_FILE=".claude/settings.local.json.backup"
 
     echo "{{BLUE}}Sorting Claude Code permissions...{{NORMAL}}"
 
     # Check if file exists
-    if [[ ! -f "$SETTINGS_FILE" ]]; then
-        echo "{{RED}}Error: $SETTINGS_FILE not found{{NORMAL}}"
+    if [[ ! -f "{{ claude_settings_file }}" ]]; then
+        echo "{{RED}}Error: {{ claude_settings_file }} not found{{NORMAL}}"
         exit 1
     fi
 
     # Validate input JSON
-    if ! jq empty "$SETTINGS_FILE" 2>/dev/null; then
-        echo "{{RED}}Error: $SETTINGS_FILE is not valid JSON{{NORMAL}}"
+    if ! jq empty "{{ claude_settings_file }}" 2>/dev/null; then
+        echo "{{RED}}Error: {{ claude_settings_file }} is not valid JSON{{NORMAL}}"
         exit 1
     fi
 
     # Create backup
-    cp "$SETTINGS_FILE" "$BACKUP_FILE"
+    cp "{{ claude_settings_file }}" "$BACKUP_FILE"
     echo "{{YELLOW}}Created backup: $BACKUP_FILE{{NORMAL}}"
 
     # Sort permissions with grouping strategy
@@ -46,12 +47,12 @@ claude_permissions_sort:
       ) |
       .permissions.deny |= sort |
       .permissions.ask |= sort
-    ' "$BACKUP_FILE" > "$SETTINGS_FILE"; then
+    ' "$BACKUP_FILE" > "{{ claude_settings_file }}"; then
 
         # Validate output JSON
-        if ! jq empty "$SETTINGS_FILE" 2>/dev/null; then
+        if ! jq empty "{{ claude_settings_file }}" 2>/dev/null; then
             echo "{{RED}}Error: Sorting produced invalid JSON, restoring from backup{{NORMAL}}"
-            cp "$BACKUP_FILE" "$SETTINGS_FILE"
+            cp "$BACKUP_FILE" "{{ claude_settings_file }}"
             exit 1
         fi
 
@@ -59,15 +60,15 @@ claude_permissions_sort:
         rm "$BACKUP_FILE"
 
         # Show permission counts
-        ALLOW_COUNT=$(jq '.permissions.allow | length' "$SETTINGS_FILE")
-        DENY_COUNT=$(jq '.permissions.deny | length' "$SETTINGS_FILE")
-        ASK_COUNT=$(jq '.permissions.ask | length' "$SETTINGS_FILE")
+        ALLOW_COUNT=$(jq '.permissions.allow | length' "{{ claude_settings_file }}")
+        DENY_COUNT=$(jq '.permissions.deny | length' "{{ claude_settings_file }}")
+        ASK_COUNT=$(jq '.permissions.ask | length' "{{ claude_settings_file }}")
 
         echo "{{GREEN}}Permissions sorted successfully!{{NORMAL}}"
         echo "{{BLUE}}Allow: $ALLOW_COUNT | Deny: $DENY_COUNT | Ask: $ASK_COUNT{{NORMAL}}"
     else
         echo "{{RED}}Error: jq sorting failed, restoring from backup{{NORMAL}}"
-        cp "$BACKUP_FILE" "$SETTINGS_FILE"
+        cp "$BACKUP_FILE" "{{ claude_settings_file }}"
         exit 1
     fi
 
@@ -77,44 +78,42 @@ claude_permissions_check:
     #!/usr/bin/env bash
     set -euo pipefail # strict mode without tracing
 
-    SETTINGS_FILE=".claude/settings.local.json"
-
     echo "{{BLUE}}Checking Claude Code permissions structure...{{NORMAL}}"
 
     # Check if file exists
-    if [[ ! -f "$SETTINGS_FILE" ]]; then
-        echo "{{RED}}Error: $SETTINGS_FILE not found{{NORMAL}}"
+    if [[ ! -f "{{ claude_settings_file }}" ]]; then
+        echo "{{RED}}Error: {{ claude_settings_file }} not found{{NORMAL}}"
         exit 1
     fi
 
     # Validate JSON
-    if ! jq empty "$SETTINGS_FILE" 2>/dev/null; then
-        echo "{{RED}}Error: $SETTINGS_FILE is not valid JSON{{NORMAL}}"
+    if ! jq empty "{{ claude_settings_file }}" 2>/dev/null; then
+        echo "{{RED}}Error: {{ claude_settings_file }} is not valid JSON{{NORMAL}}"
         exit 1
     fi
 
     # Check for required structure
-    if ! jq -e '.permissions' "$SETTINGS_FILE" >/dev/null 2>&1; then
+    if ! jq -e '.permissions' "{{ claude_settings_file }}" >/dev/null 2>&1; then
         echo "{{RED}}Error: Missing .permissions object{{NORMAL}}"
         exit 1
     fi
 
-    if ! jq -e '.permissions.allow' "$SETTINGS_FILE" >/dev/null 2>&1; then
+    if ! jq -e '.permissions.allow' "{{ claude_settings_file }}" >/dev/null 2>&1; then
         echo "{{YELLOW}}Warning: Missing .permissions.allow array{{NORMAL}}"
     fi
 
-    if ! jq -e '.permissions.deny' "$SETTINGS_FILE" >/dev/null 2>&1; then
+    if ! jq -e '.permissions.deny' "{{ claude_settings_file }}" >/dev/null 2>&1; then
         echo "{{YELLOW}}Warning: Missing .permissions.deny array{{NORMAL}}"
     fi
 
-    if ! jq -e '.permissions.ask' "$SETTINGS_FILE" >/dev/null 2>&1; then
+    if ! jq -e '.permissions.ask' "{{ claude_settings_file }}" >/dev/null 2>&1; then
         echo "{{YELLOW}}Warning: Missing .permissions.ask array{{NORMAL}}"
     fi
 
     # Show permission counts
-    ALLOW_COUNT=$(jq '.permissions.allow | length' "$SETTINGS_FILE" 2>/dev/null || echo "0")
-    DENY_COUNT=$(jq '.permissions.deny | length' "$SETTINGS_FILE" 2>/dev/null || echo "0")
-    ASK_COUNT=$(jq '.permissions.ask | length' "$SETTINGS_FILE" 2>/dev/null || echo "0")
+    ALLOW_COUNT=$(jq '.permissions.allow | length' "{{ claude_settings_file }}" 2>/dev/null || echo "0")
+    DENY_COUNT=$(jq '.permissions.deny | length' "{{ claude_settings_file }}" 2>/dev/null || echo "0")
+    ASK_COUNT=$(jq '.permissions.ask | length' "{{ claude_settings_file }}" 2>/dev/null || echo "0")
 
     echo "{{GREEN}}Permissions structure is valid{{NORMAL}}"
     echo "{{BLUE}}Allow: $ALLOW_COUNT | Deny: $DENY_COUNT | Ask: $ASK_COUNT{{NORMAL}}"
@@ -123,9 +122,9 @@ claude_permissions_check:
     if [[ $ALLOW_COUNT -gt 0 ]]; then
         echo ""
         echo "{{BLUE}}Permission types in allow list:{{NORMAL}}"
-        BASH_COUNT=$(jq '[.permissions.allow[] | select(startswith("Bash("))] | length' "$SETTINGS_FILE")
-        WEBFETCH_COUNT=$(jq '[.permissions.allow[] | select(startswith("WebFetch("))] | length' "$SETTINGS_FILE")
-        WEBSEARCH_COUNT=$(jq '[.permissions.allow[] | select(startswith("WebSearch"))] | length' "$SETTINGS_FILE")
+        BASH_COUNT=$(jq '[.permissions.allow[] | select(startswith("Bash("))] | length' "{{ claude_settings_file }}")
+        WEBFETCH_COUNT=$(jq '[.permissions.allow[] | select(startswith("WebFetch("))] | length' "{{ claude_settings_file }}")
+        WEBSEARCH_COUNT=$(jq '[.permissions.allow[] | select(startswith("WebSearch"))] | length' "{{ claude_settings_file }}")
         OTHER_COUNT=$((ALLOW_COUNT - BASH_COUNT - WEBFETCH_COUNT - WEBSEARCH_COUNT))
 
         echo "  Bash: $BASH_COUNT"
