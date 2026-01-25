@@ -88,7 +88,7 @@ compliance_check:
     fi
 
     # Check for branch protection on main branch (repo-level or org-level rulesets)
-    if gh api repos/{owner}/{repo}/rulesets --jq '.[] | select(.enforcement == "active" and .target == "branch")' | grep -q .; then
+    if gh api 'repos/{owner}/{repo}/rulesets' --jq '.[] | select(.enforcement == "active" and .target == "branch")' | grep -q .; then
         echo "{{GREEN}}[gh] You have branch protection enabled, keeping the main branch safe from accidents.{{NORMAL}}"
     else
         echo "{{RED}}[gh] You do NOT have branch protection enabled.  Living dangerously, are we?{{NORMAL}}"
