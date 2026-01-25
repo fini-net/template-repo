@@ -13,7 +13,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v4.5
+# PR create v4.6
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -194,39 +194,54 @@ pr_checks: _wait_for_checks && claude_review
 
     gh pr checks --watch -i 5
 
-    echo "🐈‍⬛😾 Copilot suggestions..."
-    PR_META=$(gh pr view --json number,headRepository,headRepositoryOwner)
-    PR_REPO_NAME=$(echo "$PR_META" | jq -r '.headRepository.name')
-    PR_REPO_OWNER=$(echo "$PR_META" | jq -r '.headRepositoryOwner.login')
-    PR_NUMBER=$(echo "$PR_META" | jq '.number')
-    #echo "$PR_NUMBER $PR_REPO_OWNER/$PR_REPO_NAME"
-    # shellcheck disable=SC2016
-    gh api graphql \
-        -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
-        --jq '[ .data.repository.pullRequest.reviews.nodes.[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes.[] ]' \
-        -f query='
-        query($name: String!, $owner: String!, $pr: Int!) {
-            repository(owner: $owner, name: $name) {
-                pullRequest(number: $pr) {
-                    reviews(last: 20) {
-                        nodes {
-                            author {
-                                resourcePath
-                                login
-                            }
-                            comments(first: 100) {
-                                nodes {
-                                    body
-                                    path
-                                    originalLine
+    # Load repo metadata for conditional display
+    if [[ -e ".just/repo-toml.sh" ]]; then
+        source .just/repo-toml.sh
+    else
+        echo "{{YELLOW}}Warning: .just/repo-toml.sh not found - run 'just repo_toml_generate'{{NORMAL}}"
+        FLAG_COPILOT_REVIEW="false"
+        # shellcheck disable=SC2034  # Set both flags for defensive programming
+        FLAG_CLAUDE_REVIEW="false"
+    fi
+
+    # Only display Copilot review if flag is enabled
+    if [[ "$FLAG_COPILOT_REVIEW" == "true" ]]; then
+        echo "🐈‍⬛😾 Copilot suggestions..."
+        PR_META=$(gh pr view --json number,headRepository,headRepositoryOwner)
+        PR_REPO_NAME=$(echo "$PR_META" | jq -r '.headRepository.name')
+        PR_REPO_OWNER=$(echo "$PR_META" | jq -r '.headRepositoryOwner.login')
+        PR_NUMBER=$(echo "$PR_META" | jq '.number')
+        #echo "$PR_NUMBER $PR_REPO_OWNER/$PR_REPO_NAME"
+        # shellcheck disable=SC2016
+        gh api graphql \
+            -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
+            --jq '[ .data.repository.pullRequest.reviews.nodes.[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes.[] ]' \
+            -f query='
+            query($name: String!, $owner: String!, $pr: Int!) {
+                repository(owner: $owner, name: $name) {
+                    pullRequest(number: $pr) {
+                        reviews(last: 20) {
+                            nodes {
+                                author {
+                                    resourcePath
+                                    login
+                                }
+                                comments(first: 100) {
+                                    nodes {
+                                        body
+                                        path
+                                        originalLine
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-        '
+            '
+    else
+        echo "{{BLUE}}Skipping Copilot review (disabled in .repo.toml){{NORMAL}}"
+    fi
 
     # chains to claude_review
 
@@ -235,9 +250,23 @@ pr_checks: _wait_for_checks && claude_review
 claude_review: _on_a_pull_request
     #!/usr/bin/env bash
 
-    # did Claude comment?
-    echo -e "\n\n🟧🟠🔶🔸 Claude:"
-    gh pr view --json comments --jq '[.comments[] | select(.author.login == "claude")] | last | .body'
+    # Load repo metadata for conditional display
+    if [[ -e ".just/repo-toml.sh" ]]; then
+        source .just/repo-toml.sh
+    else
+        echo "{{YELLOW}}Warning: .just/repo-toml.sh not found - run 'just repo_toml_generate'{{NORMAL}}"
+        # shellcheck disable=SC2034  # Set both flags for defensive programming
+        FLAG_COPILOT_REVIEW="false"
+        FLAG_CLAUDE_REVIEW="false"
+    fi
+
+    # Only display Claude review if flag is enabled
+    if [[ "$FLAG_CLAUDE_REVIEW" == "true" ]]; then
+        echo -e "\n\n🟧🟠🔶🔸 Claude:"
+        gh pr view --json comments --jq '[.comments[] | select(.author.login == "claude")] | last | .body'
+    else
+        echo "{{BLUE}}Skipping Claude review (disabled in .repo.toml){{NORMAL}}"
+    fi
 
 # update the Done section of PR description with current commits
 [group('Process')]
