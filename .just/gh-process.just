@@ -13,7 +13,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v4.4
+# PR create v4.5
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -58,8 +58,7 @@ pr: _has_commits && pr_checks
         exit 0
     fi
 
-    echo "{{BLUE}}sleeping for 8s because github is lazy with their API{{NORMAL}}"
-    sleep 8
+    just _wait_for_checks
 
 # merge PR and return to starting point
 [group('Process')]
@@ -131,6 +130,50 @@ _on_a_pull_request: _on_a_branch
     if \! gh pr view &>/dev/null; then
         echo "No PR found for current branch"
         exit 103
+    fi
+
+# wait for GitHub checks to start (with polling)
+[group('sanity check')]
+[no-cd]
+_wait_for_checks: _on_a_pull_request
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    MAX_WAIT=30
+    POLL_INTERVAL=2
+
+    # Polling function that can be wrapped by gum or run standalone
+    poll_for_checks() {
+        elapsed=0
+        while [ $elapsed -lt $MAX_WAIT ]; do
+            # Check if any checks exist
+            checks=$(gh pr checks --json state,name 2>/dev/null || echo "[]")
+
+            if [ "$checks" != "[]" ] && [ -n "$checks" ]; then
+                echo "{{GREEN}}Checks detected after ${elapsed}s{{NORMAL}}"
+                return 0
+            fi
+
+            sleep $POLL_INTERVAL
+            elapsed=$((elapsed + POLL_INTERVAL))
+
+            # Only show dots if not using gum
+            if [ "${USING_GUM:-0}" = "0" ]; then
+                echo -n "."
+            fi
+        done
+
+        echo ""
+        echo "{{YELLOW}}No checks found after ${MAX_WAIT}s - continuing anyway{{NORMAL}}"
+        return 0
+    }
+
+    # Use gum spin if available, otherwise fall back to simple progress
+    if command -v gum &> /dev/null; then
+        USING_GUM=1 gum spin --spinner dot --title "Waiting for GitHub checks to start..." -- bash -c "$(declare -f poll_for_checks); poll_for_checks"
+    else
+        echo "{{BLUE}}Waiting for GitHub checks to start...{{NORMAL}}"
+        USING_GUM=0 poll_for_checks
     fi
 
 # print UTC date in ISO format
