@@ -121,3 +121,58 @@ cue-verify:
     fi
 
     echo "{{GREEN}}Flag verification passed.{{NORMAL}}"
+
+# sync description and topics from GitHub API into .repo.toml
+[group('Compliance')]
+cue-sync-from-github:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "{{BLUE}}Syncing description and topics from GitHub...{{NORMAL}}"
+
+    # Extract org and repo name from .repo.toml
+    ORG_NAME=$(cue export .repo.toml | jq -r '.urls.web_url // ""' | sed -E 's|https://github.com/([^/]+)/.*|\1|')
+    REPO_NAME=$(cue export .repo.toml | jq -r '.urls.web_url // ""' | sed -E 's|.*/([^/]+)/?$|\1|')
+
+    if [[ -z "$ORG_NAME" || -z "$REPO_NAME" ]]; then
+        echo "{{RED}}Error: Cannot extract org/repo name from .repo.toml{{NORMAL}}"
+        exit 1
+    fi
+
+    # Fetch metadata from GitHub API
+    if ! GH_DATA=$(gh api "repos/$ORG_NAME/$REPO_NAME" 2>/dev/null); then
+        echo "{{RED}}Error: Cannot fetch GitHub metadata (API error){{NORMAL}}"
+        echo "{{YELLOW}}  Check your network connection and GitHub authentication{{NORMAL}}"
+        exit 1
+    fi
+
+    # Extract description and topics from GitHub
+    GH_DESC=$(echo "$GH_DATA" | jq -r '.description // ""')
+    GH_TOPICS=$(echo "$GH_DATA" | jq -r '.topics // []')
+
+    # Convert topics array to TOML format
+    TOPICS_TOML=$(echo "$GH_TOPICS" | jq -r 'map("\"" + . + "\"") | join(", ")')
+
+    echo "  Description: $GH_DESC"
+    echo "  Topics: [$TOPICS_TOML]"
+
+    # Create backup
+    cp .repo.toml .repo.toml.backup
+    echo "{{YELLOW}}Created backup: .repo.toml.backup{{NORMAL}}"
+
+    # Update .repo.toml using awk (portable across macOS and Linux)
+    # Escape special characters for awk
+    GH_DESC_ESCAPED=$(echo "$GH_DESC" | sed 's/"/\\"/g')
+
+    awk -v desc="$GH_DESC_ESCAPED" -v topics="[$TOPICS_TOML]" '
+        /^description = / { print "description = \"" desc "\""; next }
+        /^topics = / { print "topics = " topics; next }
+        { print }
+    ' .repo.toml > .repo.toml.tmp && mv .repo.toml.tmp .repo.toml
+
+    echo "{{GREEN}}Successfully synced from GitHub to .repo.toml{{NORMAL}}"
+
+    # Run verification to confirm sync worked
+    echo ""
+    echo "{{BLUE}}Running verification...{{NORMAL}}"
+    just cue-verify
