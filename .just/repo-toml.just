@@ -37,6 +37,14 @@ repo_toml_generate:
     ORG_NAME=$(echo "$WEB_URL" | sed -E 's|https://github.com/([^/]+)/.*|\1|')
     REPO_NAME=$(echo "$WEB_URL" | sed -E 's|https://github.com/[^/]+/(.+)|\1|')
 
+    # Validate URL parsing succeeded
+    if [[ -z "$ORG_NAME" ]] || [[ -z "$REPO_NAME" ]]; then
+        echo "{{RED}}Error: Failed to parse organization and repository name from web_url{{NORMAL}}"
+        echo "{{YELLOW}}Expected format: https://github.com/org-name/repo-name{{NORMAL}}"
+        echo "{{YELLOW}}Got: $WEB_URL{{NORMAL}}"
+        exit 1
+    fi
+
     # Extract feature flags as strings ("true" or "false")
     FLAG_CLAUDE=$(echo "$JSON" | jq -r 'if .flags.claude == true then "true" else "false" end')
     FLAG_CLAUDE_REVIEW=$(echo "$JSON" | jq -r 'if .flags["claude-review"] == true then "true" else "false" end')

@@ -200,6 +200,8 @@ pr_checks: _wait_for_checks && claude_review
     else
         echo "{{YELLOW}}Warning: .just/repo-toml.sh not found - run 'just repo_toml_generate'{{NORMAL}}"
         FLAG_COPILOT_REVIEW="false"
+        # shellcheck disable=SC2034  # Set both flags for defensive programming
+        FLAG_CLAUDE_REVIEW="false"
     fi
 
     # Only display Copilot review if flag is enabled
@@ -253,6 +255,8 @@ claude_review: _on_a_pull_request
         source .just/repo-toml.sh
     else
         echo "{{YELLOW}}Warning: .just/repo-toml.sh not found - run 'just repo_toml_generate'{{NORMAL}}"
+        # shellcheck disable=SC2034  # Set both flags for defensive programming
+        FLAG_COPILOT_REVIEW="false"
         FLAG_CLAUDE_REVIEW="false"
     fi
 
