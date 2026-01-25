@@ -16,7 +16,8 @@
       "Bash(just claude_review:*)",
       "Bash(cue export:*)",
       "WebFetch(domain:docs.github.com)",
-      "Bash(just cue-verify:*)"
+      "Bash(just cue-verify:*)",
+      "Bash(just cue-sync-from-github:*)"
     ],
     "deny": [],
     "ask": []
