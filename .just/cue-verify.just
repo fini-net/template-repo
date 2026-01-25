@@ -10,6 +10,10 @@ cue-verify:
     cue vet .repo.toml docs/repo-toml.cue
     echo "{{GREEN}}Cue structure validation passed.{{NORMAL}}"
 
+    # Extract org/repo names once at the top for all stages
+    ORG_NAME=$(cue export .repo.toml | jq -r '.urls.web_url // ""' | sed -E 's|https://github.com/([^/]+)/.*|\1|')
+    REPO_NAME=$(cue export .repo.toml | jq -r '.urls.web_url // ""' | sed -E 's|.*/([^/]+)/?$|\1|')
+
     # Stage 2: Validate flags match actual configuration
     echo "{{BLUE}}Verifying .repo.toml flags match repository configuration...{{NORMAL}}"
 
@@ -17,9 +21,6 @@ cue-verify:
     CLAUDE_FLAG=$(cue export .repo.toml | jq -r '.flags.claude // false')
     CLAUDE_REVIEW_FLAG=$(cue export .repo.toml | jq -r '.flags."claude-review" // false')
     COPILOT_REVIEW_FLAG=$(cue export .repo.toml | jq -r '.flags."copilot-review" // false')
-
-    # Extract organization name from web_url
-    ORG_NAME=$(cue export .repo.toml | jq -r '.urls.web_url // ""' | sed -E 's|https://github.com/([^/]+)/.*|\1|')
 
     # Error counter
     ERRORS=0
@@ -79,9 +80,6 @@ cue-verify:
     # Extract description and topics from .repo.toml
     TOML_DESC=$(cue export .repo.toml | jq -r '.about.description // ""')
     TOML_TOPICS=$(cue export .repo.toml | jq -r '.about.topics // [] | sort | join(",")')
-
-    # Extract repo name from web_url
-    REPO_NAME=$(cue export .repo.toml | jq -r '.urls.web_url // ""' | sed -E 's|.*/([^/]+)/?$|\1|')
 
     # Check if we can extract org and repo names
     if [[ -z "$ORG_NAME" || -z "$REPO_NAME" ]]; then
@@ -161,18 +159,34 @@ cue-sync-from-github:
     echo "{{YELLOW}}Created backup: .repo.toml.backup{{NORMAL}}"
 
     # Update .repo.toml using awk (portable across macOS and Linux)
-    # Escape special characters for awk
-    GH_DESC_ESCAPED=$(echo "$GH_DESC" | sed 's/"/\\"/g')
+    # NOTE: Assumes single-line TOML format for description and topics
+    # NOTE: Escapes double quotes but not all special chars (backslashes, backticks)
+    # Escape special characters for awk (use bash parameter expansion)
+    GH_DESC_ESCAPED="${GH_DESC//\"/\\\"}"
 
+    # Use state-aware awk that only matches within [about] section
     awk -v desc="$GH_DESC_ESCAPED" -v topics="[$TOPICS_TOML]" '
-        /^description = / { print "description = \"" desc "\""; next }
-        /^topics = / { print "topics = " topics; next }
+        /^\[about\]/ { in_about=1 }
+        /^\[/ && !/^\[about\]/ { in_about=0 }
+        in_about && /^description = / { print "description = \"" desc "\""; next }
+        in_about && /^topics = / { print "topics = " topics; next }
         { print }
     ' .repo.toml > .repo.toml.tmp && mv .repo.toml.tmp .repo.toml
 
-    echo "{{GREEN}}Successfully synced from GitHub to .repo.toml{{NORMAL}}"
+    # Validate the TOML is still valid after modification
+    echo "{{BLUE}}Validating modified TOML...{{NORMAL}}"
+    if cue vet .repo.toml docs/repo-toml.cue; then
+        # Validation passed - safe to remove backup
+        rm .repo.toml.backup
+        echo "{{GREEN}}Successfully synced from GitHub to .repo.toml{{NORMAL}}"
+    else
+        # Validation failed - restore from backup
+        mv .repo.toml.backup .repo.toml
+        echo "{{RED}}Sync failed - TOML validation error. Restored from backup.{{NORMAL}}"
+        exit 1
+    fi
 
-    # Run verification to confirm sync worked
+    # Run full verification to confirm sync worked
     echo ""
-    echo "{{BLUE}}Running verification...{{NORMAL}}"
+    echo "{{BLUE}}Running full verification...{{NORMAL}}"
     just cue-verify
