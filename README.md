@@ -5,6 +5,8 @@
 ![GitHub License](https://img.shields.io/github/license/fini-net/template-repo)
 ![GitHub watchers](https://img.shields.io/github/watchers/fini-net/template-repo)
 
+![template-repo banner](docs/template-repo-banner.png)
+
 A good template for github repos with best practices adoption.
 
 ## Template Features
