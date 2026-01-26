@@ -193,6 +193,7 @@ pr_checks: _wait_for_checks && claude_review
     #!/usr/bin/env bash
 
     gh pr checks --watch -i 5
+    echo "" # blank line for visual space
 
     # Load repo metadata for conditional display
     if [[ -e ".just/repo-toml.sh" ]]; then
@@ -253,7 +254,7 @@ pr_checks: _wait_for_checks && claude_review
             echo "🐈‍⬛ No Copilot suggestions - looks good!"
         else
             echo "🐈‍⬛ Total Copilot suggestions: $COPILOT_COUNT"
-            echo "$COPILOT_JSON"
+            echo "$COPILOT_JSON" | jq '.'
         fi
     else
         echo "{{BLUE}}Skipping Copilot review (disabled in .repo.toml){{NORMAL}}"
