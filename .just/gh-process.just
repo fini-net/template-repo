@@ -244,6 +244,10 @@ pr_checks: _wait_for_checks && claude_review
             }
             ')
 
+        # Count and store suggestions for display after claude_review
+        COPILOT_COUNT=$(echo "$COPILOT_JSON" | jq 'length')
+        echo "$COPILOT_COUNT" > "$COPILOT_COUNT_FILE"
+
         # Display output to maintain current behavior
         if [[ "$COPILOT_COUNT" -eq 0 ]]; then
             echo "🐈‍⬛ No Copilot suggestions - looks good!"
@@ -251,10 +255,6 @@ pr_checks: _wait_for_checks && claude_review
             echo "🐈‍⬛ Total Copilot suggestions: $COPILOT_COUNT"
             echo "$COPILOT_JSON"
         fi
-
-        # Count and store suggestions for display after claude_review
-        COPILOT_COUNT=$(echo "$COPILOT_JSON" | jq 'length')
-        echo "$COPILOT_COUNT" > "$COPILOT_COUNT_FILE"
     else
         echo "{{BLUE}}Skipping Copilot review (disabled in .repo.toml){{NORMAL}}"
     fi
