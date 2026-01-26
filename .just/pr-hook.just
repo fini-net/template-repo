@@ -6,4 +6,4 @@
 _pr-hook:
     just shellcheck
     just claude_permissions_sort
-    echo "{{BLUE}}Feel free to add more to the _pr-hook...{{NORMAL}}"
+    @echo "{{BLUE}}Feel free to add more to the _pr-hook...{{NORMAL}}"
