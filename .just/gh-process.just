@@ -212,8 +212,8 @@ pr_checks: _wait_for_checks && claude_review
         PR_NUMBER=$(echo "$PR_META" | jq '.number')
         #echo "$PR_NUMBER $PR_REPO_OWNER/$PR_REPO_NAME"
 
-        # Define temp file for passing count to claude_review
-        COPILOT_COUNT_FILE="/tmp/copilot_count_$$"
+        # Define temp file for passing count to claude_review (based on repo and PR)
+        COPILOT_COUNT_FILE="/tmp/copilot_count_${PR_REPO_OWNER}_${PR_REPO_NAME}_${PR_NUMBER}"
 
         # Capture GraphQL output
         # shellcheck disable=SC2016
@@ -446,7 +446,12 @@ claude_review: _on_a_pull_request
     echo "$COMMENT_BODY"
 
     # Display Copilot count summary if available
-    COPILOT_COUNT_FILE="/tmp/copilot_count_$$"
+    # Get PR metadata to construct the same temp filename
+    PR_META=$(gh pr view --json number,headRepository,headRepositoryOwner)
+    PR_REPO_NAME=$(echo "$PR_META" | jq -r '.headRepository.name')
+    PR_REPO_OWNER=$(echo "$PR_META" | jq -r '.headRepositoryOwner.login')
+    PR_NUMBER=$(echo "$PR_META" | jq '.number')
+    COPILOT_COUNT_FILE="/tmp/copilot_count_${PR_REPO_OWNER}_${PR_REPO_NAME}_${PR_NUMBER}"
     if [[ -f "$COPILOT_COUNT_FILE" ]]; then
         COPILOT_COUNT=$(cat "$COPILOT_COUNT_FILE")
         echo ""
