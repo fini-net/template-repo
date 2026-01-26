@@ -4,6 +4,38 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## January 2026 - Experience leads to more opportunities
 
+### v4.9 - Copilot Suggestion Count
+
+Enhanced the Copilot review display to show a count of suggestions instead of
+raw JSON output, making it easier to quickly assess how many items need attention.
+Previously, after PR checks completed, you'd see the full JSON dump of all Copilot
+suggestions, which was hard to scan at a glance. Now you get a clear summary of
+how many suggestions there are, and the count appears both immediately after checks
+and at the end of Claude's review output.
+
+- **Count display** - Shows "Total Copilot suggestions: N" after PR checks complete,
+  or "No Copilot suggestions - looks good!" when clean. Replaces the immediate
+  JSON dump with human-friendly feedback.
+
+- **Summary in claude_review** - Displays the same count summary at the end of the
+  `claude_review` recipe output, providing a quick reference after you've read
+  Claude's feedback. Makes it easy to remember if there are Copilot items to
+  address without scrolling back through terminal history.
+
+- **Safer temp file naming** - Uses PR metadata (owner, repo name, PR number) to
+  generate unique temp filenames at `/tmp/copilot_count_${OWNER}_${REPO}_${PR}`.
+  Prevents collisions when working with multiple PRs across different repositories.
+  File is automatically cleaned up after display.
+
+- **Maintained behavior** - Still outputs the full JSON for those who want to parse
+  it programmatically or review detailed suggestions. The count is additive, not a
+  replacement.
+
+The change makes the workflow feel more polished - you get immediate actionable
+feedback ("3 suggestions to review") rather than having to eyeball JSON arrays.
+Pairs nicely with the `copilot_pick` recipe from v4.8 for diving into specific
+suggestions when needed.
+
 ### v4.8 - Copilot Suggestion Picker (#67, #72)
 
 Added an interactive picker for browsing and viewing GitHub Copilot PR review
