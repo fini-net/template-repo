@@ -4,6 +4,44 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## January 2026 - Experience leads to more opportunities
 
+### v4.8 - Copilot Suggestion Picker (#67, #72)
+
+Added an interactive picker for browsing and viewing GitHub Copilot PR review
+suggestions without leaving the terminal. Previously, you could see a JSON dump
+of all Copilot suggestions after PR checks completed, but navigating through
+multiple suggestions was cumbersome. The new `copilot_pick` recipe provides a
+streamlined interface for exploring Copilot feedback.
+
+- **`copilot_pick`** - Interactive recipe using `gum` to display Copilot
+  suggestions in a browsable list. Shows `file:line - preview` format for
+  quick scanning, then displays the full suggestion body when selected.
+  Requires the `gum` tool for interactive selection.
+
+- **Prerequisite checks** - Validates that both `gum` (for interactive UI)
+  and `jq` (for JSON parsing) are installed before proceeding, with helpful
+  installation instructions if missing.
+
+- **GraphQL integration** - Fetches Copilot review comments using GitHub's
+  GraphQL API with proper limits documented (last 20 reviews, first 100
+  comments per review). Sufficient for most PRs but noted in case of very
+  active discussions.
+
+- **Robust error handling** - Validates line number extraction with regex
+  check to prevent cryptic jq errors. Shows clear error messages if selection
+  format is unexpected or if no suggestions are found.
+
+- **Cleanup handling** - Properly manages temporary files with a single trap
+  that cleans up both temp files on exit. Fixed an initial bug where dual
+  traps would overwrite each other, potentially leaving temp files behind if
+  errors occurred early in execution.
+
+The recipe fills the gap between the automated post-checks JSON dump and
+opening the PR in a browser - perfect for quickly reviewing specific Copilot
+suggestions while staying in your terminal workflow. Exit gracefully with
+Ctrl+C if you don't want to view any suggestions.
+
+**Related PRs:** [#67](https://github.com/fini-net/template-repo/pull/67), [#72](https://github.com/fini-net/template-repo/pull/72)
+
 ### v4.6 - Conditional AI Review Display (#63)
 
 Added repository metadata extraction system that enables flag-based conditional
