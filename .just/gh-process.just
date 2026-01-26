@@ -206,7 +206,6 @@ pr_checks: _wait_for_checks && claude_review
 
     # Only display Copilot review if flag is enabled
     if [[ "$FLAG_COPILOT_REVIEW" == "true" ]]; then
-        echo "🐈‍⬛😾 Copilot suggestions..."
         PR_META=$(gh pr view --json number,headRepository,headRepositoryOwner)
         PR_REPO_NAME=$(echo "$PR_META" | jq -r '.headRepository.name')
         PR_REPO_OWNER=$(echo "$PR_META" | jq -r '.headRepositoryOwner.login')
@@ -246,7 +245,12 @@ pr_checks: _wait_for_checks && claude_review
             ')
 
         # Display output to maintain current behavior
-        echo "$COPILOT_JSON"
+        if [[ "$COPILOT_COUNT" -eq 0 ]]; then
+            echo "🐈‍⬛ No Copilot suggestions - looks good!"
+        else
+            echo "🐈‍⬛ Total Copilot suggestions: $COPILOT_COUNT"
+            echo "$COPILOT_JSON"
+        fi
 
         # Count and store suggestions for display after claude_review
         COPILOT_COUNT=$(echo "$COPILOT_JSON" | jq 'length')
