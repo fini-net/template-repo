@@ -13,7 +13,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v4.8
+# PR create v4.9
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -193,6 +193,7 @@ pr_checks: _wait_for_checks && claude_review
     #!/usr/bin/env bash
 
     gh pr checks --watch -i 5
+    echo "" # blank line for visual space
 
     # Load repo metadata for conditional display
     if [[ -e ".just/repo-toml.sh" ]]; then
@@ -206,14 +207,18 @@ pr_checks: _wait_for_checks && claude_review
 
     # Only display Copilot review if flag is enabled
     if [[ "$FLAG_COPILOT_REVIEW" == "true" ]]; then
-        echo "🐈‍⬛😾 Copilot suggestions..."
         PR_META=$(gh pr view --json number,headRepository,headRepositoryOwner)
         PR_REPO_NAME=$(echo "$PR_META" | jq -r '.headRepository.name')
         PR_REPO_OWNER=$(echo "$PR_META" | jq -r '.headRepositoryOwner.login')
         PR_NUMBER=$(echo "$PR_META" | jq '.number')
         #echo "$PR_NUMBER $PR_REPO_OWNER/$PR_REPO_NAME"
+
+        # Define temp file for passing count to claude_review (based on repo and PR)
+        COPILOT_COUNT_FILE="/tmp/copilot_count_${PR_REPO_OWNER}_${PR_REPO_NAME}_${PR_NUMBER}"
+
+        # Capture GraphQL output
         # shellcheck disable=SC2016
-        gh api graphql \
+        COPILOT_JSON=$(gh api graphql \
             -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
             --jq '[ .data.repository.pullRequest.reviews.nodes.[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes.[] ]' \
             -f query='
@@ -238,7 +243,19 @@ pr_checks: _wait_for_checks && claude_review
                     }
                 }
             }
-            '
+            ')
+
+        # Count and store suggestions for display after claude_review
+        COPILOT_COUNT=$(echo "$COPILOT_JSON" | jq 'length')
+        echo "$COPILOT_COUNT" > "$COPILOT_COUNT_FILE"
+
+        # Display output to maintain current behavior
+        if [[ "$COPILOT_COUNT" -eq 0 ]]; then
+            echo "🐈‍⬛ No Copilot suggestions - looks good!"
+        else
+            echo "🐈‍⬛ Total Copilot suggestions: $COPILOT_COUNT"
+            echo "$COPILOT_JSON" | jq '.'
+        fi
     else
         echo "{{BLUE}}Skipping Copilot review (disabled in .repo.toml){{NORMAL}}"
     fi
@@ -428,6 +445,24 @@ claude_review: _on_a_pull_request
     fi
 
     echo "$COMMENT_BODY"
+
+    # Display Copilot count summary if available
+    # Get PR metadata to construct the same temp filename
+    PR_META=$(gh pr view --json number,headRepository,headRepositoryOwner)
+    PR_REPO_NAME=$(echo "$PR_META" | jq -r '.headRepository.name')
+    PR_REPO_OWNER=$(echo "$PR_META" | jq -r '.headRepositoryOwner.login')
+    PR_NUMBER=$(echo "$PR_META" | jq '.number')
+    COPILOT_COUNT_FILE="/tmp/copilot_count_${PR_REPO_OWNER}_${PR_REPO_NAME}_${PR_NUMBER}"
+    if [[ -f "$COPILOT_COUNT_FILE" ]]; then
+        COPILOT_COUNT=$(cat "$COPILOT_COUNT_FILE")
+        echo ""
+        if [[ "$COPILOT_COUNT" -eq 0 ]]; then
+            echo "🐈‍⬛ No Copilot suggestions - looks good!"
+        else
+            echo "🐈‍⬛ Total Copilot suggestions: $COPILOT_COUNT"
+        fi
+        rm -f "$COPILOT_COUNT_FILE"
+    fi
 
     # Always exit 0 - this is informational, not an error
     exit 0
