@@ -13,6 +13,9 @@ suggestions, which was hard to scan at a glance. Now you get a clear summary of
 how many suggestions there are, and the count appears both immediately after checks
 and at the end of Claude's review output.
 
+**Fixes issue:** [#73](https://github.com/fini-net/template-repo/issues/73)
+**Related PR:** [#74](https://github.com/fini-net/template-repo/pull/74)
+
 - **Count display** - Shows "Total Copilot suggestions: N" after PR checks complete,
   or "No Copilot suggestions - looks good!" when clean. Replaces the immediate
   JSON dump with human-friendly feedback.
@@ -36,7 +39,7 @@ feedback ("3 suggestions to review") rather than having to eyeball JSON arrays.
 Pairs nicely with the `copilot_pick` recipe from v4.8 for diving into specific
 suggestions when needed.
 
-### v4.8 - Copilot Suggestion Picker (#67, #72)
+### v4.8 - Copilot Suggestion Picker
 
 Added an interactive picker for browsing and viewing GitHub Copilot PR review
 suggestions without leaving the terminal. Previously, you could see a JSON dump
@@ -72,9 +75,10 @@ opening the PR in a browser - perfect for quickly reviewing specific Copilot
 suggestions while staying in your terminal workflow. Exit gracefully with
 Ctrl+C if you don't want to view any suggestions.
 
-**Related PRs:** [#67](https://github.com/fini-net/template-repo/pull/67), [#72](https://github.com/fini-net/template-repo/pull/72)
+**Fixes issue:** [#67](https://github.com/fini-net/template-repo/issues/67)
+**Related PR:** [#72](https://github.com/fini-net/template-repo/pull/72)
 
-### v4.6 - Conditional AI Review Display (#63)
+### v4.6 - Conditional AI Review Display
 
 Added repository metadata extraction system that enables flag-based conditional
 display of AI code reviews. Previously, Copilot and Claude reviews were always
@@ -103,9 +107,10 @@ on demand. This architecture enables future recipes to access repository metadat
 without parsing overhead, and provides a clean pattern for flag-based feature
 toggles across the workflow.
 
-**Related PRs:** [#63](https://github.com/fini-net/template-repo/pull/63)
+**Fixes issue:** [#63](https://github.com/fini-net/template-repo/issues/63)
+**Related PR:** [#64](https://github.com/fini-net/template-repo/pull/64)
 
-### v4.7 - Stale Review Detection (#69)
+### v4.7 - Stale Review Detection
 
 Enhanced the `claude_review` recipe to detect and warn when Claude's PR review
 feedback doesn't apply to the latest code. Previously, the recipe would blindly
@@ -146,7 +151,8 @@ you're looking at fresh feedback or outdated suggestions. Particularly useful
 during rapid iteration when you're pushing frequent commits and want to know if
 you should wait for a new review.
 
-**Related PRs:** [#69](https://github.com/fini-net/template-repo/pull/69)
+**Fixes issue:** [#69](https://github.com/fini-net/template-repo/issues/69)
+**Related PR:** [#70](https://github.com/fini-net/template-repo/pull/70)
 
 ### v4.5 - Smart Polling for PR Checks
 
@@ -170,6 +176,9 @@ subshell context. Uses colored output (GREEN for success, YELLOW for timeout) an
 the `USING_GUM` environment variable to conditionally show progress indicators
 based on available tooling.
 
+**Fixes issue:** [#60](https://github.com/fini-net/template-repo/issues/60)
+**Related PR:** [#61](https://github.com/fini-net/template-repo/pull/61)
+
 ## December 2025 - Finer refinements
 
 ### v4.4 - PR Update Blank Line Preservation
@@ -188,7 +197,7 @@ The fix ensures that when `pr_update` regenerates the Done section with current
 commits, it maintains proper markdown formatting with blank lines separating
 different sections of the PR description.
 
-**Related PRs:** [#50](https://github.com/fini-net/template-repo/pull/50)
+**Related PR:** [#50](https://github.com/fini-net/template-repo/pull/50)
 
 ### v4.3 - Release Tag Visibility
 
@@ -206,7 +215,7 @@ This is a small quality-of-life improvement that removes a tiny paper cut from
 the release process. When you create a release, you should see it locally right
 away without extra steps.
 
-### v4.2 - Prerequisites Installation Script (#48)
+### v4.2 - Prerequisites Installation Script
 
 Added a standalone shell script to automate installation and verification of all
 prerequisites needed to run the just recipes in this repository:
@@ -225,9 +234,9 @@ friendly user experience with color-coded output and helpful error messages.
 Run `./.just/install-prerequisites.sh` to check your environment or install
 missing tools.
 
-**Related PRs:** [#48](https://github.com/fini-net/template-repo/pull/48)
+**Related PR:** [#48](https://github.com/fini-net/template-repo/pull/48)
 
-### v4.1 - Release Monitoring and Iteration Workflow (#46)
+### v4.1 - Release Monitoring and Iteration Workflow
 
 Added three new recipes to improve release management and iterative PR workflows:
 
@@ -255,11 +264,11 @@ These recipes improve different phases of the development cycle - `release_age`
 for project maintenance awareness, `claude_review` for quick feedback access,
 and `again` for rapid PR iteration.
 
-**Related PRs:** [#46](https://github.com/fini-net/template-repo/pull/46)
+**Related PR:** [#46](https://github.com/fini-net/template-repo/pull/46)
 
 ## November 2025 - The Polish Updates
 
-### v4.0 - PR Description Management (#44)
+### v4.0 - PR Description Management
 
 Added two new recipes for managing pull request descriptions dynamically:
 
@@ -287,9 +296,9 @@ Other improvements in this release:
 - Initialize awk variables properly to avoid undefined behavior
 - Updated documentation to show new recipes
 
-**Related PRs:** [#44](https://github.com/fini-net/template-repo/pull/44)
+**Related PR:** [#44](https://github.com/fini-net/template-repo/pull/44)
 
-### v3.9 - Shellcheck Error Fixes (#40)
+### v3.9 - Shellcheck Error Fixes
 
 Before adding the shellcheck tooling in v3.8bis, we knew there were a bunch of
 shellcheck warnings in the gh-process module itself. This release fixes all
@@ -298,9 +307,9 @@ other shellcheck best practices. Nothing user-facing changed, but the code is
 now cleaner and more robust. This should also mean that our future AI code
 reviews will have less trivial stuff to complain about.
 
-**Related PRs:** [#40](https://github.com/fini-net/template-repo/pull/40)
+**Related PR:** [#40](https://github.com/fini-net/template-repo/pull/40)
 
-### v3.8bis - Shellcheck Integration (#37, #39)
+### v3.8bis - Shellcheck Integration
 
 Added a whole new module for linting bash scripts embedded in just recipes.
 The `shellcheck` recipe extracts bash scripts from all justfiles in the repo,
@@ -317,7 +326,7 @@ This immediately found issues in our own code, which led to v3.9.
 
 **Related PRs:** [#37](https://github.com/fini-net/template-repo/pull/37), [#39](https://github.com/fini-net/template-repo/pull/39)
 
-### v3.8 - Git Alias Expansion (#35)
+### v3.8 - Git Alias Expansion
 
 Expanded all git aliases to use standard git commands, making this justfile
 work for everyone without requiring custom git configuration. Previously,
@@ -331,9 +340,9 @@ this workflow. Now it just works out of the box.
 Added inline comments showing the old alias names for reference, so if you're
 used to seeing `stp` in the output, you know what's happening.
 
-**Related PRs:** [#35](https://github.com/fini-net/template-repo/pull/35)
+**Related PR:** [#35](https://github.com/fini-net/template-repo/pull/35)
 
-### v3.7 - Pre-PR Hook Support (#32, #33)
+### v3.7 - Pre-PR Hook Support
 
 Added support for optional pre-PR hooks to allow project-specific automation
 before creating pull requests. The `pr` recipe now checks for
@@ -346,15 +355,15 @@ projects that need to rebuild assets (like Hugo sites) before pushing.
 
 **Related PRs:** [#32](https://github.com/fini-net/template-repo/pull/32), [#33](https://github.com/fini-net/template-repo/pull/33)
 
-### v3.6 - Quote Consistency (#31)
+### v3.6 - Quote Consistency
 
 Improved shell script robustness with more consistent quoting of variables and
 just template parameters. Small change, but makes the scripts more reliable
 when dealing with branch names or paths that might contain spaces.
 
-**Related PRs:** [#31](https://github.com/fini-net/template-repo/pull/31)
+**Related PR:** [#31](https://github.com/fini-net/template-repo/pull/31)
 
-### v3.5 - Spacing and Multi-Commit Handling (#30)
+### v3.5 - Spacing and Multi-Commit Handling
 
 Cleaned up the codebase and improved handling of branches with multiple commits:
 
@@ -363,20 +372,20 @@ Cleaned up the codebase and improved handling of branches with multiple commits:
 - Improved quoting of just variables
 - More consistent handling of multiple commits on a branch
 
-**Related PRs:** [#30](https://github.com/fini-net/template-repo/pull/30)
+**Related PR:** [#30](https://github.com/fini-net/template-repo/pull/30)
 
 ## October 2025 - The AI Review Update
 
-### v3.4 - Graceful Failure Handling (#26)
+### v3.4 - Graceful Failure Handling
 
 Fixed an issue where broken GitHub Actions would prevent the review comments
 from being displayed. The workflow now continues to show AI reviews even if
 some checks fail, because you probably want to see those reviews even more when
 things are broken.
 
-**Related PRs:** [#26](https://github.com/fini-net/template-repo/pull/26)
+**Related PR:** [#26](https://github.com/fini-net/template-repo/pull/26)
 
-### v3.3 - Copilot and Claude Review Integration (#25)
+### v3.3 - Copilot and Claude Review Integration
 
 This was a big one. After PR checks complete, the workflow now automatically
 fetches and displays comments from both GitHub Copilot and Claude Code reviews
@@ -388,11 +397,11 @@ think.
 - Shows Claude's most recent comment
 - Uses `jq` to parse and filter review data
 
-**Related PRs:** [#25](https://github.com/fini-net/template-repo/pull/25)
+**Related PR:** [#25](https://github.com/fini-net/template-repo/pull/25)
 
 ## August 2025 - The Safety Update
 
-### v3.2 - Commit Verification (#21)
+### v3.2 - Commit Verification
 
 Added a sanity check to prevent accidentally creating empty PRs. The `pr` recipe now verifies that your branch actually has commits before allowing you to create a pull request. Uses `git cherry` to compare against the release branch.
 
@@ -400,17 +409,17 @@ Added a sanity check to prevent accidentally creating empty PRs. The `pr` recipe
 - Clear error message when branch is empty
 - Exit code 101 for tracking
 
-**Related PRs:** [#21](https://github.com/fini-net/template-repo/pull/21)
+**Related PR:** [#21](https://github.com/fini-net/template-repo/pull/21)
 
-### Faster PR Check Monitoring (#20)
+### Faster PR Check Monitoring
 
 Changed the PR checks watcher to poll every 5 seconds instead of the default. Because who wants to wait around? GitHub's API might be lazy, but we don't have to be.
 
-**Related PRs:** [#20](https://github.com/fini-net/template-repo/pull/20)
+**Related PR:** [#20](https://github.com/fini-net/template-repo/pull/20)
 
 ## June 2025 - The Beginning of this file
 
-### v3.1 - Initial Release (#11)
+### v3.1 - Initial Release
 
 Created as part of a larger refactoring effort to modularize the main justfile.
 This file extracted all the Git/GitHub workflow automation into a separate
@@ -429,7 +438,7 @@ Core recipes included from day one:
 Plus a bunch of sanity check helpers (`_on_a_branch`, `_main_branch`, etc.) to
 keep you from footgunning yourself.
 
-**Related PRs:** [#11](https://github.com/fini-net/template-repo/pull/11)
+**Related PR:** [#11](https://github.com/fini-net/template-repo/pull/11)
 
 ---
 
