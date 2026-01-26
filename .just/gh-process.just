@@ -13,7 +13,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v4.6
+# PR create v4.7
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -249,6 +249,7 @@ pr_checks: _wait_for_checks && claude_review
 [group('Process')]
 claude_review: _on_a_pull_request
     #!/usr/bin/env bash
+    set -euo pipefail
 
     # Load repo metadata for conditional display
     if [[ -e ".just/repo-toml.sh" ]]; then
@@ -261,12 +262,66 @@ claude_review: _on_a_pull_request
     fi
 
     # Only display Claude review if flag is enabled
-    if [[ "$FLAG_CLAUDE_REVIEW" == "true" ]]; then
-        echo -e "\n\n🟧🟠🔶🔸 Claude:"
-        gh pr view --json comments --jq '[.comments[] | select(.author.login == "claude")] | last | .body'
-    else
+    if [[ "$FLAG_CLAUDE_REVIEW" != "true" ]]; then
         echo "{{BLUE}}Skipping Claude review (disabled in .repo.toml){{NORMAL}}"
+        exit 0
     fi
+
+    # Get latest commit info
+    LATEST_COMMIT_SHA=$(gh pr view --json commits --jq '.commits[-1].oid')
+    LATEST_COMMIT_DATE=$(gh pr view --json commits --jq '.commits[-1].committedDate')
+
+    # Get Claude's latest comment
+    CLAUDE_COMMENT_JSON=$(gh pr view --json comments --jq '[.comments[] | select(.author.login == "claude")] | last')
+
+    # Check if comment exists
+    if [[ -z "$CLAUDE_COMMENT_JSON" || "$CLAUDE_COMMENT_JSON" == "null" ]]; then
+        echo -e "\n\n{{BLUE}}ℹ️  No Claude Code review found yet{{NORMAL}}"
+        echo "   Latest commit: ${LATEST_COMMIT_SHA:0:7} ($(date -d "$LATEST_COMMIT_DATE" +'%Y-%m-%d %H:%M:%S %Z' 2>/dev/null || date -j -f '%Y-%m-%dT%H:%M:%SZ' "$LATEST_COMMIT_DATE" +'%Y-%m-%d %H:%M:%S %Z' 2>/dev/null || echo "$LATEST_COMMIT_DATE"))"
+        echo "   The review workflow may still be running"
+        echo "   Try: {{GREEN}}just claude_review{{NORMAL}} (to check again)"
+        echo "   Or: {{GREEN}}just prweb{{NORMAL}} (to see review status in browser)"
+        exit 0
+    fi
+
+    COMMENT_DATE=$(echo "$CLAUDE_COMMENT_JSON" | jq -r '.createdAt')
+    COMMENT_BODY=$(echo "$CLAUDE_COMMENT_JSON" | jq -r '.body')
+
+    # Convert dates to epoch for comparison (cross-platform)
+    if COMMIT_EPOCH=$(date -d "$LATEST_COMMIT_DATE" +%s 2>/dev/null); then
+        # GNU date (Linux)
+        COMMENT_EPOCH=$(date -d "$COMMENT_DATE" +%s 2>/dev/null)
+    elif COMMIT_EPOCH=$(date -j -f '%Y-%m-%dT%H:%M:%SZ' "$LATEST_COMMIT_DATE" +%s 2>/dev/null); then
+        # BSD date (macOS)
+        COMMENT_EPOCH=$(date -j -f '%Y-%m-%dT%H:%M:%SZ' "$COMMENT_DATE" +%s 2>/dev/null)
+    else
+        echo "{{YELLOW}}Warning: Could not parse dates for staleness check{{NORMAL}}"
+        COMMIT_EPOCH=0
+        COMMENT_EPOCH=0
+    fi
+
+    # Check staleness
+    if [[ $COMMENT_EPOCH -lt $COMMIT_EPOCH ]]; then
+        # Comment is older than latest commit = STALE
+        TIME_DIFF=$((COMMIT_EPOCH - COMMENT_EPOCH))
+        MINUTES_OLD=$((TIME_DIFF / 60))
+
+        echo -e "\n\n{{YELLOW}}⚠️  Claude Code Review exists but is STALE{{NORMAL}}"
+        echo "   Review created: $(date -d "$COMMENT_DATE" +'%Y-%m-%d %H:%M:%S %Z' 2>/dev/null || date -j -f '%Y-%m-%dT%H:%M:%SZ' "$COMMENT_DATE" +'%Y-%m-%d %H:%M:%S %Z' 2>/dev/null || echo "$COMMENT_DATE")"
+        echo "   Latest commit:  $(date -d "$LATEST_COMMIT_DATE" +'%Y-%m-%d %H:%M:%S %Z' 2>/dev/null || date -j -f '%Y-%m-%dT%H:%M:%SZ' "$LATEST_COMMIT_DATE" +'%Y-%m-%d %H:%M:%S %Z' 2>/dev/null || echo "$LATEST_COMMIT_DATE")"
+        echo "   Age difference: ~$MINUTES_OLD minutes old"
+        echo "   Consider waiting for new review or checking workflow status"
+        echo ""
+        echo "🟧🟠🔶🔸 Claude's feedback (may not apply to latest code):"
+    else
+        # Comment is same age or newer than latest commit = CURRENT
+        echo -e "\n\n🟧🟠🔶🔸 Claude Code Review (current):"
+    fi
+
+    echo "$COMMENT_BODY"
+
+    # Always exit 0 - this is informational, not an error
+    exit 0
 
 # update the Done section of PR description with current commits
 [group('Process')]
