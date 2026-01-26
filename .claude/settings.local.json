@@ -2,10 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(cue export:*)",
+      "Bash(gh copilot suggest:*)",
       "Bash(gh issue view:*)",
       "Bash(gh pr diff:*)",
       "Bash(gh pr view:*)",
       "Bash(git log:*)",
+      "Bash(gum choose:*)",
+      "Bash(gum confirm:*)",
+      "Bash(gum filter:*)",
       "Bash(identify:*)",
       "Bash(just _wait_for_checks:*)",
       "Bash(just claude_permissions_check)",
@@ -24,11 +28,7 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:www.chicks.net)",
-      "WebSearch",
-      "Bash(gh copilot suggest:*)",
-      "Bash(gum choose:*)",
-      "Bash(gum filter:*)",
-      "Bash(gum confirm:*)"
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
