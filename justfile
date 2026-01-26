@@ -9,7 +9,7 @@ import? '.just/claude.just'
 import? '.just/repo-toml.just'
 
 # list recipes (default works without naming it)
-[group('example')]
+[group('Utility')]
 list:
 	just --list
 	@echo "{{GREEN}}Your justfile is waiting for more scripts and snippets{{NORMAL}}"
