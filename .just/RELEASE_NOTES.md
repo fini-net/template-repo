@@ -35,6 +35,49 @@ toggles across the workflow.
 
 **Related PRs:** [#63](https://github.com/fini-net/template-repo/pull/63)
 
+### v4.7 - Stale Review Detection (#69)
+
+Enhanced the `claude_review` recipe to detect and warn when Claude's PR review
+feedback doesn't apply to the latest code. Previously, the recipe would blindly
+display Claude's most recent comment even if you'd pushed new commits since the
+review was written, leading to confusion about whether the feedback was still
+relevant.
+
+Now the recipe compares timestamps between Claude's latest comment and your most
+recent commit to provide context-aware status:
+
+- **Missing review** - Shows informational message with latest commit SHA and
+  suggests re-running `just claude_review` or checking browser for workflow
+  status. Helpful when the review workflow is still running.
+
+- **Stale review** - Displays yellow warning with both timestamps (review
+  created vs. latest commit), age difference in minutes, and clear disclaimer
+  that feedback may not apply to latest code. Still shows the comment content
+  but prepends "⚠️ Claude Code Review exists but is STALE" header.
+
+- **Current review** - Normal display with "(current)" indicator confirming the
+  feedback applies to your latest code.
+
+Implementation details:
+
+- **Cross-platform date handling** - Works on both Linux (GNU date) and macOS
+  (BSD date) with proper fallbacks
+- **Graceful degradation** - If date parsing fails, shows warning but continues
+  to display comment
+- **Always exits 0** - Won't break workflow chains (maintains `pr_checks &&
+  claude_review` compatibility)
+- **Uses timestamp comparison** - After investigating `.github/workflows/claude-code-review.yml`,
+  discovered Claude uses `gh pr comment` which creates IssueComments (not
+  PullRequestReviews), so commit SHA association isn't available. Timestamp
+  comparison is the correct approach.
+
+The recipe now provides better UX by setting clear expectations about whether
+you're looking at fresh feedback or outdated suggestions. Particularly useful
+during rapid iteration when you're pushing frequent commits and want to know if
+you should wait for a new review.
+
+**Related PRs:** [#69](https://github.com/fini-net/template-repo/pull/69)
+
 ### v4.5 - Smart Polling for PR Checks
 
 Replaced the fixed 8-second sleep in the `pr` recipe with an intelligent polling
