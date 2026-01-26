@@ -13,7 +13,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v4.8
+# PR create v4.9
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -212,8 +212,13 @@ pr_checks: _wait_for_checks && claude_review
         PR_REPO_OWNER=$(echo "$PR_META" | jq -r '.headRepositoryOwner.login')
         PR_NUMBER=$(echo "$PR_META" | jq '.number')
         #echo "$PR_NUMBER $PR_REPO_OWNER/$PR_REPO_NAME"
+
+        # Define temp file for passing count to claude_review
+        COPILOT_COUNT_FILE="/tmp/copilot_count_$$"
+
+        # Capture GraphQL output
         # shellcheck disable=SC2016
-        gh api graphql \
+        COPILOT_JSON=$(gh api graphql \
             -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
             --jq '[ .data.repository.pullRequest.reviews.nodes.[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes.[] ]' \
             -f query='
@@ -238,7 +243,14 @@ pr_checks: _wait_for_checks && claude_review
                     }
                 }
             }
-            '
+            ')
+
+        # Display output to maintain current behavior
+        echo "$COPILOT_JSON"
+
+        # Count and store suggestions for display after claude_review
+        COPILOT_COUNT=$(echo "$COPILOT_JSON" | jq 'length')
+        echo "$COPILOT_COUNT" > "$COPILOT_COUNT_FILE"
     else
         echo "{{BLUE}}Skipping Copilot review (disabled in .repo.toml){{NORMAL}}"
     fi
@@ -428,6 +440,19 @@ claude_review: _on_a_pull_request
     fi
 
     echo "$COMMENT_BODY"
+
+    # Display Copilot count summary if available
+    COPILOT_COUNT_FILE="/tmp/copilot_count_$$"
+    if [[ -f "$COPILOT_COUNT_FILE" ]]; then
+        COPILOT_COUNT=$(cat "$COPILOT_COUNT_FILE")
+        echo ""
+        if [[ "$COPILOT_COUNT" -eq 0 ]]; then
+            echo "🐈‍⬛ No Copilot suggestions - looks good!"
+        else
+            echo "🐈‍⬛ Total Copilot suggestions: $COPILOT_COUNT"
+        fi
+        rm -f "$COPILOT_COUNT_FILE"
+    fi
 
     # Always exit 0 - this is informational, not an error
     exit 0
