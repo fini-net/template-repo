@@ -24,7 +24,11 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:www.chicks.net)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(gh copilot suggest:*)",
+      "Bash(gum choose:*)",
+      "Bash(gum filter:*)",
+      "Bash(gum confirm:*)"
     ],
     "deny": [],
     "ask": []
