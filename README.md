@@ -11,11 +11,12 @@ A good template for github repos with best practices adoption.
 
 ## Template Features
 
+### GitHub Community Standards
+
 - ✅ [All github community standards are checked off](https://github.com/fini-net/template-repo/community)
-  - ✅ This [README](README) with badges
+  - ✅ This [README](README) with badges and banner
   - ✅ [Contributor Covenant](https://www.contributor-covenant.org)-based Code of Conduct
-  - ✅ [Contributing Guide](.github/CONTRIBUTING.md) includes a step-by-step guide to our
-    [command line development process](.github/CONTRIBUTING.md#development-process).
+  - ✅ [Contributing Guide](.github/CONTRIBUTING.md) includes a step-by-step guide to our [command line development process](.github/CONTRIBUTING.md#development-process)
   - ✅ [GPL2](LICENSE) license
   - ✅ [Security Policy](.github/SECURITY.md)
   - ✅ [Issue Templates](.github/ISSUE_TEMPLATE/)
@@ -23,13 +24,50 @@ A good template for github repos with best practices adoption.
 - ✅ [gitattributes](.gitattributes) based on [gitattributes](https://github.com/gitattributes/gitattributes)
 - ✅ [gitignore](.gitignore) with comments
 - ✅ [CODEOWNERS](.github/CODEOWNERS) that is self-documented
-- ✅ [justfile](justfile) with
-  [command line workflow for pull requests](.github/CONTRIBUTING.md#development-process)
-- ✅ [Github Actions](.github/workflows) are already setup for:
-  - ✅ [Auto-assign](https://github.com/pozil/auto-assign-issue) helps avoid toil.
-  - ✅ [Checkov](https://github.com/bridgecrewio/checkov) will help keep our github actions secure
-  - ✅ [Markdownlint](https://github.com/DavidAnson/markdownlint-cli2-action) keeps your READMEs standards-compliant
-- ✅ [A few extra labels for issues](https://github.com/fini-net/template-repo/labels)
+
+### Modular Justfile Architecture
+
+The [justfile](justfile) imports 7 modules from the [.just/](.just/) directory for a clean, maintainable workflow:
+
+- ✅ [gh-process.just](.just/gh-process.just) - Complete PR lifecycle automation with smart check polling and AI review integration
+- ✅ [compliance.just](.just/compliance.just) - Repository health checks validating all GitHub community standards and branch protection
+- ✅ [shellcheck.just](.just/shellcheck.just) - Bash script linting that extracts and validates all scripts in just recipes
+- ✅ [cue-verify.just](.just/cue-verify.just) - Three-stage validation of [.repo.toml](.repo.toml) structure, flags, and GitHub sync
+- ✅ [claude.just](.just/claude.just) - Claude Code permission management with canonical sorting and structure validation
+- ✅ [repo-toml.just](.just/repo-toml.just) - Metadata extraction that generates shell variables from repository configuration
+- ✅ [pr-hook.just](.just/pr-hook.just) - Optional pre-PR hooks for project-specific automation
+
+### Repository Metadata System
+
+- ✅ [.repo.toml](.repo.toml) - Centralized configuration with description, topics, URLs, and feature flags
+- ✅ [Cue schema validation](docs/repo-toml.cue) - Three-stage verification checks structure, validates flags against actual files, and syncs GitHub metadata
+- ✅ Automatic shell variable generation - The `repo_toml_generate` recipe exports TOML data as sourceable bash variables
+- ✅ GitHub metadata synchronization - `cue-sync-from-github` pulls description and topics from GitHub API
+
+### GitHub Actions
+
+Seven workflows handle automation and quality:
+
+- ✅ [Auto-assign](.github/workflows/auto-assign.yml) - Automatically assigns issues and PRs to maintainers
+- ✅ [Checkov](.github/workflows/checkov.yml) - Security scanning for GitHub Actions workflows with SARIF output
+- ✅ [Markdownlint](.github/workflows/markdownlint.yml) - Enforces markdown standards across all docs
+- ✅ [Actionlint](.github/workflows/actionlint.yml) - Lints GitHub Actions workflow files
+- ✅ [Claude mention integration](.github/workflows/claude.yml) - Mentions Claude AI when appropriate
+- ✅ [Claude Code review](.github/workflows/claude-code-review.yml) - AI-powered code review automation
+- ✅ [Cue verification](.github/workflows/cue-verify.yml) - Validates `.repo.toml` format and flags
+
+### AI-Enhanced Development
+
+- ✅ Conditional AI review display - After PR checks complete, shows review comments based on `.repo.toml` flags
+- ✅ GitHub Copilot review integration - Enable/disable with `copilot-review` flag
+- ✅ Claude Code review integration - Enable/disable with `claude-review` flag
+- ✅ Smart polling system - Waits up to 30 seconds for checks to start, then polls every 5 seconds for faster feedback
+
+### Additional Features
+
+- ✅ [Priority labels](https://github.com/fini-net/template-repo/labels) - Extra issue labels for better organization
+- ✅ [Prerequisites installation](.just/install-prerequisites.sh) - Script to install required tools
+- ✅ Release automation - `just release <version>` creates GitHub releases with auto-generated notes and age monitoring
 
 ## Usage
 
