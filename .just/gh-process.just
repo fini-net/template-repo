@@ -259,6 +259,14 @@ copilot_pick: _on_a_pull_request
         exit 1
     fi
 
+    # Check if jq is installed
+    if ! command -v jq &>/dev/null; then
+        echo "{{RED}}jq is not installed{{NORMAL}}"
+        echo "{{YELLOW}}jq is required by gh CLI and should be installed{{NORMAL}}"
+        echo "{{YELLOW}}Install with: brew install jq (macOS){{NORMAL}}"
+        exit 1
+    fi
+
     echo "🐈‍⬛😾 Fetching Copilot suggestions..."
 
     # Get PR metadata
@@ -269,8 +277,9 @@ copilot_pick: _on_a_pull_request
 
     # Fetch Copilot comments
     copilot_comments=$(mktemp /tmp/justfile.XXXXXX)
-    trap 'rm -f "$copilot_comments"' EXIT
 
+    # Note: GraphQL limits - fetches last 20 reviews and first 100 comments per review
+    # For most PRs this is sufficient, but very active PRs might have truncated results
     # shellcheck disable=SC2016
     gh api graphql \
         -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
@@ -331,6 +340,12 @@ copilot_pick: _on_a_pull_request
 
     # Extract line number from selection to match back to original comment
     line_num=$(echo "$selected" | cut -d':' -f2 | cut -d' ' -f1)
+
+    # Validate line number is numeric
+    if ! [[ "$line_num" =~ ^[0-9]+$ ]]; then
+        echo "{{RED}}Error: Could not extract line number from selection{{NORMAL}}"
+        exit 1
+    fi
 
     echo ""
     jq -r --arg line "$line_num" '.[] | select(.originalLine == ($line | tonumber)) |
