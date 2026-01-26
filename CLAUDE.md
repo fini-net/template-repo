@@ -170,5 +170,5 @@ When using this template for a new project:
 ### Optional tools
 
 - **gum** - Interactive selection tool for `copilot_pick` recipe
-  - Install: `brew install gum` (macOS) or see https://github.com/charmbracelet/gum
+  - Install: `brew install gum` (macOS) or see <https://github.com/charmbracelet/gum>
   - Usage: `just copilot_pick` (must be run from a branch with an open PR)
