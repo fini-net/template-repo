@@ -2,10 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(cue export:*)",
+      "Bash(gh copilot suggest:*)",
       "Bash(gh issue view:*)",
       "Bash(gh pr diff:*)",
       "Bash(gh pr view:*)",
       "Bash(git log:*)",
+      "Bash(gum choose:*)",
+      "Bash(gum confirm:*)",
+      "Bash(gum filter:*)",
       "Bash(identify:*)",
       "Bash(just _wait_for_checks:*)",
       "Bash(just claude_permissions_check)",

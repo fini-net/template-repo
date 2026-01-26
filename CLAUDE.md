@@ -25,6 +25,7 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 - `just again` - Push changes, update PR description, and watch GHAs
 - `just pr_update` - Update the "Done" section of PR description with current commits
 - `just pr_verify` - Add or append to "Verify" section from stdin (with timestamp)
+- `just copilot_pick` - Interactively browse and select Copilot PR review suggestions using gum
 - `just release <version>` - Create a GitHub release with auto-generated notes
 - `just release_age` - Check how long ago the last release was
 - `just clean_readme` - Generate a clean README from template (strips template documentation)
@@ -74,6 +75,7 @@ The `.just/gh-process.just` module implements the entire PR lifecycle:
 - **AI integration** - After PR checks complete, conditionally displays GitHub Copilot and Claude Code review comments based on `.repo.toml` flags (`copilot-review` and `claude-review`)
 - **Merge automation** - Squash merge, delete remote branch, return to main, pull latest
 - **PR updates** - `pr_update` refreshes the "Done" section with current commits; `pr_verify` adds timestamped verification outputs
+- **copilot_pick** - Fetches Copilot PR review suggestions and presents them in an interactive picker (requires gum)
 
 ### Repository metadata system
 
@@ -156,3 +158,17 @@ When using this template for a new project:
 - Hidden recipes (prefixed with `_`) are internal helpers and not shown in `just --list`
 - The `again` recipe is for iterating on PRs: push, update description, watch checks
 - Release notes for workflow changes are tracked in `.just/RELEASE_NOTES.md`
+
+## Dependencies
+
+### Required tools
+
+- `just` - Command runner for all recipes
+- `gh` - GitHub CLI for PR and release management
+- `git` - Version control
+
+### Optional tools
+
+- **gum** - Interactive selection tool for `copilot_pick` recipe
+  - Install: `brew install gum` (macOS) or see <https://github.com/charmbracelet/gum>
+  - Usage: `just copilot_pick` (must be run from a branch with an open PR)

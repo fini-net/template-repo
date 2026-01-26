@@ -13,7 +13,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v4.7
+# PR create v4.8
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -244,6 +244,115 @@ pr_checks: _wait_for_checks && claude_review
     fi
 
     # chains to claude_review
+
+# Interactive Copilot suggestion picker
+[group('Process')]
+copilot_pick: _on_a_pull_request
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # Check if gum is installed
+    if ! command -v gum &>/dev/null; then
+        echo "{{RED}}gum is not installed{{NORMAL}}"
+        echo "{{YELLOW}}Install with: brew install gum (macOS){{NORMAL}}"
+        echo "{{YELLOW}}Or see: https://github.com/charmbracelet/gum{{NORMAL}}"
+        exit 1
+    fi
+
+    # Check if jq is installed
+    if ! command -v jq &>/dev/null; then
+        echo "{{RED}}jq is not installed{{NORMAL}}"
+        echo "{{YELLOW}}jq is required by gh CLI and should be installed{{NORMAL}}"
+        echo "{{YELLOW}}Install with: brew install jq (macOS){{NORMAL}}"
+        exit 1
+    fi
+
+    echo "🐈‍⬛😾 Fetching Copilot suggestions..."
+
+    # Get PR metadata
+    PR_META=$(gh pr view --json number,headRepository,headRepositoryOwner)
+    PR_REPO_NAME=$(echo "$PR_META" | jq -r '.headRepository.name')
+    PR_REPO_OWNER=$(echo "$PR_META" | jq -r '.headRepositoryOwner.login')
+    PR_NUMBER=$(echo "$PR_META" | jq '.number')
+
+    # Fetch Copilot comments
+    copilot_comments=$(mktemp /tmp/justfile.XXXXXX)
+
+    # Note: GraphQL limits - fetches last 20 reviews and first 100 comments per review
+    # For most PRs this is sufficient, but very active PRs might have truncated results
+    # shellcheck disable=SC2016
+    gh api graphql \
+        -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
+        --jq '[ .data.repository.pullRequest.reviews.nodes.[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes.[] ]' \
+        -f query='
+        query($name: String!, $owner: String!, $pr: Int!) {
+            repository(owner: $owner, name: $name) {
+                pullRequest(number: $pr) {
+                    reviews(last: 20) {
+                        nodes {
+                            author {
+                                resourcePath
+                                login
+                            }
+                            comments(first: 100) {
+                                nodes {
+                                    body
+                                    path
+                                    originalLine
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        ' > "$copilot_comments"
+
+    # Check if we have comments
+    COMMENT_COUNT=$(jq 'length' "$copilot_comments")
+
+    if [[ "$COMMENT_COUNT" -eq 0 ]]; then
+        echo "{{BLUE}}No Copilot suggestions found{{NORMAL}}"
+        exit 0
+    fi
+
+    echo "{{GREEN}}Found $COMMENT_COUNT Copilot suggestions{{NORMAL}}"
+    echo ""
+
+    # Format suggestions for gum display
+    suggestions_display=$(mktemp /tmp/justfile.XXXXXX)
+    trap 'rm -f "$copilot_comments" "$suggestions_display"' EXIT
+
+    # Create display format: "file:line - preview"
+    jq -r '.[] | "\(.path):\(.originalLine) - \(.body | split("\n")[0] | .[0:80])"' \
+        "$copilot_comments" > "$suggestions_display"
+
+    # Interactive selection with gum
+    selected=$(gum choose \
+        --header="Select a Copilot suggestion to view (or Ctrl+C to exit):" \
+        --height=15 \
+        < "$suggestions_display" || true)
+
+    if [[ -z "$selected" ]]; then
+        echo "{{BLUE}}Selection cancelled{{NORMAL}}"
+        exit 0
+    fi
+
+    # Extract line number from selection to match back to original comment
+    line_num=$(echo "$selected" | cut -d':' -f2 | cut -d' ' -f1)
+
+    # Validate line number is numeric
+    if ! [[ "$line_num" =~ ^[0-9]+$ ]]; then
+        echo "{{RED}}Error: Could not extract line number from selection{{NORMAL}}"
+        exit 1
+    fi
+
+    echo ""
+    jq -r --arg line "$line_num" '.[] | select(.originalLine == ($line | tonumber)) |
+        "{{GREEN}}File:{{NORMAL}} \(.path)\n{{GREEN}}Line:{{NORMAL}} \(.originalLine)\n\n\(.body)"' \
+        "$copilot_comments"
+
+    rm -f "$copilot_comments" "$suggestions_display"
 
 # Claude's latest PR code review
 [group('Process')]
