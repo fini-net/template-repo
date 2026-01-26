@@ -176,6 +176,7 @@ subshell context. Uses colored output (GREEN for success, YELLOW for timeout) an
 the `USING_GUM` environment variable to conditionally show progress indicators
 based on available tooling.
 
+**Fixes issue:** [#60](https://github.com/fini-net/template-repo/issues/60)
 **Related PR:** [#61](https://github.com/fini-net/template-repo/pull/61)
 
 ## December 2025 - Finer refinements
