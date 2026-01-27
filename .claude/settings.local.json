@@ -15,6 +15,7 @@
       "Bash(gum confirm:*)",
       "Bash(gum filter:*)",
       "Bash(identify:*)",
+      "Bash(just --list:*)",
       "Bash(just _wait_for_checks:*)",
       "Bash(just claude_permissions_check)",
       "Bash(just claude_permissions_sort:*)",
