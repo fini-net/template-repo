@@ -53,19 +53,19 @@ for test_case in "$TEST_DIR"/*/; do
     # Check required files exist
     if [[ ! -f "$test_case/input.md" ]]; then
         echo -e "${RED}✗ $test_name - missing input.md${NORMAL}"
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
         continue
     fi
 
     if [[ ! -f "$test_case/commits.txt" ]]; then
         echo -e "${RED}✗ $test_name - missing commits.txt${NORMAL}"
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
         continue
     fi
 
     if [[ ! -f "$test_case/expected.md" ]]; then
         echo -e "${RED}✗ $test_name - missing expected.md${NORMAL}"
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
         continue
     fi
 
@@ -73,24 +73,24 @@ for test_case in "$TEST_DIR"/*/; do
     actual=$(mktemp)
     if ! "$LIB_SCRIPT" "$test_case/input.md" "$test_case/commits.txt" > "$actual" 2>&1; then
         echo -e "${RED}✗ $test_name - script failed${NORMAL}"
-        ((FAILED++))
-        rm "$actual"
+        FAILED=$((FAILED + 1))
+        rm "$actual" || true
         continue
     fi
 
     # Compare output
     if diff -u "$test_case/expected.md" "$actual" > /dev/null 2>&1; then
         echo -e "${GREEN}✓ $test_name${NORMAL}"
-        ((PASSED++))
+        PASSED=$((PASSED + 1))
     else
         echo -e "${RED}✗ $test_name${NORMAL}"
         echo "  Diff (expected vs actual):"
         diff -u "$test_case/expected.md" "$actual" | head -20 | sed 's/^/  /'
         echo ""
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
     fi
 
-    rm "$actual"
+    rm "$actual" || true
 done
 
 # Summary
