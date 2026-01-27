@@ -48,6 +48,7 @@ echo ""
 # Run tests
 for test_case in "$TEST_DIR"/*/; do
     test_name=$(basename "$test_case")
+    echo -e "${BLUE}  Testing: $test_name${NORMAL}"
 
     # Check required files exist
     if [[ ! -f "$test_case/input.md" ]]; then
