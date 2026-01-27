@@ -1,10 +1,12 @@
 {
   "permissions": {
     "allow": [
+      "Bash(.just/lib/pr_body_test.sh)",
       "Bash(cue export:*)",
       "Bash(gh copilot suggest:*)",
       "Bash(gh issue view:*)",
       "Bash(gh pr diff:*)",
+      "Bash(gh pr list:*)",
       "Bash(gh pr view:*)",
       "Bash(git log:*)",
       "Bash(gum choose:*)",
@@ -18,6 +20,7 @@
       "Bash(just compliance_check:*)",
       "Bash(just cue-sync-from-github:*)",
       "Bash(just cue-verify:*)",
+      "Bash(just pr_body_test:*)",
       "Bash(just repo_toml_check:*)",
       "Bash(just repo_toml_generate:*)",
       "Bash(just shellcheck:*)",
