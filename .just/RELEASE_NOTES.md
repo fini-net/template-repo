@@ -4,6 +4,64 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## January 2026 - Experience leads to more opportunities
 
+### v5.0 - Robust PR Body Updates with HTML Markers
+
+Completely rewrote the `pr_update` recipe to eliminate data loss when updating
+PR descriptions. The previous AWK-based implementation (v4.0-4.4) was fragile
+and could corrupt or lose manual edits to PR descriptions, especially when
+custom sections existed between Done and Meta, or when code blocks contained
+`## Done` markers.
+
+**Fixes issue:** [#57](https://github.com/fini-net/template-repo/issues/57)
+
+The new implementation uses HTML comment markers for reliable section boundaries
+and includes comprehensive test coverage:
+
+- **HTML comment markers** - New PRs now include invisible `<!-- PR_BODY_DONE_START -->`
+  and `<!-- PR_BODY_DONE_END -->` markers that provide precise boundaries for
+  the Done section, eliminating ambiguity from section header detection.
+
+- **Standalone library script** - Extracted PR body manipulation into
+  `.just/lib/update_pr_body.sh` - a standalone, testable bash script with
+  state machine parsing, code block tracking to avoid false positives on
+  `## Done` inside code examples, and backwards compatibility with old PRs.
+
+- **Comprehensive test suite** - Added 13 test cases in `.just/test/fixtures/pr_bodies/`
+  covering basic scenarios (Done + Meta, custom sections, multiple sections),
+  edge cases (code blocks, nested markdown, missing sections, empty body), and
+  data preservation (checkboxes, tables, HTML comments, verify sections).
+
+- **Test infrastructure** - New `.just/lib/pr_body_test.sh` test runner and
+  `just pr_body_test` recipe for running tests. Automated in CI via new
+  `.github/workflows/pr-body-tests.yml` workflow.
+
+- **Backwards compatibility** - Old PRs without HTML markers continue to work
+  using section header detection as fallback. When updated, they automatically
+  receive the new markers for future reliability.
+
+- **State machine parser** - Uses BEFORE_DONE → IN_DONE → AFTER_DONE state
+  transitions with proper code block tracking, ensuring `## Done` inside
+  triple-backtick blocks doesn't confuse the parser.
+
+- **Smart section insertion** - When no Done section exists, intelligently
+  inserts it after introductory content but before the first section header,
+  maintaining proper PR structure.
+
+Implementation details:
+
+- Modified `pr` recipe to insert HTML markers when creating new PRs
+- Replaced complex 48-line AWK logic in `pr_update` with 10-line call to
+  library script
+- All scripts pass shellcheck validation
+- Tests run automatically on relevant file changes via GitHub Actions
+- Created new `.just/testing.just` module for test recipes
+
+This is a breaking change internally (complete rewrite of PR body update logic)
+but maintains the same external interface. The change makes the workflow
+significantly more robust - custom sections, verification timestamps, task
+lists, tables, and other manual edits are now reliably preserved across
+updates.
+
 ### v4.9 - Copilot Suggestion Count
 
 Enhanced the Copilot review display to show a count of suggestions instead of
