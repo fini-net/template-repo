@@ -13,6 +13,9 @@ on:
       - '.just/lib/pr_body_test.sh'
       - '.just/test/fixtures/pr_bodies/**'
 
+# global permissions
+permissions: {}
+
 jobs:
   test:
     runs-on: ubuntu-latest
