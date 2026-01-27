@@ -18,6 +18,14 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 4. `just merge` - Squash merge PR, delete branch, return to main, and pull latest
 5. `just sync` - Return to main branch and pull latest (escape hatch)
 
+### Copilot Review Workflow
+
+1. `just pr` - Create PR (triggers initial Copilot review if enabled)
+2. Make changes based on review feedback
+3. `just copilot_refresh` - Request fresh review after changes
+4. `just copilot_pick` - Browse suggestions interactively
+5. Address suggestions and iterate
+
 ### Additional commands
 
 - `just` or `just list` - Show all available recipes
@@ -26,6 +34,7 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 - `just pr_update` - Update the "Done" section of PR description with current commits
 - `just pr_verify` - Add or append to "Verify" section from stdin (with timestamp)
 - `just copilot_pick` - Interactively browse and select Copilot PR review suggestions using gum
+- `just copilot_refresh` - Request a new Copilot review on current PR
 - `just release <version>` - Create a GitHub release with auto-generated notes
 - `just release_age` - Check how long ago the last release was
 - `just clean_readme` - Generate a clean README from template (strips template documentation)
