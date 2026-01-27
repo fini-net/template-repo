@@ -36,10 +36,12 @@ pr: _has_commits && pr_checks
 
     bodyfile=$(mktemp /tmp/justfile.XXXXXX)
     {
+        echo "<!-- PR_BODY_DONE_START -->"
         echo "## Done"
         echo ""
         git cherry -v "{{ release_branch }}" "$CURRENT_BRANCH" | sed -e 's/^[+] [0-9a-f]* /- /'
         echo ""
+        echo "<!-- PR_BODY_DONE_END -->"
         echo ""
         echo "## Meta"
         echo ""
@@ -475,46 +477,28 @@ pr_update: _on_a_pull_request
 
     CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
-    # get current PR body
+    # Get current PR body
     bodyfile=$(mktemp /tmp/justfile.XXXXXX)
     gh pr view --json body --jq '.body' > "$bodyfile"
 
-    # create new Done section
-    new_done_section=$(mktemp /tmp/justfile.XXXXXX)
-    {
-        echo "## Done"
-        echo ""
-        git cherry -v "{{ release_branch }}" "$CURRENT_BRANCH" | sed -e 's/^[+] [0-9a-f]* /- /'
-        echo ""
-    } > "$new_done_section"
+    # Create new commit list
+    new_commits=$(mktemp /tmp/justfile.XXXXXX)
+    git cherry -v "{{ release_branch }}" "$CURRENT_BRANCH" | \
+        sed -e 's/^[+] [0-9a-f]* /- /' > "$new_commits"
 
-    # extract everything after Done section (preserve other sections)
-    other_sections=$(mktemp /tmp/justfile.XXXXXX)
-    awk '/^## Done/,/^## / {if (/^## / && !/^## Done/) {found=1}} found {print}' "$bodyfile" > "$other_sections"
-
-    # if no other sections found after Done, preserve everything after Done
-    if [ ! -s "$other_sections" ]; then
-        # look for content after the Done section's commit list
-        awk 'BEGIN {in_done=0; after_done=0; empty_count=0}
-            /^## Done/ {in_done=1; next}
-            in_done && !after_done && /^$/ {empty_count++; if (empty_count >= 2) after_done=1; next}
-            in_done && !after_done && /^- / {next}
-            after_done {print}' "$bodyfile" > "$other_sections"
-    fi
-
-    # combine new Done section with preserved sections
+    # Use library script for robust update
     updated_body=$(mktemp /tmp/justfile.XXXXXX)
-    cat "$new_done_section" "$other_sections" > "$updated_body"
+    .just/lib/update_pr_body.sh "$bodyfile" "$new_commits" > "$updated_body"
 
     echo ''
     cat "$updated_body"
     echo ''
 
-    # update PR body
+    # Update PR body
     gh pr edit --body-file "$updated_body"
 
-    # cleanup
-    rm "$bodyfile" "$new_done_section" "$other_sections" "$updated_body"
+    # Cleanup
+    rm "$bodyfile" "$new_commits" "$updated_body"
 
 # add or append to Verify section from stdin
 [group('Process')]

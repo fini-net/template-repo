@@ -7,6 +7,7 @@ import? '.just/shellcheck.just'
 import? '.just/cue-verify.just'
 import? '.just/claude.just'
 import? '.just/repo-toml.just'
+import? '.just/testing.just'
 
 # list recipes (default works without naming it)
 [group('Utility')]
