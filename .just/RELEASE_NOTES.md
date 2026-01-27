@@ -4,6 +4,25 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## January 2026 - Experience leads to more opportunities
 
+### v5.1 - On-Demand Copilot Reviews (2026-01-XX)
+
+Add `copilot_refresh` recipe to request new Copilot reviews on demand.
+
+**Fixes issue:** [#77](https://github.com/fini-net/template-repo/issues/77)
+
+- **copilot_refresh recipe** - Request a fresh Copilot review on current PR
+  - Uses GitHub REST API to add copilot-pull-request-reviewer[bot] as reviewer
+  - Waits for review completion with animated spinner (via gum) or dots fallback
+  - Displays suggestion count and points to copilot_pick for interactive browsing
+  - Smart error handling for common failure scenarios
+
+Implementation details:
+
+- Polls every 3 seconds for up to 45 seconds for review completion
+- Uses same GraphQL query as copilot_pick to detect completed reviews
+- Does not check copilot-review flag (user-initiated action)
+- Complements existing copilot_pick (#67, #72) workflow
+
 ### v5.0 - Robust PR Body Updates with HTML Markers
 
 Completely rewrote the `pr_update` recipe to eliminate data loss when updating
