@@ -9,6 +9,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 Add `copilot_refresh` recipe to request new Copilot reviews on demand.
 
 **Fixes issue:** [#77](https://github.com/fini-net/template-repo/issues/77)
+**Related PR:** [#79](https://github.com/fini-net/template-repo/pull/79)
 
 - **copilot_refresh recipe** - Request a fresh Copilot review on current PR
   - Uses GitHub REST API to add copilot-pull-request-reviewer[bot] as reviewer
