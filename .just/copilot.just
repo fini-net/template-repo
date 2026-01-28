@@ -171,7 +171,7 @@ copilot_pick: _on_a_pull_request
                 escaped_code=$(echo "$suggested_code" | sed 's|[[\.*^$()+?{|]|\\&|g')
                 
                 # Use different delimiter and proper escaping
-                if sed -i.bak "${original_line}s|.*|${escaped_code}|" "$file_path"; then
+                if sed -i "${original_line}s|.*|${escaped_code}|" "$file_path"; then
                     rm -f "${file_path}.bak"
                     echo "{{GREEN}}✓ Successfully applied change to $file_path:$original_line{{NORMAL}}"
                     
