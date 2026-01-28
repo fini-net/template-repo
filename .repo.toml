@@ -15,3 +15,4 @@ web_url = "https://github.com/fini-net/template-repo"
 claude = true
 claude-review = true
 copilot-review = true
+standard-release = true

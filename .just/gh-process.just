@@ -13,7 +13,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v5.2
+# PR create v5.3
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -185,6 +185,24 @@ _wait_for_checks: _on_a_pull_request
 # make a release
 [group('Process')]
 release rel_version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # Check if standard release workflow is enabled
+    if [[ -e ".just/repo-toml.sh" ]]; then
+        source .just/repo-toml.sh
+    else
+        # Default to true if file doesn't exist (backward compatibility)
+        FLAG_STANDARD_RELEASE="true"
+    fi
+
+    if [[ "$FLAG_STANDARD_RELEASE" != "true" ]]; then
+        echo "{{BLUE}}Standard release workflow is disabled (see .repo.toml flags.standard-release){{NORMAL}}"
+        echo "{{YELLOW}}For this project's release workflow, check the justfile or .just/ modules{{NORMAL}}"
+        exit 0
+    fi
+
+    # Standard release workflow
     gh release create {{rel_version}} --generate-notes
     sleep 1
     git pull
@@ -727,6 +745,20 @@ pr_verify: _on_a_pull_request
 release_age:
     #!/usr/bin/env bash
     set -euo pipefail # strict mode
+
+    # Check if standard release workflow is enabled
+    if [[ -e ".just/repo-toml.sh" ]]; then
+        source .just/repo-toml.sh
+    else
+        # Default to true if file doesn't exist (backward compatibility)
+        FLAG_STANDARD_RELEASE="true"
+    fi
+
+    if [[ "$FLAG_STANDARD_RELEASE" != "true" ]]; then
+        echo "{{BLUE}}Standard release workflow is disabled (see .repo.toml flags.standard-release){{NORMAL}}"
+        echo "{{YELLOW}}For this project's release workflow, check the justfile or .just/ modules{{NORMAL}}"
+        exit 0
+    fi
 
     echo "{{BLUE}}Checking last release age...{{NORMAL}}"
     echo ""
