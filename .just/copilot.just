@@ -36,17 +36,18 @@ copilot_pick: _on_a_pull_request
     # Fetch Copilot comments
     copilot_comments=$(mktemp /tmp/justfile.XXXXXX)
 
-    # Note: GraphQL limits - fetches last 20 reviews and first 100 comments per review
-    # For most PRs this is sufficient, but very active PRs might have truncated results
+    # Note: GraphQL limits - fetches only the latest review (last: 1) and first 100 comments
+    # Then filter to only Copilot reviews to ensure we only get the most recent Copilot feedback
+    # This approach avoids potential GraphQL syntax issues with author filters
     # shellcheck disable=SC2016
     gh api graphql \
         -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
-        --jq '[ .data.repository.pullRequest.reviews.nodes.[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes.[] ]' \
+        --jq '[ .data.repository.pullRequest.reviews.nodes[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes[] ]' \
         -f query='
         query($name: String!, $owner: String!, $pr: Int!) {
             repository(owner: $owner, name: $name) {
                 pullRequest(number: $pr) {
-                    reviews(last: 20) {
+                    reviews(last: 1) {
                         nodes {
                             author {
                                 resourcePath
@@ -245,12 +246,12 @@ copilot_refresh: _on_a_pull_request
             # shellcheck disable=SC2016
             copilot_review=$(gh api graphql \
                 -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
-                --jq '[ .data.repository.pullRequest.reviews.nodes.[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes.[] ] | length' \
+                --jq '[ .data.repository.pullRequest.reviews.nodes[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes[] ] | length' \
                 -f query='
                 query($name: String!, $owner: String!, $pr: Int!) {
                     repository(owner: $owner, name: $name) {
                         pullRequest(number: $pr) {
-                            reviews(last: 20) {
+                            reviews(last: 1) {
                                 nodes {
                                     author {
                                         login
@@ -304,12 +305,12 @@ copilot_refresh: _on_a_pull_request
         # shellcheck disable=SC2016
         COPILOT_COUNT=$(gh api graphql \
             -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
-            --jq '[ .data.repository.pullRequest.reviews.nodes.[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes.[] ] | length' \
+            --jq '[ .data.repository.pullRequest.reviews.nodes[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes[] ] | length' \
             -f query='
             query($name: String!, $owner: String!, $pr: Int!) {
                 repository(owner: $owner, name: $name) {
                     pullRequest(number: $pr) {
-                        reviews(last: 20) {
+                        reviews(last: 1) {
                             nodes {
                                 author {
                                     login
