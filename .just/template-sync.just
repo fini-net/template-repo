@@ -69,6 +69,7 @@ checksums_verify:
         fi
     }
 
+    # shellcheck disable=SC2329  # cleanup is invoked via trap
     cleanup() {
         rm -f "$MANIFEST_FILE"
     }
