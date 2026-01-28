@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-01-27T23:14:13Z",
+  "generated_at": "2026-01-28T01:42:26Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -72,11 +72,19 @@
 ]},
     ".just/gh-process.just": {"versions": [
         {
+          "checksum": "630d7155f0189dba3e017c828193630b0619c721d0a379bf8780c619e3f4eb5a",
+          "commit": "1d2ea42f8ec78739c819804bec83e20b9843cfd7",
+          "date": "2026-01-27T17:01:52-08:00",
+          "version": "",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "33a453ecd44649b89d4e7f8dd291fd6f0c5cc3f6247f5ab6d95a34b2d749c924",
           "commit": "388fc10a1dde8c657a406ec2dc539e26c54977af",
           "date": "2026-01-27T08:16:19-08:00",
           "version": "v5.1",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -322,13 +330,109 @@
           "is_latest": false
         }
 ]},
+    ".just/template-sync.just": {"versions": [
+        {
+          "checksum": "6d6a3d3f9b1bafd04b3b8b2bb8412da419b0eadb7069a0c84a69cf8463ed8066",
+          "commit": "1465230968f0a6569c4378c5402281ea74345e6a",
+          "date": "2026-01-27T17:18:08-08:00",
+          "version": "",
+          "is_latest": true
+        }
+,
+        {
+          "checksum": "930969eb921d0764c8fb21ebea46f117e7bc4d2ec3d5dc270ce81d84acfbbfab",
+          "commit": "1d2ea42f8ec78739c819804bec83e20b9843cfd7",
+          "date": "2026-01-27T17:01:52-08:00",
+          "version": "",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "5f339905ebd467687cd062d40da0cab77025770013709355cdf2cd0b9f65540a",
+          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
+          "date": "2026-01-27T17:01:35-08:00",
+          "version": "v5.2",
+          "is_latest": false
+        }
+]},
+    ".just/test/fixtures/template_sync/01_unmodified_file/expected_state/.just/test.just": {"versions": [
+        {
+          "checksum": "6e9a19950b3e382780a1806f8289b8361a9342d9181fa695a7d97f6585d1fcd5",
+          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
+          "date": "2026-01-27T17:01:35-08:00",
+          "version": "v5.2",
+          "is_latest": true
+        }
+]},
+    ".just/test/fixtures/template_sync/01_unmodified_file/input/.just/test.just": {"versions": [
+        {
+          "checksum": "0771fc3cb3cdda4ee6195858bb5294c062c5c257ce950e4c928fe879fd7b2f41",
+          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
+          "date": "2026-01-27T17:01:35-08:00",
+          "version": "v5.2",
+          "is_latest": true
+        }
+]},
+    ".just/test/fixtures/template_sync/01_unmodified_file/template_versions/test.just": {"versions": [
+        {
+          "checksum": "6e9a19950b3e382780a1806f8289b8361a9342d9181fa695a7d97f6585d1fcd5",
+          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
+          "date": "2026-01-27T17:01:35-08:00",
+          "version": "v5.2",
+          "is_latest": true
+        }
+]},
+    ".just/test/fixtures/template_sync/02_modified_file/expected_state/.just/test.just": {"versions": [
+        {
+          "checksum": "efe193e8ff6b11fab194c06f9e56f2a5215933ef96d8df718cb253506fe3218b",
+          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
+          "date": "2026-01-27T17:01:35-08:00",
+          "version": "v5.2",
+          "is_latest": true
+        }
+]},
+    ".just/test/fixtures/template_sync/02_modified_file/input/.just/test.just": {"versions": [
+        {
+          "checksum": "efe193e8ff6b11fab194c06f9e56f2a5215933ef96d8df718cb253506fe3218b",
+          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
+          "date": "2026-01-27T17:01:35-08:00",
+          "version": "v5.2",
+          "is_latest": true
+        }
+]},
+    ".just/test/fixtures/template_sync/03_already_latest/expected_state/.just/test.just": {"versions": [
+        {
+          "checksum": "03345a668d809b85f90081f70df6b5b1d15467740eaee3db3e8d8fc4afc60f93",
+          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
+          "date": "2026-01-27T17:01:35-08:00",
+          "version": "v5.2",
+          "is_latest": true
+        }
+]},
+    ".just/test/fixtures/template_sync/03_already_latest/input/.just/test.just": {"versions": [
+        {
+          "checksum": "03345a668d809b85f90081f70df6b5b1d15467740eaee3db3e8d8fc4afc60f93",
+          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
+          "date": "2026-01-27T17:01:35-08:00",
+          "version": "v5.2",
+          "is_latest": true
+        }
+]},
     ".just/testing.just": {"versions": [
+        {
+          "checksum": "f9165079884485afc70e350090a9c23406957c687c4d3932f7dfdba95a959c44",
+          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
+          "date": "2026-01-27T17:01:35-08:00",
+          "version": "v5.2",
+          "is_latest": true
+        }
+,
         {
           "checksum": "d5dc9d32415da09c77bfda59484d7600ca73347cd19506d4561f9c015946a582",
           "commit": "25acc859d3836346cf47bef3f29442cfc26dcf37",
           "date": "2026-01-26T18:47:31-08:00",
           "version": "v5.0",
-          "is_latest": true
+          "is_latest": false
         }
 ]}
   }

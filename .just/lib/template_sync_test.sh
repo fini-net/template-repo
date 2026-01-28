@@ -2,6 +2,9 @@
 # Test suite for template synchronization system
 set -euo pipefail
 
+# shellcheck source=.just/lib/common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+
 # Color codes
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
@@ -15,16 +18,6 @@ readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 passed=0
 failed=0
 
-# Platform-compatible checksum
-compute_checksum() {
-    local file="$1"
-    if command -v sha256sum &>/dev/null; then
-        sha256sum "$file" | awk '{print $1}'
-    elif command -v shasum &>/dev/null; then
-        shasum -a 256 "$file" | awk '{print $1}'
-    fi
-}
-
 # Run a single test
 run_test() {
     local test_name="$1"
@@ -32,7 +25,7 @@ run_test() {
 
     if [[ ! -d "$test_dir" ]]; then
         echo -e "${RED}✗${NORMAL} $test_name - directory not found"
-        ((failed++))
+        (( failed += 1 ))
         return
     fi
 
@@ -40,9 +33,11 @@ run_test() {
     local workspace
     workspace=$(mktemp -d)
 
-    # Copy input files to workspace
+    # Copy input files to workspace (including hidden files)
     if [[ -d "$test_dir/input" ]]; then
+        shopt -s dotglob
         cp -r "$test_dir/input/"* "$workspace/" 2>/dev/null || true
+        shopt -u dotglob
     fi
 
     # Mock curl to return fixture manifest
@@ -105,9 +100,14 @@ MOCK_EOF
     cd "$workspace"
     export PATH="$workspace:$PATH"
 
+    # Copy common.sh to workspace so sourcing works
+    cp "$SCRIPT_DIR/common.sh" "$workspace/"
+
     # Create a modified version of template_update.sh that uses our workspace
     local test_script="$workspace/test_update.sh"
-    sed 's|/tmp/checksums-$$\.json|'"$workspace"'/manifest.json|g' \
+    # Escape pipe characters in workspace path to prevent sed command breaking
+    local escaped_workspace="${workspace//|/\\|}"
+    sed 's|readonly MANIFEST_FILE=\$(mktemp)|readonly MANIFEST_FILE="'"$escaped_workspace"'/manifest.json"|g' \
         "$SCRIPT_DIR/template_update.sh" > "$test_script"
     chmod +x "$test_script"
 
@@ -160,12 +160,12 @@ MOCK_EOF
     # Report result
     if [[ "$output_ok" == true && "$state_ok" == true ]]; then
         echo -e "${GREEN}✓${NORMAL} $test_name"
-        ((passed++))
+        (( passed += 1 ))
     else
         echo -e "${RED}✗${NORMAL} $test_name"
         [[ "$output_ok" == false ]] && echo "    Output mismatch"
         [[ "$state_ok" == false ]] && echo "    State mismatch"
-        ((failed++))
+        (( failed += 1 ))
     fi
 }
 

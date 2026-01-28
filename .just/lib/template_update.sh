@@ -2,6 +2,9 @@
 # Core update logic for template synchronization
 set -euo pipefail
 
+# shellcheck source=.just/lib/common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+
 # Color constants (matching just's colors)
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
@@ -11,7 +14,7 @@ readonly NORMAL='\033[0m'
 
 readonly TEMPLATE_URL="https://raw.githubusercontent.com/fini-net/template-repo/main"
 readonly MANIFEST_URL="$TEMPLATE_URL/.just/CHECKSUMS.json"
-readonly MANIFEST_FILE="/tmp/checksums-$$.json"
+readonly MANIFEST_FILE=$(mktemp)
 readonly MAX_RETRIES=3
 readonly RETRY_DELAY=2
 
@@ -21,19 +24,6 @@ skipped_modified_count=0
 skipped_current_count=0
 downloaded_new_count=0
 failed_count=0
-
-# Platform-compatible checksum computation
-compute_checksum() {
-    local file="$1"
-    if command -v sha256sum &>/dev/null; then
-        sha256sum "$file" | awk '{print $1}'
-    elif command -v shasum &>/dev/null; then
-        shasum -a 256 "$file" | awk '{print $1}'
-    else
-        echo "Error: Neither sha256sum nor shasum found" >&2
-        exit 1
-    fi
-}
 
 # Check dependencies
 check_dependencies() {
@@ -52,11 +42,12 @@ check_dependencies() {
 
 # Fetch manifest with retries
 fetch_manifest() {
+    local -r max=$MAX_RETRIES
     local attempt=1
 
     echo "Fetching manifest from template-repo..."
 
-    while [[ $attempt -le $MAX_RETRIES ]]; do
+    while [[ $attempt -le $max ]]; do
         if curl -sSL -f "$MANIFEST_URL" -o "$MANIFEST_FILE" 2>/dev/null; then
             # Validate JSON structure
             if ! jq -e '.schema_version' "$MANIFEST_FILE" >/dev/null 2>&1; then
@@ -67,12 +58,12 @@ fetch_manifest() {
             return 0
         fi
 
-        if [[ $attempt -lt $MAX_RETRIES ]]; then
+        if [[ $attempt -lt $max ]]; then
             echo -e "${YELLOW}Fetch failed, retrying in ${RETRY_DELAY}s...${NORMAL}" >&2
             sleep $RETRY_DELAY
             ((attempt++))
         else
-            echo -e "${RED}Error: Failed to fetch manifest after $MAX_RETRIES attempts${NORMAL}" >&2
+            echo -e "${RED}Error: Failed to fetch manifest after $max attempts${NORMAL}" >&2
             exit 1
         fi
     done
@@ -83,6 +74,7 @@ download_file() {
     local filepath="$1"
     local temp_file="${filepath}.tmp"
     local backup_file="${filepath}.pre-update-backup"
+    local -r max=$MAX_RETRIES
     local attempt=1
 
     # Backup existing file
@@ -90,7 +82,7 @@ download_file() {
         cp "$filepath" "$backup_file"
     fi
 
-    while [[ $attempt -le $MAX_RETRIES ]]; do
+    while [[ $attempt -le $max ]]; do
         if curl -sSL -f "$TEMPLATE_URL/$filepath" -o "$temp_file" 2>/dev/null; then
             # Verify it's not empty
             if [[ ! -s "$temp_file" ]]; then
@@ -106,11 +98,11 @@ download_file() {
             return 0
         fi
 
-        if [[ $attempt -lt $MAX_RETRIES ]]; then
+        if [[ $attempt -lt $max ]]; then
             sleep $RETRY_DELAY
             ((attempt++))
         else
-            echo -e "      ${RED}Download failed after $MAX_RETRIES attempts${NORMAL}"
+            echo -e "      ${RED}Download failed after $max attempts${NORMAL}"
             rm -f "$temp_file"
             [[ -f "$backup_file" ]] && mv "$backup_file" "$filepath"
             return 1
@@ -195,6 +187,8 @@ process_file() {
 # Cleanup
 cleanup() {
     rm -f "$MANIFEST_FILE"
+    # Clean up any orphaned backup files older than 7 days
+    find .just -name '*.pre-update-backup' -mtime +7 -delete 2>/dev/null || true
 }
 
 trap cleanup EXIT
@@ -211,12 +205,9 @@ main() {
     echo "Processing .just/*.just files:"
 
     # Get list of files from manifest
-    local files
-    files=$(jq -r '.files | keys[]' "$MANIFEST_FILE")
-
     while IFS= read -r filepath; do
         process_file "$filepath"
-    done <<< "$files"
+    done < <(jq -r '.files | keys[]' "$MANIFEST_FILE")
 
     # Print summary
     echo

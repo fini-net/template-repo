@@ -2,18 +2,8 @@
 # Generate versioned checksums for .just/*.just files from git history
 set -euo pipefail
 
-# Platform-compatible checksum computation
-compute_checksum() {
-    local file="$1"
-    if command -v sha256sum &>/dev/null; then
-        sha256sum "$file" | awk '{print $1}'
-    elif command -v shasum &>/dev/null; then
-        shasum -a 256 "$file" | awk '{print $1}'
-    else
-        echo "Error: Neither sha256sum nor shasum found" >&2
-        exit 1
-    fi
-}
+# shellcheck source=.just/lib/common.sh
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
 # Check dependencies
 for cmd in git jq; do
@@ -59,6 +49,7 @@ for filepath in "${just_files[@]}"; do
     # Get all commits that touched this file, newest first
     seen_checksums=""
     first_version=true
+    first_commit=true
 
     while IFS='|' read -r commit_hash commit_date commit_subject; do
         # Checkout the file at this commit (to a temp location)
@@ -87,10 +78,8 @@ for filepath in "${just_files[@]}"; do
             fi
 
             # Determine if this is the latest version (first in list)
-            is_latest="false"
-            if [[ $(git log --format="%H" -n 1 -- "$filepath") == "$commit_hash" ]]; then
-                is_latest="true"
-            fi
+            is_latest="$first_commit"
+            first_commit=false
 
             # Output version entry
             cat <<EOF
