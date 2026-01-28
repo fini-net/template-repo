@@ -1,5 +1,5 @@
 # our own repo compliance check
-[group('Compliance')]
+[group('Testing/Compliance')]
 compliance_check:
     #!/usr/bin/env bash
     set -euo pipefail # strict mode without tracing

@@ -51,7 +51,7 @@ update_from_template:
     .just/lib/template_update.sh
 
 # Verify local .just files against template versions
-[group('Template Maintenance')]
+[group('Testing/Automation')]
 checksums_verify:
     #!/usr/bin/env bash
     set -euo pipefail

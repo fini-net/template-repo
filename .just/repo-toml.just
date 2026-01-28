@@ -2,7 +2,7 @@
 # Repository metadata extraction and shell variable generation
 
 # generate shell variables from .repo.toml
-[group('Utility')]
+[group('Testing/Automation')]
 repo_toml_generate:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -90,7 +90,7 @@ repo_toml_generate:
     echo "{{BLUE}}Flags - Claude: $FLAG_CLAUDE, Claude Review: $FLAG_CLAUDE_REVIEW, Copilot Review: $FLAG_COPILOT_REVIEW, Standard Release: $FLAG_STANDARD_RELEASE{{NORMAL}}"
 
 # check if generated shell file is up-to-date
-[group('Utility')]
+[group('Testing/Automation')]
 repo_toml_check:
     #!/usr/bin/env bash
     set -euo pipefail
