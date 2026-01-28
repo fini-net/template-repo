@@ -261,17 +261,21 @@ copilot_refresh: _on_a_pull_request
     fi
 
     # Wait for review completion
-    MAX_WAIT=45
-    POLL_INTERVAL=3
+    MAX_WAIT=180  # 3 minutes
+    POLL_INTERVAL=5
+    INITIAL_DELAY=10  # Give Copilot time to start processing
 
     poll_for_review() {
-        elapsed=0
+        echo "{{BLUE}}Waiting ${INITIAL_DELAY}s for Copilot to start processing...{{NORMAL}}"
+        sleep $INITIAL_DELAY
+        
+        elapsed=$INITIAL_DELAY
         while (( elapsed < MAX_WAIT )); do
-            # Check for Copilot review using GraphQL
+            # Check for Copilot review using GraphQL - check both review existence and comments
             # shellcheck disable=SC2016
-            copilot_review=$(gh api graphql \
+            copilot_data=$(gh api graphql \
                 -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
-                --jq '[ .data.repository.pullRequest.reviews.nodes[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes[] ] | length' \
+                --jq '.data.repository.pullRequest.reviews.nodes[] | select(.author.login=="copilot-pull-request-reviewer") | {state: .state, commentCount: (.comments.totalCount)}' \
                 -f query='
                 query($name: String!, $owner: String!, $pr: Int!) {
                     repository(owner: $owner, name: $name) {
@@ -281,21 +285,29 @@ copilot_refresh: _on_a_pull_request
                                     author {
                                         login
                                     }
-                                    comments(first: 100) {
-                                        nodes {
-                                            body
-                                        }
+                                    state
+                                    comments {
+                                        totalCount
                                     }
                                 }
                             }
                         }
                     }
                 }
-                ' 2>/dev/null || echo "0")
+                ' 2>/dev/null)
 
-            if [[ "$copilot_review" != "0" ]] && [[ -n "$copilot_review" ]]; then
-                echo "{{GREEN}}Review detected after ${elapsed}s{{NORMAL}}"
-                return 0
+            if [[ -n "$copilot_data" ]]; then
+                # Extract review state and comment count
+                review_state=$(echo "$copilot_data" | jq -r '.state // "UNKNOWN"')
+                comment_count=$(echo "$copilot_data" | jq -r '.commentCount // 0')
+                
+                # Consider review complete if we have a state and comments
+                if [[ "$review_state" != "null" && "$review_state" != "UNKNOWN" ]] && [[ "$comment_count" -gt 0 ]]; then
+                    echo "{{GREEN}}Review complete after ${elapsed}s (state: $review_state, $comment_count comments){{NORMAL}}"
+                    return 0
+                elif [[ "$review_state" != "null" && "$review_state" != "UNKNOWN" ]]; then
+                    echo "{{YELLOW}}Review found but still processing (state: $review_state, $comment_count comments){{NORMAL}}"
+                fi
             fi
 
             sleep $POLL_INTERVAL
@@ -308,7 +320,7 @@ copilot_refresh: _on_a_pull_request
         done
 
         echo ""
-        echo "{{YELLOW}}Review not detected after ${MAX_WAIT}s - it may still be processing{{NORMAL}}"
+        echo "{{YELLOW}}Review not completed after ${MAX_WAIT}s - it may still be processing{{NORMAL}}"
         return 1
     }
 
@@ -363,8 +375,9 @@ copilot_refresh: _on_a_pull_request
             echo "🐈‍⬛ No suggestions - looks good!"
         fi
     else
-        echo "{{YELLOW}}Review may still be processing. Try:{{NORMAL}}"
-        echo "  {{GREEN}}just copilot_pick{{NORMAL}} (to view suggestions when ready)"
+        echo "{{YELLOW}}Review may still be processing (waited ${MAX_WAIT}s total). Options:{{NORMAL}}"
+        echo "  {{GREEN}}just copilot_pick{{NORMAL}} (check if suggestions are ready)"
+        echo "  {{GREEN}}just copilot_refresh{{NORMAL}} (wait longer for completion)"
     fi
 
 # Restore from Copilot backup
