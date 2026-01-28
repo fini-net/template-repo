@@ -203,7 +203,7 @@ release rel_version:
     fi
 
     # Standard release workflow
-    gh release create {{rel_version}} --generate-notes
+    gh release create "{{rel_version}}" --generate-notes
     sleep 1
     git pull
 
