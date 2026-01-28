@@ -35,7 +35,10 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:www.chicks.net)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(just checksums_generate:*)",
+      "Bash(just checksums_verify:*)",
+      "Bash(shasum:*)"
     ],
     "deny": [],
     "ask": []

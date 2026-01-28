@@ -47,12 +47,16 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 - `just claude_permissions_sort` - Sort Claude Code permissions in canonical order
 - `just claude_permissions_check` - Check Claude Code permissions structure
 - `just utcdate` - Print UTC date in ISO format (used in branch names)
+- `just checksums_generate` - Generate versioned checksums from git history (template-repo only)
+- `just checksums_verify` - Check local .just files against template versions
+- `just checksums_diff <file>` - Show diff between local and latest template version
+- `just update_from_template` - Update .just modules from template-repo (safe, preserves local mods)
 
 ## Architecture
 
 ### Modular justfile structure
 
-The main `justfile` imports seven modules:
+The main `justfile` imports eight modules:
 
 - `.just/compliance.just` - Custom compliance checks for repo health (validates all GitHub community standards)
 - `.just/gh-process.just` - Git/GitHub workflow automation (core PR lifecycle)
@@ -61,6 +65,7 @@ The main `justfile` imports seven modules:
 - `.just/cue-verify.just` - File format validation using Cue
 - `.just/claude.just` - Claude Code permission management
 - `.just/repo-toml.just` - Repository metadata extraction and shell variable generation
+- `.just/template-sync.just` - Template synchronization and update system
 
 ### Repository metadata extraction
 
@@ -118,6 +123,22 @@ The `.just/claude.just` module manages `.claude/settings.local.json`:
 - **Structure validation** - Checks for required JSON structure and permission arrays
 - **Backup handling** - Creates backups before modifications and restores on error
 - **Permission analytics** - Reports counts and breakdown by permission type
+
+### Template sync system
+
+The `.just/template-sync.just` module enables safe updates from template-repo:
+
+- **Multi-version checksums** - Tracks all historical versions of .just modules in `.just/CHECKSUMS.json`
+- **Safe updates** - Only modifies files matching a known template version
+- **Local preservation** - Files with modifications are skipped and reported
+- **Clear reporting** - Shows updated/skipped/new files with version info
+- **Diagnostic tools** - `checksums_verify` and `checksums_diff` for preview and inspection
+
+The system uses three core scripts in `.just/lib/`:
+
+- **generate_checksums.sh** - Extract checksums from git history with version tracking
+- **template_update.sh** - Core update logic (compare, download, verify, rollback on failure)
+- **template_sync_test.sh** - Test suite with fixtures in `.just/test/fixtures/template_sync/`
 
 ### GitHub Actions
 
