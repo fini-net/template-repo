@@ -97,7 +97,7 @@ The `.repo.toml` file contains structured metadata:
 
 - **about section** - Description, topics, and license
 - **urls section** - Git SSH and web URLs
-- **flags section** - Boolean feature flags (claude, claude-review, copilot-review)
+- **flags section** - Boolean feature flags (claude, claude-review, copilot-review, standard-release)
 
 The `cue-verify` recipe validates `.repo.toml` in three stages:
 
@@ -123,6 +123,16 @@ The `.just/claude.just` module manages `.claude/settings.local.json`:
 - **Structure validation** - Checks for required JSON structure and permission arrays
 - **Backup handling** - Creates backups before modifications and restores on error
 - **Permission analytics** - Reports counts and breakdown by permission type
+
+### Standard release workflow
+
+The template includes a standard release workflow controlled by the `standard-release` flag:
+
+- **Default behavior** - When enabled (`standard-release = true`), provides `release` and `release_age` recipes
+- **Release creation** - `just release <version>` creates GitHub releases with auto-generated notes
+- **Release monitoring** - `just release_age` checks release freshness and commit count since last release
+- **Custom workflows** - Set `standard-release = false` in `.repo.toml` to disable standard recipes for projects with custom release mechanisms
+- **Graceful degradation** - When disabled, recipes display informational messages and exit cleanly (exit 0)
 
 ### Template sync system
 

@@ -35,6 +35,9 @@ flags?: {
 	// Enable GitHub Copilot code review
 	"copilot-review"?: bool
 
+	// Enable standard release workflow
+	"standard-release"?: bool
+
 	// Allow additional custom flags
 	...
 }

@@ -21,6 +21,7 @@ cue-verify:
     CLAUDE_FLAG=$(cue export .repo.toml | jq -r '.flags.claude // false')
     CLAUDE_REVIEW_FLAG=$(cue export .repo.toml | jq -r '.flags."claude-review" // false')
     COPILOT_REVIEW_FLAG=$(cue export .repo.toml | jq -r '.flags."copilot-review" // false')
+    STANDARD_RELEASE_FLAG=$(cue export .repo.toml | jq -r 'if .flags."standard-release" == false then "false" else "true" end')
 
     # Error counter
     ERRORS=0
@@ -72,6 +73,12 @@ cue-verify:
                 fi
             fi
         fi
+    fi
+
+    # Validate standard-release flag (informational only)
+    if [[ "$STANDARD_RELEASE_FLAG" == "false" ]]; then
+        echo "{{YELLOW}}[flags.standard-release] Standard release workflow is disabled{{NORMAL}}"
+        echo "{{YELLOW}}  Ensure custom release recipes exist in justfile or .just/ modules{{NORMAL}}"
     fi
 
     # Stage 3: Validate GitHub metadata sync
