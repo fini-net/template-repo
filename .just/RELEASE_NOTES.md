@@ -4,6 +4,41 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## January 2026 - Experience leads to more opportunities
 
+### v5.2 - Template Sync System (2026-01-27)
+
+Fixes issue [#55](https://github.com/fini-net/template-repo/issues/55)
+
+Implemented a safe update mechanism that allows derived repos to pull changes from template-repo while preserving local customizations.
+
+**New module:** `.just/template-sync.just`
+
+- **Multi-version checksum tracking** - `.just/CHECKSUMS.json` manifest tracks historical checksums of all `.just/*.just` files from git history
+- **Safe updates** - Only modifies files whose checksums match a known template version
+- **Local preservation** - Files with modifications are skipped with clear warnings
+- **Diagnostic tools** - `checksums_verify` and `checksums_diff` for preview and inspection
+
+**Four new recipes:**
+
+1. `checksums_generate` - Generate versioned checksums from git history (template-repo only)
+2. `update_from_template` - Update .just modules from template-repo (derived repos)
+3. `checksums_verify` - Check local files against template versions
+4. `checksums_diff <file>` - Show diff between local and latest template version
+
+**Implementation details:**
+
+- `.just/lib/generate_checksums.sh` - Extracts checksums from git history with version tagging
+- `.just/lib/template_update.sh` - Core update logic with retry, backup, and rollback
+- `.just/lib/template_sync_test.sh` - Test suite with fixtures
+- Platform-compatible checksums (sha256sum on Linux, shasum on macOS)
+- Network retry logic (3 attempts with exponential backoff)
+- Automatic backup and restore on download failures
+
+**Test coverage:**
+
+- Test fixtures in `.just/test/fixtures/template_sync/`
+- Scenarios: unmodified file update, modified file skip, already latest
+- GitHub Actions workflow for continuous validation
+
 ### v5.1 - On-Demand Copilot Reviews (2026-01-XX)
 
 Add `copilot_refresh` recipe to request new Copilot reviews on demand.

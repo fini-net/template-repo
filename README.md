@@ -27,7 +27,7 @@ A good template for github repos with best practices adoption.
 
 ### Modular Justfile Architecture
 
-The [justfile](justfile) imports 7 modules from the [.just/](.just/) directory for a clean, maintainable workflow:
+The [justfile](justfile) imports 8 modules from the [.just/](.just/) directory for a clean, maintainable workflow:
 
 - ✅ [gh-process.just](.just/gh-process.just) - Complete PR lifecycle automation with smart check polling and AI review integration
 - ✅ [compliance.just](.just/compliance.just) - Repository health checks validating all GitHub community standards and branch protection
@@ -35,6 +35,7 @@ The [justfile](justfile) imports 7 modules from the [.just/](.just/) directory f
 - ✅ [cue-verify.just](.just/cue-verify.just) - Three-stage validation of [.repo.toml](.repo.toml) structure, flags, and GitHub sync
 - ✅ [claude.just](.just/claude.just) - Claude Code permission management with canonical sorting and structure validation
 - ✅ [repo-toml.just](.just/repo-toml.just) - Metadata extraction that generates shell variables from repository configuration
+- ✅ [template-sync.just](.just/template-sync.just) - Safe template updates preserving local customizations via multi-version checksums
 - ✅ [pr-hook.just](.just/pr-hook.just) - Optional pre-PR hooks for project-specific automation
 
 ### Repository Metadata System
@@ -81,6 +82,25 @@ Seven workflows handle automation and quality:
 
 [Here is a nice checklist](https://github.com/jlcanovas/gh-best-practices-template/blob/main/guidelines.md)
 of things to consider with a new repo.
+
+## Keeping Your Derived Repo Up-to-Date
+
+Pull updates to `.just/` modules from template-repo:
+
+```bash
+just update_from_template
+```
+
+Only unmodified files are updated. Local customizations are preserved.
+
+Preview changes:
+
+```bash
+just checksums_verify              # Check which files would update
+just checksums_diff .just/gh-process.just  # See specific changes
+```
+
+The update system uses multi-version checksum tracking to safely identify which files match known template versions. Files with local modifications are skipped and reported.
 
 ## Contributing
 
