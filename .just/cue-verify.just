@@ -1,7 +1,7 @@
 # File Format Self-checks
 
 # use Cue to verify /.repo.toml validity and flag configuration
-[group('Compliance')]
+[group('Testing/Compliance')]
 cue-verify:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -128,7 +128,7 @@ cue-verify:
     echo "{{GREEN}}Flag verification passed.{{NORMAL}}"
 
 # sync description and topics from GitHub API into .repo.toml
-[group('Compliance')]
+[group('Template Maintenance')]
 cue-sync-from-github:
     #!/usr/bin/env bash
     set -euo pipefail

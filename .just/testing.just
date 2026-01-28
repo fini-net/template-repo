@@ -3,7 +3,7 @@
 # This module provides testing recipes for the repository
 
 # test PR body update logic
-[group('Testing')]
+[group('Testing/Automation')]
 pr_body_test:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -18,7 +18,7 @@ pr_body_test:
     fi
 
 # test template sync logic
-[group('Testing')]
+[group('Testing/Automation')]
 template_sync_test:
     #!/usr/bin/env bash
     set -euo pipefail
