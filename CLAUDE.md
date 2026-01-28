@@ -18,13 +18,22 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 4. `just merge` - Squash merge PR, delete branch, return to main, and pull latest
 5. `just sync` - Return to main branch and pull latest (escape hatch)
 
-### Copilot Review Workflow
+### AI Review Workflows
+
+**Copilot Review:**
 
 1. `just pr` - Create PR (triggers initial Copilot review if enabled)
 2. Make changes based on review feedback
 3. `just copilot_refresh` - Request fresh review after changes
-4. `just copilot_pick` - Browse suggestions interactively
+4. `just copilot_pick` - Browse suggestions interactively using gum
 5. Address suggestions and iterate
+
+**Claude Review:**
+
+1. `just pr` - Create PR (triggers initial Claude review if enabled)
+2. `just claude_review` - View Claude's latest PR code review comments
+3. Make changes based on review feedback
+4. Iterate as needed
 
 ### Additional commands
 
@@ -35,6 +44,9 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 - `just pr_verify` - Add or append to "Verify" section from stdin (with timestamp)
 - `just copilot_pick` - Interactively browse and select Copilot PR review suggestions using gum
 - `just copilot_refresh` - Request a new Copilot review on current PR
+- `just claude_review` - View Claude's latest PR code review comments
+- `just pr_body_test` - Test PR body update logic
+- `just template_sync_test` - Test template sync logic
 - `just release <version>` - Create a GitHub release with auto-generated notes
 - `just release_age` - Check how long ago the last release was
 - `just clean_readme` - Generate a clean README from template (strips template documentation)
@@ -56,7 +68,7 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 
 ### Modular justfile structure
 
-The main `justfile` imports eight modules:
+The main `justfile` imports ten modules:
 
 - `.just/compliance.just` - Custom compliance checks for repo health (validates all GitHub community standards)
 - `.just/gh-process.just` - Git/GitHub workflow automation (core PR lifecycle)
@@ -64,7 +76,9 @@ The main `justfile` imports eight modules:
 - `.just/shellcheck.just` - Shellcheck linting for bash scripts in just recipes
 - `.just/cue-verify.just` - File format validation using Cue
 - `.just/claude.just` - Claude Code permission management
+- `.just/copilot.just` - GitHub Copilot integration recipes (interactive suggestion picker, review refresh)
 - `.just/repo-toml.just` - Repository metadata extraction and shell variable generation
+- `.just/testing.just` - Test recipes for PR body updates and template sync logic
 - `.just/template-sync.just` - Template synchronization and update system
 
 ### Repository metadata extraction
@@ -161,6 +175,18 @@ Workflows in `.github/workflows/`:
 - **claude-code-review.yml** - Claude AI review automation
 - **claude.yml** - Additional Claude integration
 - **cue-verify.yml** - Validates `.repo.toml` format and flags
+- **pr-body-tests.yml** - Tests PR body update logic
+- **template-sync.yml** - Tests template synchronization system
+
+### Testing infrastructure
+
+The `.just/testing.just` module provides automated testing:
+
+- **pr_body_test** - Tests PR body update logic using `.just/lib/pr_body_test.sh`
+- **template_sync_test** - Tests template sync logic using `.just/lib/template_sync_test.sh`
+- **Test fixtures** - Located in `.just/test/fixtures/template_sync/`
+
+Both test recipes run via GitHub Actions on every PR to ensure core functionality works.
 
 ### Markdown linting
 
