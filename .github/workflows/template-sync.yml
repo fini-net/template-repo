@@ -17,6 +17,9 @@ on:
       - '.just/test/fixtures/template_sync/**'
       - '.github/workflows/template-sync.yml'
 
+# global permissions
+permissions: {}
+
 jobs:
   test:
     runs-on: ubuntu-latest
