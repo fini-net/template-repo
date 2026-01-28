@@ -191,6 +191,7 @@ copilot_pick: _on_a_pull_request
                     mv "${file_path}.tmp" "$file_path"
                 else
                     # Single line: use sed with proper escaping
+                    # shellcheck disable=SC2016
                     escaped_code=$(echo "$suggested_code" | sed 's|[][\.*^$()+?{|/]|\\&|g')
                     sed -i "${original_line}s|.*|${escaped_code}|" "$file_path"
                 fi
