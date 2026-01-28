@@ -26,6 +26,7 @@
       "Bash(just cue-sync-from-github:*)",
       "Bash(just cue-verify:*)",
       "Bash(just pr_body_test:*)",
+      "Bash(just release_age:*)",
       "Bash(just repo_toml_check:*)",
       "Bash(just repo_toml_generate:*)",
       "Bash(just shellcheck:*)",
