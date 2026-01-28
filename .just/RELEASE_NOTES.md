@@ -2,11 +2,36 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
-## January 2026 - Experience leads to more opportunities
+## January 2026 - Avila Beach is awesome
+
+### v5.3 - Configurable Release Workflow (2026-01-28)
+
+Fixes issue [#82](https://github.com/fini-net/template-repo/issues/82)
+**Related PR:** [#84](https://github.com/fini-net/template-repo/pull/84)
+
+Added the `standard-release` flag to `.repo.toml` that allows projects to disable the default release recipes when they need custom release mechanisms. Previously, all repos inherited the standard `release` and `release_age` recipes whether they needed them or not, which could cause confusion in projects with specialized release workflows.
+
+**New flag:** `standard-release` in `.repo.toml`
+
+- **Default behavior** - When `standard-release = true` (or unset), provides standard `release` and `release_age` recipes
+- **Custom workflows** - Set `standard-release = false` to disable standard recipes for projects with custom release processes
+- **Graceful messaging** - Disabled recipes display informational messages and exit cleanly (exit 0)
+- **Claude Code integration** - Updated `release_age` recipe to be more Claude-friendly with structured output and clear messaging
+
+**Implementation details:**
+
+- Modified `.just/gh-process.just` to check the flag before executing release logic
+- Sources `.just/repo-toml.sh` for flag access (integrates with v4.6 metadata system)
+- Both `release` and `release_age` recipes respect the flag
+- Informational messages explain why the recipe is disabled when flag is false
+- Maintains backwards compatibility - repos without the flag get standard behavior
+
+This allows template-repo to serve both simple projects that want the standard release workflow and complex projects that need custom release automation, all while using the same template base.
 
 ### v5.2 - Template Sync System (2026-01-27)
 
 Fixes issue [#55](https://github.com/fini-net/template-repo/issues/55)
+**Related PR:** [#83](https://github.com/fini-net/template-repo/pull/83)
 
 Implemented a safe update mechanism that allows derived repos to pull changes from template-repo while preserving local customizations.
 
