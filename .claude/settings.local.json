@@ -17,6 +17,8 @@
       "Bash(identify:*)",
       "Bash(just --list:*)",
       "Bash(just _wait_for_checks:*)",
+      "Bash(just checksums_generate:*)",
+      "Bash(just checksums_verify:*)",
       "Bash(just claude_permissions_check)",
       "Bash(just claude_permissions_sort:*)",
       "Bash(just claude_review:*)",
@@ -27,7 +29,9 @@
       "Bash(just repo_toml_check:*)",
       "Bash(just repo_toml_generate:*)",
       "Bash(just shellcheck:*)",
+      "Bash(just template_sync_test:*)",
       "Bash(markdownlint-cli2:*)",
+      "Bash(shasum:*)",
       "Bash(shellcheck:*)",
       "WebFetch(domain:developers.facebook.com)",
       "WebFetch(domain:docs.github.com)",
@@ -35,10 +39,7 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:www.chicks.net)",
-      "WebSearch",
-      "Bash(just checksums_generate:*)",
-      "Bash(just checksums_verify:*)",
-      "Bash(shasum:*)"
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
