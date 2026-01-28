@@ -136,10 +136,15 @@ copilot_pick: _on_a_pull_request
         ')
         
         if [[ -n "$suggested_code" && -f "$file_path" ]]; then
+            # Validate file path to prevent command injection
+            if [[ ! "$file_path" =~ ^[a-zA-Z0-9/_.-][a-zA-Z0-9/_.-]*$ ]]; then
+                echo "{{RED}}Error: Invalid file path characters in $file_path{{NORMAL}}"
+                exit 1
+            fi
             # Create backup with full path
             backup_dir=".just/copilot_backups"
             mkdir -p "$backup_dir"
-            timestamp=$(date +%Y%m%d_%H%M%S)
+            timestamp=$(date +%Y%m%d_%H%M%S)_$$
             # Store relative path from repo root for proper restoration
             relative_path=$(git ls-files --full-name "$file_path" 2>/dev/null || echo "$file_path")
             safe_path=${relative_path//\//_}
@@ -159,7 +164,7 @@ copilot_pick: _on_a_pull_request
             # Show diff-like output - use reliable line counting
             line_count=$(echo "$suggested_code" | wc -l | tr -d ' ')
             # Add 1 if the string doesn't end with newline
-            if [[ ! "$suggested_code" =~ \n$ ]]; then
+            if [[ ! "$suggested_code" =~ $'\n'$ ]]; then
                 line_count=$((line_count + 1))
             fi
             
@@ -179,12 +184,19 @@ copilot_pick: _on_a_pull_request
                 # Apply the change - use temp file approach for multi-line safety
                 # Use reliable line counting
                 line_count=$(echo "$suggested_code" | wc -l | tr -d ' ')
-                if [[ ! "$suggested_code" =~ \n$ ]]; then
+                if [[ ! "$suggested_code" =~ $'\n'$ ]]; then
                     line_count=$((line_count + 1))
                 fi
                 
-                if [[ $line_count -gt 1 ]]; then
+                # Check if this looks like a multi-line replacement by examining the suggestion body
+                # Look for patterns that suggest replacing multiple lines
+                replacement_lines=$(echo "$suggestion_body" | grep -i "replace\|change" | grep -o "lines\?[[:space:]]*[0-9]\+-[0-9]\+\|lines\?[[:space:]]*[0-9]\+" | head -1)
+                
+                if [[ $line_count -gt 1 ]] || [[ -n "$replacement_lines" ]]; then
                     # Multi-line: split file, insert new content, rejoin
+                    # Currently we only replace one line as Copilot API doesn't provide line ranges
+                    # This treats multi-line suggestions as insertions at the specified line
+                    echo "{{YELLOW}}Note: Multi-line suggestion will be inserted at line $original_line{{NORMAL}}"
                     head -n $((original_line - 1)) "$file_path" > "${file_path}.tmp"
                     echo "$suggested_code" >> "${file_path}.tmp"
                     tail -n +$((original_line + 1)) "$file_path" >> "${file_path}.tmp"
@@ -192,7 +204,7 @@ copilot_pick: _on_a_pull_request
                 else
                     # Single line: use sed with proper escaping
                     # shellcheck disable=SC2016
-                    escaped_code=$(echo "$suggested_code" | sed 's|[][\.*^$()+?{|/]|\\&|g')
+                    escaped_code=$(echo "$suggested_code" | sed 's|[][\\\.*^$()+?{|/]|\\&|g')
                     sed -i "${original_line}s|.*|${escaped_code}|" "$file_path"
                 fi
                 
@@ -421,8 +433,15 @@ copilot_rollback:
             safe_path=${filename%_*}
             target_file=${safe_path//_/\/}
             # Validate the reconstructed path doesn't escape repo root
-            if [[ "$target_file" == ../* ]] || [[ "$target_file" == */../* ]] || [[ "$target_file" == */.. ]]; then
+            if [[ "$target_file" =~ ^\.\./|/\.\./|\.\.$ ]] || [[ "$target_file" =~ ^/ ]]; then
                 echo "{{RED}}Warning: Skipping invalid backup path: $target_file{{NORMAL}}"
+                continue
+            fi
+            # Additional validation: resolve to absolute path and verify it's under repo root
+            repo_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+            target_abs=$(cd "$(dirname "$target_file")" && pwd)/$(basename "$target_file") 2>/dev/null || true
+            if [[ -n "$target_abs" && ! "$target_abs" =~ ^$repo_root/ ]]; then
+                echo "{{RED}}Warning: Skipping backup path outside repo: $target_file{{NORMAL}}"
                 continue
             fi
             backups+=("$backup")
