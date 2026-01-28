@@ -122,14 +122,18 @@ copilot_pick: _on_a_pull_request
     if gum confirm "Apply this suggestion?"; then
         # Extract code blocks from suggestion - improved extraction
         suggested_code=$(echo "$suggestion_body" | awk '
-            BEGIN { in_block = 0; block_count = 0 }
-            /```/ { 
-                if (in_block) { in_block = 0; block_count++ }
-                else { in_block = 1 }
-                next 
+            BEGIN { in_block = 0; extracted = 0 }
+            /^```/ {
+                if (!in_block) {
+                    in_block = 1
+                    next  # Skip the opening ``` line
+                } else {
+                    extracted = 1
+                    exit  # Exit after first complete block
+                }
             }
-            in_block && block_count < 2 { print }
-        ' | head -20)  # Increased limit and better extraction
+            in_block { print }
+        ')
         
         if [[ -n "$suggested_code" && -f "$file_path" ]]; then
             # Create backup with full path
@@ -138,7 +142,7 @@ copilot_pick: _on_a_pull_request
             timestamp=$(date +%Y%m%d_%H%M%S)
             # Store relative path from repo root for proper restoration
             relative_path=$(git ls-files --full-name "$file_path" 2>/dev/null || echo "$file_path")
-            safe_path=$(echo "$relative_path" | sed 's|/|_|g')
+            safe_path=${relative_path//\//_}
             backup_file="$backup_dir/${safe_path}_${timestamp}.bak"
             
             cp "$file_path" "$backup_file"
@@ -152,8 +156,14 @@ copilot_pick: _on_a_pull_request
             # Get current content
             current_line=$(sed -n "${original_line}p" "$file_path")
             
-            # Show diff-like output
-            if echo "$suggested_code" | wc -l | grep -q "^1"; then
+            # Show diff-like output - use reliable line counting
+            line_count=$(echo "$suggested_code" | wc -l | tr -d ' ')
+            # Add 1 if the string doesn't end with newline
+            if [[ ! "$suggested_code" =~ \n$ ]]; then
+                line_count=$((line_count + 1))
+            fi
+            
+            if [[ $line_count -eq 1 ]]; then
                 # Single line change
                 echo "- $current_line"
                 echo "+ $suggested_code"
@@ -161,18 +171,32 @@ copilot_pick: _on_a_pull_request
                 # Multi-line change - show first line with indicator
                 echo "- $current_line"
                 echo "+ $(echo "$suggested_code" | head -1)"
-                echo "  $(echo "$suggested_code" | wc -l | tr -d ' ') lines total"
+                echo "  $line_count lines total"
             fi
             echo ""
             
             if gum confirm "Confirm this change?"; then
-                # Apply the change with proper escaping
-                # Escape special sed characters in the replacement
-                escaped_code=$(echo "$suggested_code" | sed 's|[[\.*^$()+?{|]|\\&|g')
+                # Apply the change - use temp file approach for multi-line safety
+                # Use reliable line counting
+                line_count=$(echo "$suggested_code" | wc -l | tr -d ' ')
+                if [[ ! "$suggested_code" =~ \n$ ]]; then
+                    line_count=$((line_count + 1))
+                fi
                 
-                # Use different delimiter and proper escaping
-                if sed -i "${original_line}s|.*|${escaped_code}|" "$file_path"; then
-                    rm -f "${file_path}.bak"
+                if [[ $line_count -gt 1 ]]; then
+                    # Multi-line: split file, insert new content, rejoin
+                    head -n $((original_line - 1)) "$file_path" > "${file_path}.tmp"
+                    echo "$suggested_code" >> "${file_path}.tmp"
+                    tail -n +$((original_line + 1)) "$file_path" >> "${file_path}.tmp"
+                    mv "${file_path}.tmp" "$file_path"
+                else
+                    # Single line: use sed with proper escaping
+                    escaped_code=$(echo "$suggested_code" | sed 's|[][\.*^$()+?{|/]|\\&|g')
+                    sed -i "${original_line}s|.*|${escaped_code}|" "$file_path"
+                fi
+                
+                # Verify the change was applied successfully
+                if [[ -s "$file_path" ]]; then
                     echo "{{GREEN}}✓ Successfully applied change to $file_path:$original_line{{NORMAL}}"
                     
                     # Offer to push changes
@@ -348,6 +372,14 @@ copilot_rollback:
     #!/usr/bin/env bash
     set -euo pipefail
 
+    # Check if gum is installed
+    if ! command -v gum &>/dev/null; then
+        echo "{{RED}}gum is not installed{{NORMAL}}"
+        echo "{{YELLOW}}Install with: brew install gum (macOS){{NORMAL}}"
+        echo "{{YELLOW}}Or see: https://github.com/charmbracelet/gum{{NORMAL}}"
+        exit 1
+    fi
+
     BACKUP_DIR=".just/copilot_backups"
 
     if [[ ! -d "$BACKUP_DIR" ]]; then
@@ -373,7 +405,12 @@ copilot_rollback:
             timestamp=${timestamp%.bak}
             # Convert safe path back to original file path
             safe_path=${filename%_*}
-            target_file=$(echo "$safe_path" | sed 's|_|/|g')
+            target_file=${safe_path//_/\/}
+            # Validate the reconstructed path doesn't escape repo root
+            if [[ "$target_file" == ../* ]] || [[ "$target_file" == */../* ]] || [[ "$target_file" == */.. ]]; then
+                echo "{{RED}}Warning: Skipping invalid backup path: $target_file{{NORMAL}}"
+                continue
+            fi
             backups+=("$backup")
             backup_targets+=("$target_file")
             echo "  $i) $target_file (backup: $timestamp)"
