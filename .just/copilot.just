@@ -119,30 +119,58 @@ copilot_pick: _on_a_pull_request
     # Ask if user wants to apply the suggestion
     echo ""
     if gum confirm "Apply this suggestion?"; then
-        # Extract code blocks from suggestion
-        suggested_code=$(echo "$suggestion_body" | awk '/```/,/```/' | grep -v '```' | head -10)
+        # Extract code blocks from suggestion - improved extraction
+        suggested_code=$(echo "$suggestion_body" | awk '
+            BEGIN { in_block = 0; block_count = 0 }
+            /```/ { 
+                if (in_block) { in_block = 0; block_count++ }
+                else { in_block = 1 }
+                next 
+            }
+            in_block && block_count < 2 { print }
+        ' | head -20)  # Increased limit and better extraction
         
         if [[ -n "$suggested_code" && -f "$file_path" ]]; then
-            # Create backup
+            # Create backup with full path
             backup_dir=".just/copilot_backups"
             mkdir -p "$backup_dir"
             timestamp=$(date +%Y%m%d_%H%M%S)
-            filename=$(basename "$file_path")
-            backup_file="$backup_dir/${filename}_${timestamp}.bak"
+            # Store relative path from repo root for proper restoration
+            relative_path=$(git ls-files --full-name "$file_path" 2>/dev/null || echo "$file_path")
+            safe_path=$(echo "$relative_path" | sed 's|/|_|g')
+            backup_file="$backup_dir/${safe_path}_${timestamp}.bak"
             
             cp "$file_path" "$backup_file"
             echo "{{YELLOW}}Created backup: $backup_file{{NORMAL}}"
             
-            # Show what will change
-            current_line=$(sed -n "${original_line}p" "$file_path")
+            # Show what will change - improved display
             echo "{{BLUE}}Will change:{{NORMAL}}"
-            echo "- $current_line"
-            echo "+ $suggested_code"
+            echo "File: $file_path"
+            echo "Line: $original_line"
+            
+            # Get current content
+            current_line=$(sed -n "${original_line}p" "$file_path")
+            
+            # Show diff-like output
+            if echo "$suggested_code" | wc -l | grep -q "^1"; then
+                # Single line change
+                echo "- $current_line"
+                echo "+ $suggested_code"
+            else
+                # Multi-line change - show first line with indicator
+                echo "- $current_line"
+                echo "+ $(echo "$suggested_code" | head -1)"
+                echo "  $(echo "$suggested_code" | wc -l | tr -d ' ') lines total"
+            fi
             echo ""
             
             if gum confirm "Confirm this change?"; then
-                # Apply the change
-                if sed -i.bak "${original_line}s/.*/${suggested_code}/" "$file_path"; then
+                # Apply the change with proper escaping
+                # Escape special sed characters in the replacement
+                escaped_code=$(echo "$suggested_code" | sed 's|[[\.*^$()+?{|]|\\&|g')
+                
+                # Use different delimiter and proper escaping
+                if sed -i.bak "${original_line}s|.*|${escaped_code}|" "$file_path"; then
                     rm -f "${file_path}.bak"
                     echo "{{GREEN}}✓ Successfully applied change to $file_path:$original_line{{NORMAL}}"
                     
@@ -334,6 +362,7 @@ copilot_rollback:
 
     echo "{{BLUE}}Available backups:{{NORMAL}}"
     backups=()
+    backup_targets=()
     i=1
     
     for backup in "$BACKUP_DIR"/*.bak; do
@@ -341,9 +370,12 @@ copilot_rollback:
             filename=$(basename "$backup")
             timestamp=${filename##*_}
             timestamp=${timestamp%.bak}
-            original_file=${filename%_*}
+            # Convert safe path back to original file path
+            safe_path=${filename%_*}
+            target_file=$(echo "$safe_path" | sed 's|_|/|g')
             backups+=("$backup")
-            echo "  $i) $original_file (backup: $timestamp)"
+            backup_targets+=("$target_file")
+            echo "  $i) $target_file (backup: $timestamp)"
             ((i++))
         fi
     done
@@ -363,13 +395,34 @@ copilot_rollback:
     fi
 
     selected_backup="${backups[$((selection-1))]}"
-    target_file=$(basename "$selected_backup")
-    target_file=${target_file%_*}
+    target_file="${backup_targets[$((selection-1))]}"
 
     echo "{{BLUE}}Will restore:{{NORMAL}}"
     echo "  Backup: $selected_backup"
     echo "  Target: $target_file"
     echo ""
+
+    # Validate backup integrity
+    if [[ ! -r "$selected_backup" ]]; then
+        echo "{{RED}}✗ Backup file is not readable{{NORMAL}}"
+        exit 1
+    fi
+
+    if [[ ! -s "$selected_backup" ]]; then
+        echo "{{RED}}✗ Backup file is empty{{NORMAL}}"
+        exit 1
+    fi
+
+    # Check if target file exists and has uncommitted changes
+    if [[ -f "$target_file" ]] && command -v git &>/dev/null && git rev-parse --git-dir &>/dev/null; then
+        if ! git diff --quiet "$target_file" 2>/dev/null; then
+            echo "{{YELLOW}}⚠ Target file has uncommitted changes{{NORMAL}}"
+            if ! gum confirm "Overwrite uncommitted changes?"; then
+                echo "{{BLUE}}Restore cancelled{{NORMAL}}"
+                exit 0
+            fi
+        fi
+    fi
 
     if gum confirm "Restore this backup?"; then
         cp "$selected_backup" "$target_file"
