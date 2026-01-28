@@ -1,5 +1,7 @@
-# Template synchronization recipes
+# Template synchronization recipes - v5.2
 # Enables safe updates from template-repo while preserving local customizations
+#
+# See RELEASE_NOTES.md for detailed history
 
 # Generate versioned checksums from git history (template-repo only)
 [group('Template Maintenance')]
