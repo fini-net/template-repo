@@ -105,10 +105,69 @@ copilot_pick: _on_a_pull_request
         exit 1
     fi
 
+    # Get the full suggestion data
+    suggestion_data=$(jq -r --arg line "$line_num" '.[] | select(.originalLine == ($line | tonumber))' "$copilot_comments")
+    file_path=$(echo "$suggestion_data" | jq -r '.path')
+    original_line=$(echo "$suggestion_data" | jq -r '.originalLine')
+    suggestion_body=$(echo "$suggestion_data" | jq -r '.body')
+
     echo ""
     jq -r --arg line "$line_num" '.[] | select(.originalLine == ($line | tonumber)) |
         "{{GREEN}}File:{{NORMAL}} \(.path)\n{{GREEN}}Line:{{NORMAL}} \(.originalLine)\n\n\(.body)"' \
         "$copilot_comments"
+
+    # Ask if user wants to apply the suggestion
+    echo ""
+    if gum confirm "Apply this suggestion?"; then
+        # Extract code blocks from suggestion
+        suggested_code=$(echo "$suggestion_body" | awk '/```/,/```/' | grep -v '```' | head -10)
+        
+        if [[ -n "$suggested_code" && -f "$file_path" ]]; then
+            # Create backup
+            backup_dir=".just/copilot_backups"
+            mkdir -p "$backup_dir"
+            timestamp=$(date +%Y%m%d_%H%M%S)
+            filename=$(basename "$file_path")
+            backup_file="$backup_dir/${filename}_${timestamp}.bak"
+            
+            cp "$file_path" "$backup_file"
+            echo "{{YELLOW}}Created backup: $backup_file{{NORMAL}}"
+            
+            # Show what will change
+            current_line=$(sed -n "${original_line}p" "$file_path")
+            echo "{{BLUE}}Will change:{{NORMAL}}"
+            echo "- $current_line"
+            echo "+ $suggested_code"
+            echo ""
+            
+            if gum confirm "Confirm this change?"; then
+                # Apply the change
+                if sed -i.bak "${original_line}s/.*/${suggested_code}/" "$file_path"; then
+                    rm -f "${file_path}.bak"
+                    echo "{{GREEN}}✓ Successfully applied change to $file_path:$original_line{{NORMAL}}"
+                    
+                    # Offer to push changes
+                    if gum confirm "Push changes to PR?"; then
+                        if command -v just &>/dev/null; then
+                            just again
+                        else
+                            git add "$file_path"
+                            git commit -m "Apply Copilot suggestion to $file_path:$original_line"
+                            git push
+                        fi
+                    fi
+                else
+                    # Restore from backup on failure
+                    cp "$backup_file" "$file_path"
+                    echo "{{RED}}✗ Failed to apply change - restored from backup{{NORMAL}}"
+                fi
+            else
+                echo "{{BLUE}}Change cancelled{{NORMAL}}"
+            fi
+        else
+            echo "{{YELLOW}}Could not extract code or file not found - manual application required{{NORMAL}}"
+        fi
+    fi
 
     rm -f "$copilot_comments" "$suggestions_display"
 
@@ -252,4 +311,79 @@ copilot_refresh: _on_a_pull_request
     else
         echo "{{YELLOW}}Review may still be processing. Try:{{NORMAL}}"
         echo "  {{GREEN}}just copilot_pick{{NORMAL}} (to view suggestions when ready)"
+    fi
+
+# Restore from Copilot backup
+[group('Copilot')]
+copilot_rollback:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    BACKUP_DIR=".just/copilot_backups"
+
+    if [[ ! -d "$BACKUP_DIR" ]]; then
+        echo "{{YELLOW}}No backup directory found{{NORMAL}}"
+        exit 0
+    fi
+
+    # List available backups
+    if ! ls "$BACKUP_DIR"/*.bak &>/dev/null; then
+        echo "{{YELLOW}}No backups found{{NORMAL}}"
+        exit 0
+    fi
+
+    echo "{{BLUE}}Available backups:{{NORMAL}}"
+    backups=()
+    i=1
+    
+    for backup in "$BACKUP_DIR"/*.bak; do
+        if [[ -f "$backup" ]]; then
+            filename=$(basename "$backup")
+            timestamp=${filename##*_}
+            timestamp=${timestamp%.bak}
+            original_file=${filename%_*}
+            backups+=("$backup")
+            echo "  $i) $original_file (backup: $timestamp)"
+            ((i++))
+        fi
+    done
+
+    if [[ ${#backups[@]} -eq 0 ]]; then
+        echo "{{YELLOW}}No valid backups found{{NORMAL}}"
+        exit 0
+    fi
+
+    echo ""
+    echo -n "{{BLUE}}Select backup to restore (1-${#backups[@]}) or Ctrl+C to cancel:{{NORMAL}} "
+    read -r selection
+
+    if ! [[ "$selection" =~ ^[0-9]+$ ]] || [[ "$selection" -lt 1 || "$selection" -gt ${#backups[@]} ]]; then
+        echo "{{RED}}Invalid selection{{NORMAL}}"
+        exit 1
+    fi
+
+    selected_backup="${backups[$((selection-1))]}"
+    target_file=$(basename "$selected_backup")
+    target_file=${target_file%_*}
+
+    echo "{{BLUE}}Will restore:{{NORMAL}}"
+    echo "  Backup: $selected_backup"
+    echo "  Target: $target_file"
+    echo ""
+
+    if gum confirm "Restore this backup?"; then
+        cp "$selected_backup" "$target_file"
+        echo "{{GREEN}}✓ Restored $target_file from backup{{NORMAL}}"
+        
+        if gum confirm "Push restored file to PR?"; then
+            if command -v just &>/dev/null; then
+                just again
+            else
+                git add "$target_file"
+                git commit -m "Restore $target_file from backup"
+                git push
+            fi
+        fi
+    else
+        echo "{{BLUE}}Restore cancelled{{NORMAL}}"
     fi
