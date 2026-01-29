@@ -106,4 +106,3 @@ Available recipes:
     utcdate                  # print UTC date in ISO format
 Your justfile is waiting for more scripts and snippets
 ```
-
