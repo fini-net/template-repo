@@ -89,7 +89,7 @@ _remove_template_files: _on_a_branch
         rm -f ".just/lib/template_sync_test.sh"
     fi
 
-    # Remove testing infrastructure
+    # Remove this cleanup script after use
     if [[ -f ".just/clean-template.just" ]]; then
         echo "Removing .just/clean-template.just"
         rm -f ".just/clean-template.just"
