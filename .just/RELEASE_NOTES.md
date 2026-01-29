@@ -410,7 +410,7 @@ prerequisites needed to run the just recipes in this repository:
 
 The script is fully executable, passes shellcheck validation, and provides a
 friendly user experience with color-coded output and helpful error messages.
-Run `./.just/install-prerequisites.sh` to check your environment or install
+Run `./.just/lib/install-prerequisites.sh` to check your environment or install
 missing tools.
 
 **Related PR:** [#48](https://github.com/fini-net/template-repo/pull/48)

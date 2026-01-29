@@ -67,7 +67,7 @@ Seven workflows handle automation and quality:
 ### Additional Features
 
 - ✅ [Priority labels](https://github.com/fini-net/template-repo/labels) - Extra issue labels for better organization
-- ✅ [Prerequisites installation](.just/install-prerequisites.sh) - Script to install required tools
+- ✅ [Prerequisites installation](.just/lib/install-prerequisites.sh) - Script to install required tools
 - ✅ Release automation - `just release <version>` creates GitHub releases with auto-generated notes and age monitoring
 
 ## Usage

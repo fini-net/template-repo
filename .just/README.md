@@ -106,4 +106,4 @@ Standalone shell script that automates installation and verification of all requ
 - **Error handling** - Detects missing package managers, provides helpful error messages
 - **Verification mode** - Run multiple times to verify installations completed successfully
 
-Run `./.just/install-prerequisites.sh` to check your environment or install missing tools. Makes onboarding new contributors significantly smoother.
+Run `./.just/lib/install-prerequisites.sh` to check your environment or install missing tools. Makes onboarding new contributors significantly smoother.
