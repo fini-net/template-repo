@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install prerequisites for just recipes
 #
-# Usage: ./.just/install-prerequisites.sh
+# Usage: ./.just/lib/install-prerequisites.sh
 #
 # This script checks for required tools (just, gh, shellcheck, markdownlint-cli2, jq, gum)
 # and helps install them:
