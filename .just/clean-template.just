@@ -89,18 +89,18 @@ _remove_template_files: _on_a_branch
         rm -f ".just/lib/template_sync_test.sh"
     fi
 
-    # Check if update_pr_body.sh is used elsewhere before removing
-    if ! grep -r "update_pr_body.sh" .just/ --exclude-dir=lib >/dev/null 2>&1; then
-        if [[ -f ".just/lib/update_pr_body.sh" ]]; then
-            echo "Removing .just/lib/update_pr_body.sh"
-            rm -f ".just/lib/update_pr_body.sh"
-        fi
+    # Remove testing infrastructure
+    if [[ -f ".just/clean-template.just" ]]; then
+        echo "Removing .just/clean-template.just"
+        rm -f ".just/clean-template.just"
     fi
 
-    # Remove lib directory if empty - it probably isn't
-    if [[ -d ".just/lib" && -z "$(ls -A .just/lib)" ]]; then
-        echo "Removing empty .just/lib directory"
-        rmdir ".just/lib"
+    if [[ -f "justfile" ]]; then
+        if grep -q "import.*clean-template.just" justfile; then
+            echo "Removing clean-template.just import from justfile"
+            sed -i.tmp '/import.*clean-template.just/d' justfile
+            rm -f justfile.tmp
+        fi
     fi
 
     # Remove testing import from main justfile
