@@ -59,26 +59,50 @@ You should get a more colorful version of this:
 % just
 just --list
 Available recipes:
-    [Compliance]
-    compliance_check    # our own repo compliance check
-    shellcheck          # run shellcheck on all bash scripts in just recipes
+    [Claude Code]
+    claude_permissions_check # Check Claude Code permissions structure
+    claude_permissions_sort  # Sort Claude Code permissions in canonical order
+
+    [Copilot]
+    copilot_pick             # Interactive Copilot suggestion picker
+    copilot_refresh          # Request a new Copilot review on current PR
+    copilot_rollback         # Restore from Copilot backup
 
     [Process]
-    branch branchname   # start a new branch
-    merge               # merge PR and return to starting point
-    pr                  # PR create v4.0
-    pr_checks           # watch GHAs then check for Copilot suggestions
-    pr_update           # update the Done section of PR description with current commits
-    pr_verify           # add or append to Verify section from stdin
-    prweb               # view PR in web browser
-    release rel_version # make a release
-    sync                # escape from branch, back to starting point
+    again                    # push changes, update PR description, and watch GHAs
+    branch branchname        # start a new branch
+    claude_review            # Claude's latest PR code review
+    merge                    # merge PR and return to starting point
+    pr                       # PR create v5.4
+    pr_checks                # watch GHAs then check for Copilot suggestions
+    pr_update                # update the Done section of PR description with current commits
+    pr_verify                # add or append to Verify section from stdin
+    prweb                    # view PR in web browser
+    release rel_version      # make a release
+    release_age              # check how long ago the last release was
+    sync                     # escape from branch, back to starting point
+
+    [Template Maintenance]
+    checksums_diff filepath  # Show diff between local and latest template version
+    checksums_generate       # Generate versioned checksums from git history (template-repo only)
+    cue-sync-from-github     # sync description and topics from GitHub API into .repo.toml
+    update_from_template     # Update .just modules from template-repo (derived repos only)
+
+    [Testing/Automation]
+    checksums_verify         # Verify local .just files against template versions
+    pr_body_test             # test PR body update logic
+    repo_toml_check          # check if generated shell file is up-to-date
+    repo_toml_generate       # generate shell variables from .repo.toml
+    template_sync_test       # test template sync logic
+
+    [Testing/Compliance]
+    compliance_check         # our own repo compliance check
+    cue-verify               # use Cue to verify /.repo.toml validity and flag configuration
+    shellcheck               # run shellcheck on all bash scripts in just recipes
 
     [Utility]
-    clean_readme        # generate a clean README
-    utcdate             # print UTC date in ISO format
-
-    [example]
-    list                # list recipes (default works without naming it)
+    clean_template           # clean debris out of template
+    list                     # list recipes (default works without naming it)
+    utcdate                  # print UTC date in ISO format
 Your justfile is waiting for more scripts and snippets
 ```
