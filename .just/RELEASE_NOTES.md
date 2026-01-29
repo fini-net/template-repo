@@ -4,6 +4,47 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## January 2026 - Avila Beach is awesome
 
+### v5.5 - Robust Copilot Suggestion Application (2026-01-28)
+
+Fixes issue [#76](https://github.com/fini-net/template-repo/issues/76)
+**Related PR:** [#88](https://github.com/fini-net/template-repo/pull/88)
+
+Enhanced the `copilot_pick` recipe with the ability to directly apply Copilot suggestions, plus comprehensive safety improvements based on Claude Code review feedback. Previously, `copilot_pick` was read-only - you could view suggestions but had to manually apply them. Now you can apply suggestions directly with proper backup and rollback capabilities.
+
+**New feature:** Interactive suggestion application with safety nets
+
+- **Apply suggestions** - When viewing a suggestion, choose to apply it directly to the file
+- **Automatic backup** - Creates timestamped backups in `.just/copilot_backups/` before making changes
+- **Multi-line support** - Properly handles both single-line and multi-line code suggestions
+- **Visual preview** - Shows diff-like before/after display with line counts for multi-line changes
+- **Git integration** - Offers to push applied changes back to the PR automatically
+- **Confirmation workflow** - Two-stage confirmation (view → apply → push) prevents accidents
+
+**Critical safety fixes** from Claude Code review:
+
+- **Fixed dangerous sed command** - Now properly escapes special characters and uses `|` delimiter instead of `/` to handle paths with slashes
+- **Improved code extraction** - Enhanced AWK logic handles multiple code blocks and avoids naive truncation
+- **Enhanced backup system** - Stores full file paths for proper restoration, prevents path traversal issues
+- **Added integrity validation** - Checks backup readability, file size, and warns about uncommitted changes before restoration
+- **Better UX for multi-line changes** - Shows first line plus line count instead of truncating output
+
+**New recipe:** `copilot_rollback`
+
+- **Interactive restoration** - Browse available backups and restore files with confirmation
+- **Path reconstruction** - Properly converts safe backup filenames back to original file paths
+- **Safety checks** - Validates backup integrity and checks for uncommitted changes before overwriting
+- **Git integration** - Offers to push restored files back to PR
+
+**Implementation details:**
+
+- Uses relative git paths for backup storage to work across different working directories
+- Escapes all sed special characters (`[ ] * ^ $ ( ) + ? { } | \`) to handle complex code suggestions
+- Improved error handling with consistent backup system and proper cleanup
+- Enhanced diff display for both single and multi-line suggestions
+- Added `.just/copilot_backups/` to `.gitignore` (prevents committing backups)
+
+The feature makes Copilot suggestions much more actionable while maintaining the safety-first approach that's central to this workflow. You can now iterate on Copilot feedback without leaving the terminal, with robust rollback capabilities if something goes wrong.
+
 ### v5.3 - Configurable Release Workflow (2026-01-28)
 
 Fixes issue [#82](https://github.com/fini-net/template-repo/issues/82)
