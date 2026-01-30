@@ -203,6 +203,7 @@ release rel_version:
     fi
 
     # Validate version format - must start with 'v' followed by a digit
+    # shellcheck disable=SC2050  # rel_version is a variable
     if [[ ! "{{rel_version}}" =~ ^v[0-9] ]]; then
         echo "{{RED}}Error: Release version must start with 'v' followed by a digit (e.g., v1.0.0, v2.3.4){{NORMAL}}"
         exit 1
