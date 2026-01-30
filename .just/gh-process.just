@@ -13,7 +13,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v5.4
+# PR create v5.5
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -200,6 +200,13 @@ release rel_version:
         echo "{{BLUE}}Standard release workflow is disabled (see .repo.toml flags.standard-release){{NORMAL}}"
         echo "{{YELLOW}}For this project's release workflow, check the justfile or .just/ modules{{NORMAL}}"
         exit 0
+    fi
+
+    # Validate version format - must start with 'v' followed by a digit
+    # shellcheck disable=SC2050  # rel_version is a variable
+    if [[ ! "{{rel_version}}" =~ ^v[0-9] ]]; then
+        echo "{{RED}}Error: Release version must start with 'v' followed by a digit (e.g., v1.0.0, v2.3.4){{NORMAL}}"
+        exit 1
     fi
 
     # Standard release workflow
