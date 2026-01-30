@@ -4,6 +4,27 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## January 2026 - Avila Beach is awesome
 
+### v5.6 - Release Version Validation (2026-01-30)
+
+**Related PR:** [#92](https://github.com/fini-net/template-repo/pull/92)
+
+Added version format validation to the `release` recipe to prevent accidental releases with malformed version numbers. Previously, you could run `just release anything` and it would attempt to create a GitHub release with whatever string you provided, potentially creating confusing or invalid release tags.
+
+**New safety check:**
+
+- **Version format validation** - The `release` recipe now validates that the version parameter starts with 'v' followed by a digit (e.g., v1.0.0, v2.3.4)
+- **Clear error message** - Displays red error message if format is invalid: "Error: Release version must start with 'v' followed by a digit"
+- **Early exit** - Fails fast with exit code 1 before attempting to create the GitHub release
+- **Shellcheck compatibility** - Added disable comment for SC2050 since shellcheck doesn't understand just's templating syntax (`{{rel_version}}`)
+
+**Implementation details:**
+
+- Uses bash regex pattern `^v[0-9]` to match the required format
+- Validation runs after the `standard-release` flag check but before the actual `gh release create` command
+- Prevents common typos like `just release 1.0.0` (missing 'v') or `just release vNext` (no digit)
+
+This change makes the release workflow safer by catching version format errors upfront rather than creating malformed tags that would need manual cleanup. Complements the existing `standard-release` flag system from v5.3.
+
 ### v5.5 - Robust Copilot Suggestion Application (2026-01-28)
 
 Fixes issue [#76](https://github.com/fini-net/template-repo/issues/76)
