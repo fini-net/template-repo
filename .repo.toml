@@ -3,7 +3,7 @@
 # TODO: mirrors later
 
 [about]
-description = "A template repo that checks all of the github community standards boxes and then some"
+description = "Automated GitHub workflow template: community standards, just recipes for PR lifecycle, AI reviews (Copilot/Claude), and template sync system"
 topics = ["github", "template", "compliance", "github-repository", "template-repository", "template-generic-repo"]
 license = "GPL-2.0-only"
 
