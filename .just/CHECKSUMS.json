@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-01-28T01:42:26Z",
+  "generated_at": "2026-02-07T02:50:10Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -12,13 +12,30 @@
           "is_latest": true
         }
 ]},
+    ".just/clean-template.just": {"versions": [
+        {
+          "checksum": "ed3d09bac058c0e0271a78ed1942d637a48afbe85ce97cd914000d69a796d938",
+          "commit": "85837f9072986ae6d0159e1e4840eac24dff9e3a",
+          "date": "2026-01-28T19:18:00-08:00",
+          "version": "",
+          "is_latest": true
+        }
+]},
     ".just/compliance.just": {"versions": [
+        {
+          "checksum": "242aade552dc4490f224887c6462272f382fca3ed9d8d5571abbb08cd9bf7937",
+          "commit": "a870c52ef980d203028cdfda3e2697ce92b1543c",
+          "date": "2026-01-27T22:00:40-08:00",
+          "version": "",
+          "is_latest": true
+        }
+,
         {
           "checksum": "7e86128209425016b8e24db976de2803d8360706147fa136208913aec8ec134a",
           "commit": "df745cb646b2c0b9c72866e413b9710304eba9bf",
           "date": "2026-01-25T07:51:38-08:00",
           "version": "",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -45,13 +62,46 @@
           "is_latest": false
         }
 ]},
+    ".just/copilot.just": {"versions": [
+        {
+          "checksum": "938d9dc05a91482b2f99f6a6ad2bf56b74570a8c87486a955755dfed3db5c312",
+          "commit": "210384cba95c470d0a8fb9bee2d849d69112df68",
+          "date": "2026-01-28T16:59:51-08:00",
+          "version": "v5.4",
+          "is_latest": true
+        }
+,
+        {
+          "checksum": "afbe3c0a042600dbcd246ce8f659d5a57e4a0ccb096988a37ea6ec2958f2c5ba",
+          "commit": "a870c52ef980d203028cdfda3e2697ce92b1543c",
+          "date": "2026-01-27T22:00:40-08:00",
+          "version": "",
+          "is_latest": false
+        }
+]},
     ".just/cue-verify.just": {"versions": [
+        {
+          "checksum": "2dff8d6020a994b7a85b75e453b04b3a62deda7d3093affbc888c1b60484ab73",
+          "commit": "a870c52ef980d203028cdfda3e2697ce92b1543c",
+          "date": "2026-01-27T22:00:40-08:00",
+          "version": "",
+          "is_latest": true
+        }
+,
+        {
+          "checksum": "ff70cfea6f3452073d0ae7b012ee02a5bfc3d3971cf17aed5f19f2f9629e8633",
+          "commit": "a4598ad4662e930b77efa462ffe2d4e6298d3f6c",
+          "date": "2026-01-27T19:11:38-08:00",
+          "version": "v5.3",
+          "is_latest": false
+        }
+,
         {
           "checksum": "6a58f3956045de4d4ca304ad7851f3a8f1a47d7d3d308eb5fed5eeab09e286ea",
           "commit": "73502a937e447552ac45edcb70f10c0fa853612f",
           "date": "2026-01-24T17:16:44-08:00",
           "version": "",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -72,11 +122,43 @@
 ]},
     ".just/gh-process.just": {"versions": [
         {
-          "checksum": "630d7155f0189dba3e017c828193630b0619c721d0a379bf8780c619e3f4eb5a",
-          "commit": "1d2ea42f8ec78739c819804bec83e20b9843cfd7",
-          "date": "2026-01-27T17:01:52-08:00",
-          "version": "",
+          "checksum": "c562d5095d6b2bdd4eba6d2c72d0a10fe8f3473a9fcb61ed66b766418807112a",
+          "commit": "c50444cf36a04190c1df93d1c4884ac0e7c8b9e3",
+          "date": "2026-01-29T21:12:43-08:00",
+          "version": "v5.5",
           "is_latest": true
+        }
+,
+        {
+          "checksum": "635596f59ee0a19acbcb545b95696e96862ee744ab22082d99e14f6462ade1f7",
+          "commit": "210384cba95c470d0a8fb9bee2d849d69112df68",
+          "date": "2026-01-28T16:59:51-08:00",
+          "version": "v5.4",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "05cec5863c4b71b23ca1807a18bd685967368a828b29285f0d63566c244537fb",
+          "commit": "a870c52ef980d203028cdfda3e2697ce92b1543c",
+          "date": "2026-01-27T22:00:40-08:00",
+          "version": "",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "6edcacef030e3d6a6cb896dcb59b83bad445840ff6eb7656891ef31a19223438",
+          "commit": "a4598ad4662e930b77efa462ffe2d4e6298d3f6c",
+          "date": "2026-01-27T19:11:38-08:00",
+          "version": "v5.3",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "630d7155f0189dba3e017c828193630b0619c721d0a379bf8780c619e3f4eb5a",
+          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
+          "date": "2026-01-27T17:59:16-08:00",
+          "version": "v5.2",
+          "is_latest": false
         }
 ,
         {
@@ -306,20 +388,44 @@
 ]},
     ".just/repo-toml.just": {"versions": [
         {
+          "checksum": "f6a806c4982e46b73827247b48efdf56fd16ecb1e95f048ad077dad99ffb4519",
+          "commit": "a870c52ef980d203028cdfda3e2697ce92b1543c",
+          "date": "2026-01-27T22:00:40-08:00",
+          "version": "",
+          "is_latest": true
+        }
+,
+        {
+          "checksum": "d74e439ae07a2d7a1de3191b2eee2760d4d6459c8c9081a43b39557591c07e48",
+          "commit": "a4598ad4662e930b77efa462ffe2d4e6298d3f6c",
+          "date": "2026-01-27T19:11:38-08:00",
+          "version": "v5.3",
+          "is_latest": false
+        }
+,
+        {
           "checksum": "6f5283cbb3a63909205744bead736dad83527fd95b40c030006957ef2a183072",
           "commit": "bb25b5823534946d9d3c207df98ced7edbdc954b",
           "date": "2026-01-25T07:33:19-08:00",
           "version": "v4.6",
-          "is_latest": true
+          "is_latest": false
         }
 ]},
     ".just/shellcheck.just": {"versions": [
+        {
+          "checksum": "7d2f60572976240c157c0442a398f6a1afa17755ec58613a83a5e7c5bd56cce9",
+          "commit": "a870c52ef980d203028cdfda3e2697ce92b1543c",
+          "date": "2026-01-27T22:00:40-08:00",
+          "version": "",
+          "is_latest": true
+        }
+,
         {
           "checksum": "cde313d099f194a1f36da2c9d5a161410d01eb3f8a7e514da0daa41daa08d7ba",
           "commit": "728e0422984f1812f413b1ab7c77b94b2733d01c",
           "date": "2025-11-17T07:52:40-05:00",
           "version": "",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -332,25 +438,25 @@
 ]},
     ".just/template-sync.just": {"versions": [
         {
-          "checksum": "6d6a3d3f9b1bafd04b3b8b2bb8412da419b0eadb7069a0c84a69cf8463ed8066",
-          "commit": "1465230968f0a6569c4378c5402281ea74345e6a",
-          "date": "2026-01-27T17:18:08-08:00",
+          "checksum": "a7ffe7c91f390fcaaaffce4b0b57ab5ce1f79998f82d3a60344022f761c958ef",
+          "commit": "6dd0fa22488df81b587b152eb4ee2b30951d6515",
+          "date": "2026-01-29T20:10:22-08:00",
           "version": "",
           "is_latest": true
         }
 ,
         {
-          "checksum": "930969eb921d0764c8fb21ebea46f117e7bc4d2ec3d5dc270ce81d84acfbbfab",
-          "commit": "1d2ea42f8ec78739c819804bec83e20b9843cfd7",
-          "date": "2026-01-27T17:01:52-08:00",
+          "checksum": "9bc5b32ae81bedd3925861e2cbae7559eaa499a3921900d7a127d61bc252aa5f",
+          "commit": "a870c52ef980d203028cdfda3e2697ce92b1543c",
+          "date": "2026-01-27T22:00:40-08:00",
           "version": "",
           "is_latest": false
         }
 ,
         {
-          "checksum": "5f339905ebd467687cd062d40da0cab77025770013709355cdf2cd0b9f65540a",
-          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
-          "date": "2026-01-27T17:01:35-08:00",
+          "checksum": "6d6a3d3f9b1bafd04b3b8b2bb8412da419b0eadb7069a0c84a69cf8463ed8066",
+          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
+          "date": "2026-01-27T17:59:16-08:00",
           "version": "v5.2",
           "is_latest": false
         }
@@ -358,8 +464,8 @@
     ".just/test/fixtures/template_sync/01_unmodified_file/expected_state/.just/test.just": {"versions": [
         {
           "checksum": "6e9a19950b3e382780a1806f8289b8361a9342d9181fa695a7d97f6585d1fcd5",
-          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
-          "date": "2026-01-27T17:01:35-08:00",
+          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
+          "date": "2026-01-27T17:59:16-08:00",
           "version": "v5.2",
           "is_latest": true
         }
@@ -367,8 +473,8 @@
     ".just/test/fixtures/template_sync/01_unmodified_file/input/.just/test.just": {"versions": [
         {
           "checksum": "0771fc3cb3cdda4ee6195858bb5294c062c5c257ce950e4c928fe879fd7b2f41",
-          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
-          "date": "2026-01-27T17:01:35-08:00",
+          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
+          "date": "2026-01-27T17:59:16-08:00",
           "version": "v5.2",
           "is_latest": true
         }
@@ -376,8 +482,8 @@
     ".just/test/fixtures/template_sync/01_unmodified_file/template_versions/test.just": {"versions": [
         {
           "checksum": "6e9a19950b3e382780a1806f8289b8361a9342d9181fa695a7d97f6585d1fcd5",
-          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
-          "date": "2026-01-27T17:01:35-08:00",
+          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
+          "date": "2026-01-27T17:59:16-08:00",
           "version": "v5.2",
           "is_latest": true
         }
@@ -385,8 +491,8 @@
     ".just/test/fixtures/template_sync/02_modified_file/expected_state/.just/test.just": {"versions": [
         {
           "checksum": "efe193e8ff6b11fab194c06f9e56f2a5215933ef96d8df718cb253506fe3218b",
-          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
-          "date": "2026-01-27T17:01:35-08:00",
+          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
+          "date": "2026-01-27T17:59:16-08:00",
           "version": "v5.2",
           "is_latest": true
         }
@@ -394,8 +500,8 @@
     ".just/test/fixtures/template_sync/02_modified_file/input/.just/test.just": {"versions": [
         {
           "checksum": "efe193e8ff6b11fab194c06f9e56f2a5215933ef96d8df718cb253506fe3218b",
-          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
-          "date": "2026-01-27T17:01:35-08:00",
+          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
+          "date": "2026-01-27T17:59:16-08:00",
           "version": "v5.2",
           "is_latest": true
         }
@@ -403,8 +509,8 @@
     ".just/test/fixtures/template_sync/03_already_latest/expected_state/.just/test.just": {"versions": [
         {
           "checksum": "03345a668d809b85f90081f70df6b5b1d15467740eaee3db3e8d8fc4afc60f93",
-          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
-          "date": "2026-01-27T17:01:35-08:00",
+          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
+          "date": "2026-01-27T17:59:16-08:00",
           "version": "v5.2",
           "is_latest": true
         }
@@ -412,19 +518,35 @@
     ".just/test/fixtures/template_sync/03_already_latest/input/.just/test.just": {"versions": [
         {
           "checksum": "03345a668d809b85f90081f70df6b5b1d15467740eaee3db3e8d8fc4afc60f93",
-          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
-          "date": "2026-01-27T17:01:35-08:00",
+          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
+          "date": "2026-01-27T17:59:16-08:00",
           "version": "v5.2",
           "is_latest": true
         }
 ]},
     ".just/testing.just": {"versions": [
         {
-          "checksum": "f9165079884485afc70e350090a9c23406957c687c4d3932f7dfdba95a959c44",
-          "commit": "20ff94ae6cd30525f90a3a9280eed6e3335789b3",
-          "date": "2026-01-27T17:01:35-08:00",
-          "version": "v5.2",
+          "checksum": "3e53ab06d0c8854bdf26547f0b81416e4a69c2ce44e9a4c4554587e3055b24bb",
+          "commit": "6dd0fa22488df81b587b152eb4ee2b30951d6515",
+          "date": "2026-01-29T20:10:22-08:00",
+          "version": "",
           "is_latest": true
+        }
+,
+        {
+          "checksum": "adee01ff66889e4f06aadd743cd0b60c0dab91e6959b01318d3429767a80151e",
+          "commit": "a870c52ef980d203028cdfda3e2697ce92b1543c",
+          "date": "2026-01-27T22:00:40-08:00",
+          "version": "",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "f9165079884485afc70e350090a9c23406957c687c4d3932f7dfdba95a959c44",
+          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
+          "date": "2026-01-27T17:59:16-08:00",
+          "version": "v5.2",
+          "is_latest": false
         }
 ,
         {
