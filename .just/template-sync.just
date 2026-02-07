@@ -101,14 +101,15 @@ checksums_verify:
         matched_version=""
         is_latest=false
 
-        while read -r known_sum known_ver known_latest; do
+        while IFS=$'\t' read -r known_sum known_ver known_latest; do
             if [[ "$local_sum" == "$known_sum" ]]; then
                 match_found=true
-                matched_version="$known_ver"
+                # Use placeholder "-" for empty version, convert back to empty
+                matched_version="${known_ver//-/}"
                 [[ "$known_latest" == "true" ]] && is_latest=true
                 break
             fi
-        done < <(echo "$versions_json" | jq -r '.[] | "\(.checksum) \(.version) \(.is_latest)"')
+        done < <(echo "$versions_json" | jq -r '.[] | "\(.checksum)\t\(if .version == "" then "-" else .version end)\t\(.is_latest)"')
 
         if [[ "$match_found" == false ]]; then
             echo "  {{YELLOW}}⚠{{NORMAL}} $filepath - local modifications detected"
