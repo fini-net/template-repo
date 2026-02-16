@@ -221,6 +221,7 @@ pr_checks: && claude_review
 
     # Use gh observer if installed, otherwise fall back to gh pr checks --watch
     if gh observer --help >/dev/null 2>&1; then
+        echo ""
         gh observer
     else
         just _wait_for_checks
