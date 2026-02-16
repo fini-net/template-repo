@@ -2,6 +2,12 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
+## February 2026 - Learn from experience
+
+### v5.7 - Utilize gh observer extension (2026-02-16)
+
+Utilize the [gh observer extension](https://github.com/fini-net/gh-observer) if it is installed.
+
 ## January 2026 - Avila Beach is awesome
 
 ### v5.6 - Release Version Validation (2026-01-30)
