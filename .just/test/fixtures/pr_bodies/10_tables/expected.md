@@ -8,10 +8,10 @@
 
 ## Results
 
-| Test | Status | Notes |
-|------|--------|-------|
-| Test 1 | Pass | OK |
-| Test 2 | Pass | OK |
+| Test   | Status | Notes |
+|--------|--------|-------|
+| Test 1 | Pass   | OK    |
+| Test 2 | Pass   | OK    |
 
 ## Meta
 
