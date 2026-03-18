@@ -1,0 +1,32 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "schedule": ["after 5am on Monday", "after 5am on Tuesday", "after 5am on Wednesday", "after 5am on Thursday", "after 5am on Friday"],
+  "github-actions": {
+    "enabled": true,
+    "group": {
+      "groupName": "GitHub Actions",
+      "extends": ["group:githubActions"]
+    },
+    "automerge": true,
+    "minimumReleaseAge": "3 days"
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    }
+  ],
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "rebaseWhen": "conflicted",
+  "labels": ["dependencies"]
+}
