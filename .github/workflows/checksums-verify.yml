@@ -1,0 +1,70 @@
+---
+name: Checksums Verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# global permissions
+permissions: {}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Verify CHECKSUMS.json matches all tracked files
+        run: |
+          set -euo pipefail
+
+          CHECKSUMS_FILE=".just/CHECKSUMS.json"
+
+          if [[ ! -f "$CHECKSUMS_FILE" ]]; then
+            echo "Error: $CHECKSUMS_FILE not found"
+            exit 1
+          fi
+
+          failures=0
+
+          while IFS= read -r filepath; do
+            if [[ ! -f "$filepath" ]]; then
+              echo "MISSING: $filepath - tracked in CHECKSUMS.json but not found locally"
+              failures=$((failures + 1))
+              continue
+            fi
+
+            latest_checksum=$(jq -r --arg fp "$filepath" \
+              '.files[$fp].versions | map(select(.is_latest == true)) | last | .checksum // empty' \
+              "$CHECKSUMS_FILE")
+
+            if [[ -z "$latest_checksum" ]]; then
+              echo "ERROR: $filepath - no is_latest entry found in CHECKSUMS.json"
+              failures=$((failures + 1))
+              continue
+            fi
+
+            current_checksum=$(sha256sum "$filepath" | awk '{print $1}')
+
+            if [[ "$current_checksum" == "$latest_checksum" ]]; then
+              echo "OK: $filepath"
+            else
+              echo "MISMATCH: $filepath"
+              echo "  Expected (CHECKSUMS.json): $latest_checksum"
+              echo "  Actual   (current file):   $current_checksum"
+              failures=$((failures + 1))
+            fi
+          done < <(jq -r '.files | keys[]' "$CHECKSUMS_FILE")
+
+          echo ""
+          if [[ $failures -gt 0 ]]; then
+            echo "FAILED: $failures file(s) don't match CHECKSUMS.json"
+            echo "Run 'just checksums_generate' and commit the updated .just/CHECKSUMS.json"
+            exit 1
+          fi
+
+          echo "All $(jq '.files | length' "$CHECKSUMS_FILE") tracked files match CHECKSUMS.json"

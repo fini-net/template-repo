@@ -34,9 +34,6 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | \
             bash -s -- --to /usr/local/bin
 
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
       - name: Run template sync tests
         run: just template_sync_test
 
