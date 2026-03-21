@@ -18,9 +18,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
       - name: Verify CHECKSUMS.json matches all tracked files
         run: |
           set -euo pipefail
@@ -42,7 +39,7 @@ jobs:
             fi
 
             latest_checksum=$(jq -r \
-              ".files[\"$filepath\"].versions[] | select(.is_latest == true) | .checksum" \
+              ".files[\"$filepath\"].versions | map(select(.is_latest == true)) | last | .checksum // empty" \
               "$CHECKSUMS_FILE")
 
             if [[ -z "$latest_checksum" ]]; then
