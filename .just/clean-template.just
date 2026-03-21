@@ -78,6 +78,11 @@ _remove_template_files: _on_a_branch
         rm -f ".github/workflows/pr-body-tests.yml"
     fi
 
+    if [[ -f ".github/workflows/checksums-verify.yml" ]]; then
+        echo "Removing .github/workflows/checksums-verify.yml"
+        rm -f ".github/workflows/checksums-verify.yml"
+    fi
+
     # Remove test scripts
     if [[ -f ".just/lib/pr_body_test.sh" ]]; then
         echo "Removing .just/lib/pr_body_test.sh"
