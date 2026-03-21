@@ -2,6 +2,42 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
+## March 2026 - More resilience
+
+### v5.8 - CRLF-Resilient PR Body Updates (2026-03-21)
+
+**Related PR:** [#107](https://github.com/fini-net/template-repo/pull/107)
+
+Fixed a bug where `pr_update` would silently fail or produce corrupted output
+when the PR body contained Windows-style CRLF line endings. GitHub's API
+occasionally returns PR bodies with `\r\n` line endings (especially on PRs
+created or edited via certain clients), and the state machine parser in
+`update_pr_body.sh` wasn't stripping the carriage returns before processing.
+
+**Fix:**
+
+- **CRLF normalization** - Added `line="${line%$'\r'}"` to strip trailing
+  carriage returns at the top of the parse loop in `.just/lib/update_pr_body.sh`,
+  before any pattern matching occurs. One line fix, but it prevents the HTML
+  marker detection from missing `<!-- PR_BODY_DONE_START -->` when the line
+  ends with `\r`.
+
+**New test coverage:**
+
+- **Test fixture 14** - Added `14_crlf_body` fixture with a `.gitattributes`
+  override to preserve CRLF line endings in `input.md`. This ensures the
+  test actually exercises the CRLF path rather than having git normalize the
+  line endings away on checkout.
+
+**Related fix:** This was originally surfaced while investigating issues with
+`template_update.sh` ([PR #103](https://github.com/fini-net/template-repo/pull/103)),
+where debugging the update script revealed that CRLF bodies from GitHub's API
+could silently break `pr_update` in ways that were hard to diagnose.
+
+The fix is minimal and surgical - one line added to `update_pr_body.sh` with
+a new test fixture to cover the scenario. No behavior changes for PRs with
+normal LF line endings.
+
 ## February 2026 - Learn from experience
 
 ### v5.7 - Utilize gh observer extension (2026-02-16)
