@@ -38,8 +38,8 @@ jobs:
               continue
             fi
 
-            latest_checksum=$(jq -r \
-              ".files[\"$filepath\"].versions | map(select(.is_latest == true)) | last | .checksum // empty" \
+            latest_checksum=$(jq -r --arg fp "$filepath" \
+              '.files[$fp].versions | map(select(.is_latest == true)) | last | .checksum // empty' \
               "$CHECKSUMS_FILE")
 
             if [[ -z "$latest_checksum" ]]; then
