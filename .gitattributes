@@ -19,6 +19,9 @@
 *.PDF      diff=astextplain
 *.rtf      diff=astextplain
 *.RTF      diff=astextplain
+# Test fixture for CRLF handling - must precede *.md glob
+# Git uses "last match wins" for shared attributes, so eol=crlf persists
+# even though *.md comes after (it doesn't set eol)
 .just/test/fixtures/pr_bodies/14_crlf_body/input.md text eol=crlf
 *.md       text diff=markdown
 *.mdx      text diff=markdown
