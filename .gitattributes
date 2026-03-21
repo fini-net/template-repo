@@ -19,6 +19,7 @@
 *.PDF      diff=astextplain
 *.rtf      diff=astextplain
 *.RTF      diff=astextplain
+.just/test/fixtures/pr_bodies/14_crlf_body/input.md text eol=crlf
 *.md       text diff=markdown
 *.mdx      text diff=markdown
 *.tex      text diff=tex
