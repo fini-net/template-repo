@@ -96,6 +96,12 @@ download_file() {
 			# Move into place and clean up
 			mv "$temp_file" "$filepath"
 			rm -f "$backup_file"
+
+			# Make executable (except common.sh which is only sourced)
+			if [[ "$(basename "$filepath")" != "common.sh" ]]; then
+				chmod +x "$filepath"
+			fi
+
 			return 0
 		fi
 
