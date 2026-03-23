@@ -43,6 +43,7 @@ _clean_readme: _on_a_branch
     END_OF_HEREDOC
 
 # remove template-specific files
+# NOTE: Files removed here must also be listed in CLEANED_FILES in .just/lib/generate_checksums.sh
 [group('Utility')]
 [no-cd]
 _remove_template_files: _on_a_branch

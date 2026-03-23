@@ -90,9 +90,9 @@ checksums_verify:
         if [[ ! -f "$filepath" ]]; then
             # Check if this is a cleaned file
             if jq -e --arg fp "$filepath" '.cleaned_files | index($fp) != null' "$MANIFEST_FILE" >/dev/null 2>&1; then
-                echo "  ${BLUE}⊘${NORMAL} $filepath - removed by clean_template"
+                echo "  {{BLUE}}⊘{{NORMAL}} $filepath - removed by clean_template"
             else
-                echo "  ${YELLOW}⊘${NORMAL} $filepath - not present locally"
+                echo "  {{YELLOW}}⊘{{NORMAL}} $filepath - not present locally"
                 all_match=false
             fi
             continue

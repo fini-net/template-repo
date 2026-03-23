@@ -14,6 +14,7 @@ for cmd in git jq; do
 done
 
 # Files removed by clean_template (derived repos should skip these if missing)
+# NOTE: This list must stay in sync with clean_template recipe in .just/clean-template.just
 CLEANED_FILES=(
 	".just/testing.just"
 	".just/clean-template.just"
