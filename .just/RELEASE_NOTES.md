@@ -4,6 +4,23 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## March 2026 - More resilience
 
+### v5.8.1 - Executable permissions for template updates (2026-03-22)
+
+Fixed an issue where downloaded shell scripts from template-repo would not have
+executable permissions set. Previously, files like `.just/lib/template_update.sh`
+and others would be downloaded but not marked as executable, requiring manual
+`chmod +x` after running `update_from_template`.
+
+**New behavior:**
+
+- **Automatic chmod +x** - All downloaded `.just/lib/*.sh` files are now made
+  executable automatically after successful download
+- **Exception for common.sh** - The `common.sh` file is intentionally excluded
+  from chmod since it's only sourced, never executed directly
+
+This makes the `update_from_template` workflow fully self-contained - after
+running it, all scripts are immediately usable without additional steps.
+
 ### v5.8 - CRLF-Resilient PR Body Updates (2026-03-21)
 
 **Related PR:** [#107](https://github.com/fini-net/template-repo/pull/107)
