@@ -117,7 +117,7 @@ process_file() {
 
 	# Check if this is a cleaned file (should be skipped if missing)
 	local is_cleaned=false
-	if jq -e --arg fp "$filepath" '.cleaned_files | index($fp) != null' "$MANIFEST_FILE" >/dev/null 2>&1; then
+	if jq -e --arg fp "$filepath" '.cleaned_files // [] | index($fp) != null' "$MANIFEST_FILE" >/dev/null 2>&1; then
 		is_cleaned=true
 	fi
 
