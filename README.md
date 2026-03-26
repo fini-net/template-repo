@@ -47,12 +47,13 @@ The [justfile](justfile) imports 8 modules from the [.just/](.just/) directory f
 
 ### GitHub Actions
 
-Seven workflows handle automation and quality:
+Eight workflows handle automation and quality:
 
 - ✅ [Auto-assign](.github/workflows/auto-assign.yml) - Automatically assigns issues and PRs to maintainers
 - ✅ [Checkov](.github/workflows/checkov.yml) - Security scanning for GitHub Actions workflows with SARIF output
 - ✅ [Markdownlint](.github/workflows/markdownlint.yml) - Enforces markdown standards across all docs
 - ✅ [Actionlint](.github/workflows/actionlint.yml) - Lints GitHub Actions workflow files
+- ✅ [Zizmor](.github/workflows/zizmor.yml) - Static security analysis for GitHub Actions workflows
 - ✅ [Claude mention integration](.github/workflows/claude.yml) - Mentions Claude AI when appropriate
 - ✅ [Claude Code review](.github/workflows/claude-code-review.yml) - AI-powered code review automation
 - ✅ [Cue verification](.github/workflows/cue-verify.yml) - Validates `.repo.toml` format and flags
