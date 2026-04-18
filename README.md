@@ -47,7 +47,7 @@ The [justfile](justfile) imports 8 modules from the [.just/](.just/) directory f
 
 ### GitHub Actions
 
-Eight workflows handle automation and quality:
+Ten workflows handle automation and quality, all hardened with [StepSecurity Harden-Runner](https://github.com/step-security/harden-runner) to prevent supply chain attacks:
 
 - ✅ [Auto-assign](.github/workflows/auto-assign.yml) - Automatically assigns issues and PRs to maintainers
 - ✅ [Checkov](.github/workflows/checkov.yml) - Security scanning for GitHub Actions workflows with SARIF output
@@ -57,6 +57,8 @@ Eight workflows handle automation and quality:
 - ✅ [Claude mention integration](.github/workflows/claude.yml) - Mentions Claude AI when appropriate
 - ✅ [Claude Code review](.github/workflows/claude-code-review.yml) - AI-powered code review automation
 - ✅ [Cue verification](.github/workflows/cue-verify.yml) - Validates `.repo.toml` format and flags
+- ✅ [Dependency Review](.github/workflows/dependency-review.yml) - Scans PRs for vulnerable dependency versions
+- ✅ [OpenSSF Scorecard](.github/workflows/scorecards.yml) - Automated security posture assessment with badge
 
 ### AI-Enhanced Development
 
@@ -69,6 +71,7 @@ Eight workflows handle automation and quality:
 
 - ✅ [Priority labels](https://github.com/fini-net/template-repo/labels) - Extra issue labels for better organization
 - ✅ [Prerequisites installation](.just/lib/install-prerequisites.sh) - Script to install required tools
+- ✅ [Pre-commit hooks](.pre-commit-config.yaml) - Enforces code quality and formatting before commits
 - ✅ Release automation - `just release <version>` creates GitHub releases with auto-generated notes and age monitoring
 
 ## Usage
