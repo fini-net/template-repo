@@ -27,15 +27,18 @@ A good template for github repos with best practices adoption.
 
 ### Modular Justfile Architecture
 
-The [justfile](justfile) imports 8 modules from the [.just/](.just/) directory for a clean, maintainable workflow:
+The [justfile](justfile) imports 11 modules from the [.just/](.just/) directory for a clean, maintainable workflow:
 
 - ✅ [gh-process.just](.just/gh-process.just) - Complete PR lifecycle automation with smart check polling and AI review integration
 - ✅ [compliance.just](.just/compliance.just) - Repository health checks validating all GitHub community standards and branch protection
 - ✅ [shellcheck.just](.just/shellcheck.just) - Bash script linting that extracts and validates all scripts in just recipes
 - ✅ [cue-verify.just](.just/cue-verify.just) - Three-stage validation of [.repo.toml](.repo.toml) structure, flags, and GitHub sync
 - ✅ [claude.just](.just/claude.just) - Claude Code permission management with canonical sorting and structure validation
+- ✅ [copilot.just](.just/copilot.just) - Interactive Copilot suggestion picker, review refresh, and backup/rollback for applied suggestions
 - ✅ [repo-toml.just](.just/repo-toml.just) - Metadata extraction that generates shell variables from repository configuration
 - ✅ [template-sync.just](.just/template-sync.just) - Safe template updates preserving local customizations via multi-version checksums
+- ✅ [testing.just](.just/testing.just) - Automated test recipes for PR body logic and template sync functionality
+- ✅ [clean-template.just](.just/clean-template.just) - Strips template documentation and files for new repos
 - ✅ [pr-hook.just](.just/pr-hook.just) - Optional pre-PR hooks for project-specific automation
 
 ### Repository Metadata System
@@ -47,7 +50,7 @@ The [justfile](justfile) imports 8 modules from the [.just/](.just/) directory f
 
 ### GitHub Actions
 
-Ten workflows handle automation and quality, all hardened with [StepSecurity Harden-Runner](https://github.com/step-security/harden-runner) to prevent supply chain attacks:
+Thirteen workflows handle automation and quality, all hardened with [StepSecurity Harden-Runner](https://github.com/step-security/harden-runner) to prevent supply chain attacks:
 
 - ✅ [Auto-assign](.github/workflows/auto-assign.yml) - Automatically assigns issues and PRs to maintainers
 - ✅ [Checkov](.github/workflows/checkov.yml) - Security scanning for GitHub Actions workflows with SARIF output
@@ -59,13 +62,25 @@ Ten workflows handle automation and quality, all hardened with [StepSecurity Har
 - ✅ [Cue verification](.github/workflows/cue-verify.yml) - Validates `.repo.toml` format and flags
 - ✅ [Dependency Review](.github/workflows/dependency-review.yml) - Scans PRs for vulnerable dependency versions
 - ✅ [OpenSSF Scorecard](.github/workflows/scorecards.yml) - Automated security posture assessment with badge
+- ✅ [Checksums Verification](.github/workflows/checksums-verify.yml) - Verifies CHECKSUMS.json matches all tracked files
+- ✅ [PR Body Tests](.github/workflows/pr-body-tests.yml) - Tests PR body update logic on every PR
+- ✅ [Template Sync Tests](.github/workflows/template-sync.yml) - Tests template synchronization system
 
 ### AI-Enhanced Development
 
 - ✅ Conditional AI review display - After PR checks complete, shows review comments based on `.repo.toml` flags
 - ✅ GitHub Copilot review integration - Enable/disable with `copilot-review` flag
+  - Interactive suggestion picker (`just copilot_pick`) with diff preview and one-key apply
+  - Review refresh (`just copilot_refresh`) with gum spin progress and completion detection
+  - Backup and rollback (`just copilot_rollback`) for safely reverting applied Copilot suggestions
 - ✅ Claude Code review integration - Enable/disable with `claude-review` flag
 - ✅ Smart polling system - Waits up to 30 seconds for checks to start, then polls every 5 seconds for faster feedback
+
+### Automated Testing
+
+- ✅ [PR body update tests](.just/lib/pr_body_test.sh) - Validates PR description generation logic with fixture-based test cases
+- ✅ [Template sync tests](.just/lib/template_sync_test.sh) - Tests safe template update system with fixture scenarios
+- ✅ [Shared utility library](.just/lib/common.sh) - Cross-platform checksum computation used by template sync
 
 ### Additional Features
 
