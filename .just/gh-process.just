@@ -216,7 +216,7 @@ release rel_version:
 
 # watch GHAs then check for Copilot suggestions
 [group('Process')]
-pr_checks: && claude_review
+pr_checks: _on_a_pull_request && claude_review
     #!/usr/bin/env bash
 
     # Use gh observer if installed, otherwise fall back to gh pr checks --watch
