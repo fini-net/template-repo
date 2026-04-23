@@ -2,10 +2,10 @@
 
 claude_settings_file := ".claude/settings.local.json"
 
-# Launch Claude Code in the repo root
+# Launch Claude Code in the repo root (with arguments optionally)
 [group('Claude Code')]
-claude:
-    claude
+claude *args:
+    claude {{ args }}
 
 # Sort Claude Code permissions in canonical order
 [group('Claude Code')]
