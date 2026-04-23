@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-04-23T23:17:04Z",
+  "generated_at": "2026-04-23T23:40:20Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -88,11 +88,27 @@
 ]},
     ".just/copilot.just": {"versions": [
         {
+          "checksum": "91eb7eaaf47705a2cce883eb747f3d1a2b47d3d76b941646e2605464f8db853d",
+          "commit": "064f52039e9c07a4d379b1dca5003dd12083ed74",
+          "date": "2026-04-23T16:40:14-07:00",
+          "version": "",
+          "is_latest": true
+        }
+,
+        {
+          "checksum": "2c1db92ede4ce144ce59f2b04664e7891a5df01a2995d8e88364f0c284f7ae04",
+          "commit": "1d678dafab1e3ee9f00e198c86a384f4fb391cf7",
+          "date": "2026-04-23T16:35:58-07:00",
+          "version": "v6.3",
+          "is_latest": false
+        }
+,
+        {
           "checksum": "938d9dc05a91482b2f99f6a6ad2bf56b74570a8c87486a955755dfed3db5c312",
           "commit": "210384cba95c470d0a8fb9bee2d849d69112df68",
           "date": "2026-01-28T16:59:51-08:00",
           "version": "v5.4",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -154,11 +170,19 @@
 ]},
     ".just/gh-process.just": {"versions": [
         {
-          "checksum": "d870a87180c6569fd832f3788efd6686c703c4c847da509dc993cb000662c0ac",
-          "commit": "b3abe5f7bea1fdbfc148e7126ffd661498dc2c2b",
-          "date": "2026-04-23T16:16:15-07:00",
-          "version": "v6.2",
+          "checksum": "a50a1544b0b87de77e643ac4e5065078b35d3060cb9c9cc541e0f149eebb9d26",
+          "commit": "1d678dafab1e3ee9f00e198c86a384f4fb391cf7",
+          "date": "2026-04-23T16:35:58-07:00",
+          "version": "v6.3",
           "is_latest": true
+        }
+,
+        {
+          "checksum": "d870a87180c6569fd832f3788efd6686c703c4c847da509dc993cb000662c0ac",
+          "commit": "b2829dce75d11019decf0a1ad3af36c8fbe70bc2",
+          "date": "2026-04-23T16:28:02-07:00",
+          "version": "",
+          "is_latest": false
         }
 ,
         {
@@ -527,26 +551,10 @@
     ".just/template-sync.just": {"versions": [
         {
           "checksum": "b61843432a55e6868f3f532694f96e75c360a22eda6d31f8ba7ced3d5d1dc7a8",
-          "commit": "0ce316208051e061491747d60031d82167ecc303",
-          "date": "2026-04-23T15:04:23-07:00",
+          "commit": "b2829dce75d11019decf0a1ad3af36c8fbe70bc2",
+          "date": "2026-04-23T16:28:02-07:00",
           "version": "",
           "is_latest": true
-        }
-,
-        {
-          "checksum": "d24645575abe143d8654a986033a5bf32fc9134864fcbc36dc1d6ea9c17fca82",
-          "commit": "6522134f0c1dfb69b32b5063147f4e275f3da0e9",
-          "date": "2026-04-23T14:59:00-07:00",
-          "version": "",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "a2d5de6afbb398a8a6dfb9dfa4544ed8bc88ccc497a8d74143f3280295d398c0",
-          "commit": "e9d0168b73c3557c4f11143a905599b08854cb1b",
-          "date": "2026-04-23T14:53:28-07:00",
-          "version": "",
-          "is_latest": false
         }
 ,
         {
@@ -741,26 +749,10 @@
     ".just/lib/template_update.sh": {"versions": [
         {
           "checksum": "dfddad2e4d078b2cb3dc79f84fe867caabc3445bcf7f5e144e80af06214c6c0e",
-          "commit": "0ce316208051e061491747d60031d82167ecc303",
-          "date": "2026-04-23T15:04:23-07:00",
+          "commit": "b2829dce75d11019decf0a1ad3af36c8fbe70bc2",
+          "date": "2026-04-23T16:28:02-07:00",
           "version": "",
           "is_latest": true
-        }
-,
-        {
-          "checksum": "51874ed04c29ebe54b890152c75f93337134a33f8821a242612b150c49d5fdaf",
-          "commit": "6522134f0c1dfb69b32b5063147f4e275f3da0e9",
-          "date": "2026-04-23T14:59:00-07:00",
-          "version": "",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "068e64c2b04c3a6bb947acb42b28f8ac85370e5688c722360cec86e85b29848c",
-          "commit": "e9d0168b73c3557c4f11143a905599b08854cb1b",
-          "date": "2026-04-23T14:53:28-07:00",
-          "version": "",
-          "is_latest": false
         }
 ,
         {
