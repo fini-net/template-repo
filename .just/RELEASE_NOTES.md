@@ -2,6 +2,38 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
+## April 2026 - Guard rails
+
+### v5.9 - PR Checks Requires Active Pull Request (2026-04-19)
+
+- Fixes issue [#115](https://github.com/fini-net/template-repo/issues/115)
+- **Fix PR:** [#122](https://github.com/fini-net/template-repo/pull/122)
+- **Regression PR:** [#97](https://github.com/fini-net/template-repo/pull/97)
+
+Added a sanity check to `pr_checks` requiring that you're on a branch with an
+active pull request before attempting to watch checks or display AI reviews.
+Previously, running `pr_checks` outside of PR context would fail with cryptic
+errors from `gh` commands that expect a PR association. Now it fails early with
+a clear message, consistent with other recipes like `pr_update` and `pr_verify`
+that already had this guard.
+
+- **Dependency change** - `pr_checks` now depends on `_on_a_pull_request` instead
+  of running unconditionally
+- **Consistent behavior** - Matches the pattern used by other PR-dependent recipes
+
+This was a regression that slipped in during v5.7. The history of the
+`_on_a_pull_request` guard on `pr_checks`:
+
+- **v4.0–v4.4** — `pr_checks: _on_a_pull_request` (direct dependency, added in #44)
+- **v4.5–v5.2** — `pr_checks: _wait_for_checks && claude_review` — the guard was
+  inherited transitively through `_wait_for_checks: _on_a_pull_request`
+- **v5.7** — [#97](https://github.com/fini-net/template-repo/pull/97) changed
+  to `pr_checks: && claude_review` — `_wait_for_checks` was moved from a
+  dependency to an inline fallback (the `gh observer` feature), which
+  accidentally dropped the `_on_a_pull_request` guard that came transitively
+  through it.
+- **v5.9** — Restored `_on_a_pull_request` directly
+
 ## March 2026 - More resilience
 
 ### v5.8.1 - Executable permissions for template updates (2026-03-22)
@@ -58,6 +90,8 @@ normal LF line endings.
 ## February 2026 - Learn from experience
 
 ### v5.7 - Utilize gh observer extension (2026-02-16)
+
+- **Related PR:** [#97](https://github.com/fini-net/template-repo/pull/97)
 
 Utilize the [gh observer extension](https://github.com/fini-net/gh-observer) if it is installed.
 
