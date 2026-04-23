@@ -67,7 +67,7 @@ jobs:
 
           echo ""
           if [[ $failures -gt 0 ]]; then
-            echo "FAILED: $failures file(s) don't match CHECKSUMS.json"
+            echo "::error::$failures file(s) don't match CHECKSUMS.json"
             echo "Run 'just checksums_generate' and commit the updated .just/CHECKSUMS.json"
             exit 1
           fi
