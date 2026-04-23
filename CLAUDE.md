@@ -223,7 +223,8 @@ When using this template for a new project:
 - just colors come from built-in constants: `{{GREEN}}`, `{{BLUE}}`, `{{RED}}`, `{{YELLOW}}`, `{{NORMAL}}`
 - Hidden recipes (prefixed with `_`) are internal helpers and not shown in `just --list`
 - The `again` recipe is for iterating on PRs: push, update description, watch checks
-- Release notes for workflow changes are tracked in `.just/RELEASE_NOTES.md`
+- Release notes for workflow changes are tracked in `.just/RELEASE_NOTES.md`.  Each new version should get an entry in this file.
+- Changes to the `.just/*` files should increment the version number for the `pr` recipe in `.just/gh-process.just`
 
 ## Dependencies
 
