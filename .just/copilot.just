@@ -251,6 +251,7 @@ copilot_pick: _on_a_pull_request
 [group('Copilot')]
 copilot_refresh: _on_a_pull_request
     #!/usr/bin/env bash
+    # shellcheck disable=SC2016
     set -euo pipefail
 
     # Check if jq is installed
@@ -289,60 +290,60 @@ copilot_refresh: _on_a_pull_request
 
     # Write a self-contained polling script to avoid declare -f serialization issues
     poll_script=$(mktemp /tmp/justfile.copilot_poll.XXXXXX)
-    cat > "$poll_script" << 'POLL_SCRIPT'
-#!/usr/bin/env bash
-set -euo pipefail
-MAX_WAIT="$1"; POLL_INTERVAL="$2"; INITIAL_DELAY="$3"
-PR_REPO_OWNER="$4"; PR_REPO_NAME="$5"; PR_NUMBER="$6"
-USING_GUM="${7:-0}"
-
-echo "Waiting ${INITIAL_DELAY}s for Copilot to start processing..."
-sleep "$INITIAL_DELAY"
-
-elapsed=$INITIAL_DELAY
-while (( elapsed < MAX_WAIT )); do
-    copilot_data=$(gh api graphql \
-        -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
-        --jq '.data.repository.pullRequest.reviews.nodes[] | select(.author.login=="copilot-pull-request-reviewer") | {state: .state, commentCount: (.comments.totalCount)}' \
-        -f query='
-        query($name: String!, $owner: String!, $pr: Int!) {
-            repository(owner: $owner, name: $name) {
-                pullRequest(number: $pr) {
-                    reviews(last: 1) {
-                        nodes {
-                            author { login }
-                            state
-                            comments { totalCount }
-                        }
-                    }
-                }
-            }
-        }
-        ' 2>/dev/null) || true
-
-    if [[ -n "$copilot_data" ]]; then
-        review_state=$(echo "$copilot_data" | jq -r '.state // "UNKNOWN"')
-        comment_count=$(echo "$copilot_data" | jq -r '.commentCount // 0')
-        if [[ "$review_state" != "null" && "$review_state" != "UNKNOWN" ]] && [[ "$comment_count" -gt 0 ]]; then
-            echo "Review complete after ${elapsed}s (state: $review_state, $comment_count comments)"
-            exit 0
-        elif [[ "$review_state" != "null" && "$review_state" != "UNKNOWN" ]]; then
-            echo "Review found but still processing (state: $review_state, $comment_count comments)"
-        fi
-    fi
-
-    sleep "$POLL_INTERVAL"
-    elapsed=$((elapsed + POLL_INTERVAL))
-
-    if [ "$USING_GUM" = "0" ]; then
-        echo -n "."
-    fi
-done
-
-echo ""
-echo "Review not completed after ${MAX_WAIT}s - it may still be processing"
-exit 1
-POLL_SCRIPT
+    {
+        printf '#!/usr/bin/env bash\n'
+        printf 'set -euo pipefail\n'
+        printf 'MAX_WAIT="$1"; POLL_INTERVAL="$2"; INITIAL_DELAY="$3"\n'
+        printf 'PR_REPO_OWNER="$4"; PR_REPO_NAME="$5"; PR_NUMBER="$6"\n'
+        printf 'USING_GUM="${7:-0}"\n'
+        printf '\n'
+        printf 'echo "Waiting ${INITIAL_DELAY}s for Copilot to start processing..."\n'
+        printf 'sleep "$INITIAL_DELAY"\n'
+        printf '\n'
+        printf 'elapsed=$INITIAL_DELAY\n'
+        printf 'while (( elapsed < MAX_WAIT )); do\n'
+        printf '    copilot_data=$(gh api graphql \\\n'
+        printf '        -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \\\n'
+        printf '        --jq '"'"'.data.repository.pullRequest.reviews.nodes[] | select(.author.login=="copilot-pull-request-reviewer") | {state: .state, commentCount: (.comments.totalCount)}'"'"' \\\n'
+        printf '        -f query='"'"'\n'
+        printf '        query($name: String!, $owner: String!, $pr: Int!) {\n'
+        printf '            repository(owner: $owner, name: $name) {\n'
+        printf '                pullRequest(number: $pr) {\n'
+        printf '                    reviews(last: 1) {\n'
+        printf '                        nodes {\n'
+        printf '                            author { login }\n'
+        printf '                            state\n'
+        printf '                            comments { totalCount }\n'
+        printf '                        }\n'
+        printf '                    }\n'
+        printf '                }\n'
+        printf '            }\n'
+        printf '        }\n'
+        printf '        '"'"' 2>/dev/null) || true\n'
+        printf '\n'
+        printf '    if [[ -n "$copilot_data" ]]; then\n'
+        printf '        review_state=$(echo "$copilot_data" | jq -r '"'"'.state // "UNKNOWN"'"'"')\n'
+        printf '        comment_count=$(echo "$copilot_data" | jq -r '"'"'.commentCount // 0'"'"')\n'
+        printf '        if [[ "$review_state" != "null" && "$review_state" != "UNKNOWN" ]] && [[ "$comment_count" -gt 0 ]]; then\n'
+        printf '            echo "Review complete after ${elapsed}s (state: $review_state, $comment_count comments)"\n'
+        printf '            exit 0\n'
+        printf '        elif [[ "$review_state" != "null" && "$review_state" != "UNKNOWN" ]]; then\n'
+        printf '            echo "Review found but still processing (state: $review_state, $comment_count comments)"\n'
+        printf '        fi\n'
+        printf '    fi\n'
+        printf '\n'
+        printf '    sleep "$POLL_INTERVAL"\n'
+        printf '    elapsed=$((elapsed + POLL_INTERVAL))\n'
+        printf '\n'
+        printf '    if [ "$USING_GUM" = "0" ]; then\n'
+        printf '        echo -n "."\n'
+        printf '    fi\n'
+        printf 'done\n'
+        printf '\n'
+        printf 'echo ""\n'
+        printf 'echo "Review not completed after ${MAX_WAIT}s - it may still be processing"\n'
+        printf 'exit 1\n'
+    } > "$poll_script"
     chmod +x "$poll_script"
 
     # Use gum spin if available, otherwise fall back to simple progress
