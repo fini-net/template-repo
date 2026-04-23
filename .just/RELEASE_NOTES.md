@@ -4,6 +4,30 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## April 2026 - Guard rails
 
+### v6.2 - Template Sync Refinements (2026-04-23)
+
+- **Related PR:** [#129](https://github.com/fini-net/template-repo/pull/129)
+- Fixes issue [#116](https://github.com/fini-net/template-repo/issues/116)
+
+Improved robustness of the template sync system with better error handling
+and smarter path matching for cleaned files.
+
+**Changes:**
+
+- **Checksum verification on download** - `template_update.sh` now verifies
+  downloaded files against expected checksums before moving them into place,
+  catching corrupted or incomplete downloads immediately. Passes the expected
+  checksum from the manifest to `download_file()` so mismatches are detected
+  before overwriting local files.
+- **Directory-aware cleaned file matching** - Both `template-sync.just` and
+  `template_update.sh` now use `startswith` matching instead of exact path
+  matching when checking cleaned files. This means if a directory is listed
+  in `cleaned_files`, any file under that directory is properly recognized as
+  cleaned, not just the exact directory path itself.
+- **Missing checksum tool error** - `checksums_verify` recipe now explicitly
+  exits with an error message if neither `sha256sum` nor `shasum` is found,
+  instead of silently producing empty output.
+
 ### v6.1 - Shell Escaping in repo_toml_generate (2026-04-23)
 
 - Fixes issue [#117](https://github.com/fini-net/template-repo/issues/117)
