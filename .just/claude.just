@@ -1,4 +1,4 @@
-# Claude Code management recipes
+# Claude Code management recipesXXX
 
 claude_settings_file := ".claude/settings.local.json"
 
