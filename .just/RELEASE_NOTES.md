@@ -4,6 +4,14 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## April 2026 - Guard rails
 
+### v6.0 - Claude Code Launch Recipe (2026-04-23)
+
+- **Related PR:** [#125](https://github.com/fini-net/template-repo/pull/125)
+- Fixes issue [#112](https://github.com/fini-net/template-repo/issues/112)
+
+**Add `claude` recipe** - New recipe in `.just/claude.just` that launches Claude Code from the repo root.
+Just recipes run from the repo root by default, so no `cd` is needed — running `just claude` always starts Claude Code with full project context regardless of the user's current directory
+
 ### v5.9 - PR Checks Requires Active Pull Request (2026-04-19)
 
 - Fixes issue [#115](https://github.com/fini-net/template-repo/issues/115)
