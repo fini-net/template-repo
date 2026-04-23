@@ -38,8 +38,8 @@ repo_toml_generate:
 
     # Derive org and repo name from web URL
     # Example: https://github.com/fini-net/template-repo -> fini-net, template-repo
-    # Strip @sh quoting for URL parsing: @sh produces '' for empty or 'value' for non-empty
-    WEB_URL_RAW=$(echo "$WEB_URL" | sed "s/^'//;s/'$//")
+    # Extract raw URL separately from @sh-quoted version to avoid fragile sed stripping
+    WEB_URL_RAW=$(echo "$JSON" | jq -r '.urls.web_url // ""')
     ORG_NAME=$(echo "$WEB_URL_RAW" | sed -E 's|https://github.com/([^/]+)/.*|\1|')
     REPO_NAME=$(echo "$WEB_URL_RAW" | sed -E 's|https://github.com/[^/]+/(.+)|\1|')
 
@@ -51,14 +51,15 @@ repo_toml_generate:
         exit 1
     fi
 
-    # Extract feature flags as strings ("true" or "false"), @sh-quoted
-    FLAG_CLAUDE=$(echo "$JSON" | jq -r 'if .flags.claude == true then "true" else "false" end | @sh')
-    FLAG_CLAUDE_REVIEW=$(echo "$JSON" | jq -r 'if .flags["claude-review"] == true then "true" else "false" end | @sh')
-    FLAG_COPILOT_REVIEW=$(echo "$JSON" | jq -r 'if .flags["copilot-review"] == true then "true" else "false" end | @sh')
-    FLAG_STANDARD_RELEASE=$(echo "$JSON" | jq -r 'if .flags["standard-release"] == false then "false" else "true" end | @sh')
+    # Extract feature flags as strings ("true" or "false")
+    FLAG_CLAUDE=$(echo "$JSON" | jq -r 'if .flags.claude == true then "true" else "false" end')
+    FLAG_CLAUDE_REVIEW=$(echo "$JSON" | jq -r 'if .flags["claude-review"] == true then "true" else "false" end')
+    FLAG_COPILOT_REVIEW=$(echo "$JSON" | jq -r 'if .flags["copilot-review"] == true then "true" else "false" end')
+    FLAG_STANDARD_RELEASE=$(echo "$JSON" | jq -r 'if .flags["standard-release"] == false then "false" else "true" end')
 
     # Generate .just/repo-toml.sh with all content
-    # @sh-quoted values already include proper shell quoting (e.g., 'value')
+    # @sh-quoted string values already include proper shell quoting (e.g., 'value')
+    # Flag values are bare true/false strings (no quoting needed)
     # shell_quote-d values use printf %q for safe embedding
     QUOTED_TOPICS_CSV=$(shell_quote "$TOPICS_CSV")
     QUOTED_ORG_NAME=$(shell_quote "$ORG_NAME")
