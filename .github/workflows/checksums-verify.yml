@@ -38,7 +38,7 @@ jobs:
 
           while IFS= read -r filepath; do
             if [[ ! -f "$filepath" ]]; then
-              echo "MISSING: $filepath - tracked in CHECKSUMS.json but not found locally"
+              echo "::error file=$filepath::Missing from repository — tracked in CHECKSUMS.json but not found locally"
               failures=$((failures + 1))
               continue
             fi
@@ -48,7 +48,7 @@ jobs:
               "$CHECKSUMS_FILE")
 
             if [[ -z "$latest_checksum" ]]; then
-              echo "ERROR: $filepath - no is_latest entry found in CHECKSUMS.json"
+              echo "::error file=$filepath::No is_latest entry found in CHECKSUMS.json"
               failures=$((failures + 1))
               continue
             fi
@@ -58,7 +58,7 @@ jobs:
             if [[ "$current_checksum" == "$latest_checksum" ]]; then
               echo "OK: $filepath"
             else
-              echo "MISMATCH: $filepath"
+              echo "::error file=$filepath::Checksum mismatch — run 'just checksums_generate'"
               echo "  Expected (CHECKSUMS.json): $latest_checksum"
               echo "  Actual   (current file):   $current_checksum"
               failures=$((failures + 1))
@@ -67,8 +67,8 @@ jobs:
 
           echo ""
           if [[ $failures -gt 0 ]]; then
-            echo "FAILED: $failures file(s) don't match CHECKSUMS.json"
-            echo "Run 'just checksums_generate' and commit the updated .just/CHECKSUMS.json"
+            echo "::error::$failures file(s) don't match CHECKSUMS.json"
+            echo "::notice::Run 'just checksums_generate' and commit the updated .just/CHECKSUMS.json"
             exit 1
           fi
 
