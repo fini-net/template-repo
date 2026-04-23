@@ -6,7 +6,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ### v6.3 - Copilot Path Encoding and Portability Fixes (2026-04-23)
 
-- **Related PR:** (pending)
+- **Related PR:** [#130](https://github.com/fini-net/template-repo/pull/130)
 - Fixes issue [#114](https://github.com/fini-net/template-repo/issues/114)
 
 Fixed four bugs in `.just/copilot.just` identified across 15 PR code reviews.
