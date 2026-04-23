@@ -31,7 +31,7 @@ repo_toml_generate:
     LICENSE=$(echo "$JSON" | jq -r '.about.license // "" | @sh')
     TOPICS_JSON=$(echo "$JSON" | jq -r '.about.topics // []')
     TOPICS_ARRAY=$(echo "$TOPICS_JSON" | jq -r '.[]' | sort)
-    TOPICS_CSV=$(echo "$TOPICS_ARRAY" | paste -sd ',' -)
+    TOPICS_CSV=$(echo "$TOPICS_ARRAY" | grep -v '^$' | paste -sd ',' - || echo "")
 
     GIT_SSH=$(echo "$JSON" | jq -r '.urls.git_ssh // "" | @sh')
     WEB_URL=$(echo "$JSON" | jq -r '.urls.web_url // "" | @sh')
