@@ -4,6 +4,33 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## April 2026 - Guard rails
 
+### v6.1 - Shell Escaping in repo_toml_generate (2026-04-23)
+
+- Fixes issue [#117](https://github.com/fini-net/template-repo/issues/117)
+
+Fixed improper shell quoting in `repo_toml_generate` that could produce broken
+output when `.repo.toml` values contain shell metacharacters (spaces, quotes,
+dollar signs, backticks, etc.). Identified across 15 PRs in code review.
+
+**Changes:**
+
+- **jq @sh for JSON-sourced values** - `DESCRIPTION`, `LICENSE`, `GIT_SSH`,
+  `WEB_URL`, and all feature flags now use `jq @sh` to produce properly
+  single-quoted shell-safe strings (e.g., `'value with spaces'`)
+- **printf %q for derived values** - `ORG_NAME`, `REPO_NAME`, and `TOPICS_CSV`
+  use `printf '%q'` via new `shell_quote()` helper since these come from `sed`
+  and `paste`, not `jq`
+- **Safe array items** - Topics array items now use `shell_quote()` instead
+  of bare `"$topic"` interpolation
+- **shell_quote() helper** - New function reduces repetition and provides a
+  single point of maintenance for shell escaping logic
+- **WEB_URL_RAW intermediate** - Strips `@sh` quoting before URL parsing since
+  `sed` needs the raw URL, not the shell-quoted form
+
+The generated `.just/repo-toml.sh` file format changes slightly:
+double-quoted values (`V="x"`) become single-quoted (`V='x'`) or
+`printf %q`-escaped, which are all functionally equivalent when sourced.
+
 ### v6.0 - Claude Code Launch Recipe (2026-04-23)
 
 - **Related PR:** [#125](https://github.com/fini-net/template-repo/pull/125)

@@ -1,23 +1,15 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-04-23T17:44:01Z",
+  "generated_at": "2026-04-23T19:13:53Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
         {
           "checksum": "9a1fa8eef2db72259e56c809d128bd65d7630bfd16d8c1be9039715decc6b435",
-          "commit": "6b9548524846332cc3c87b4333a657bc29f657c0",
-          "date": "2026-04-23T10:43:48-07:00",
-          "version": "",
-          "is_latest": true
-        }
-,
-        {
-          "checksum": "7ca68ca4563ecef394f26b2119a6651db398e22ce431bf870d23ab4d28a62eb2",
-          "commit": "8a988731ec333260426ec71946e08471bb1a2321",
-          "date": "2026-04-23T10:25:42-07:00",
+          "commit": "8f68822dd12b30f44aa82adba2c5a18fe54251a5",
+          "date": "2026-04-23T10:48:38-07:00",
           "version": "v6.0",
-          "is_latest": false
+          "is_latest": true
         }
 ,
         {
@@ -163,8 +155,8 @@
     ".just/gh-process.just": {"versions": [
         {
           "checksum": "a3212fdf74cb0c5719e819944c45a75929221056d40f20151fe7c3c8a1bbbc4d",
-          "commit": "9e300c69530dbbe84d38379107657216eb7c84ea",
-          "date": "2026-04-23T10:32:43-07:00",
+          "commit": "8f68822dd12b30f44aa82adba2c5a18fe54251a5",
+          "date": "2026-04-23T10:48:38-07:00",
           "version": "v6.0",
           "is_latest": true
         }
