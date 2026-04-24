@@ -6,7 +6,8 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ### v6.4 - Prerequisites Update and Cue Schema Fix (2026-04-23)
 
-- **Related PR:** TBD
+- **Related PR:** [#131](https://github.com/fini-net/template-repo/pull/131)
+- Fixes issue [#118](https://github.com/fini-net/template-repo/issues/118)
 
 Added `cue` as a required tool in the prerequisites installation script and
 fixed a regex bug in the repo-toml Cue schema.
@@ -69,6 +70,7 @@ and smarter path matching for cleaned files.
 
 ### v6.1 - Shell Escaping in repo_toml_generate (2026-04-23)
 
+- **Related PR:** [#126](https://github.com/fini-net/template-repo/pull/126)
 - Fixes issue [#117](https://github.com/fini-net/template-repo/issues/117)
 
 Fixed improper shell quoting in `repo_toml_generate` that could produce broken
@@ -135,6 +137,8 @@ This was a regression that slipped in during v5.7. The history of the
 ## March 2026 - More resilience
 
 ### v5.8.1 - Executable permissions for template updates (2026-03-22)
+
+- **Related PR:** [#110](https://github.com/fini-net/template-repo/pull/110)
 
 Fixed an issue where downloaded shell scripts from template-repo would not have
 executable permissions set. Previously, files like `.just/lib/template_update.sh`
@@ -338,6 +342,8 @@ Implementation details:
 - Complements existing copilot_pick (#67, #72) workflow
 
 ### v5.0 - Robust PR Body Updates with HTML Markers
+
+- **Related PR:** [#78](https://github.com/fini-net/template-repo/pull/78)
 
 Completely rewrote the `pr_update` recipe to eliminate data loss when updating
 PR descriptions. The previous AWK-based implementation (v4.0-4.4) was fragile
@@ -591,6 +597,8 @@ commits, it maintains proper markdown formatting with blank lines separating
 different sections of the PR description.
 
 ### v4.3 - Release Tag Visibility
+
+- **Related PR:** [#49](https://github.com/fini-net/template-repo/pull/49)
 
 Enhanced the `release` recipe to automatically pull the newly created tag so it's
 immediately visible in your local repository. Previously, after running
