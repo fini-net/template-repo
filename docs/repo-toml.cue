@@ -21,7 +21,7 @@ urls?: {
 	git_ssh?: string & =~"^git@github\\.com:[^/]+/.+\\.git$"
 
 	// Web URL for repository viewing
-	web_url?: string & =~"^https://github\\.com/[^/]+/.+$"
+	web_url?: string & =~"^https://github\\.com/[^/]+/[^/]+$"
 }
 
 // Flags section contains boolean feature flags
