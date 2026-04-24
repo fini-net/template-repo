@@ -4,6 +4,22 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## April 2026 - Guard rails
 
+### v6.4 - Prerequisites Update and Cue Schema Fix (2026-04-23)
+
+- **Related PR:** TBD
+
+Added `cue` as a required tool in the prerequisites installation script and
+fixed a regex bug in the repo-toml Cue schema.
+
+**Changes:**
+
+- **Cue in prerequisites** - Added `cue` (the Cue validation tool) to the
+  `install-prerequisites.sh` script: detection, Homebrew installation on
+  macOS, and manual install instructions for Linux and other platforms.
+- **Web URL regex fix** - Changed `web_url` regex in `docs/repo-toml.cue`
+  from `[^/]+/.+` to `[^/]+/[^/]+` to prevent matching URLs with trailing
+  path segments that aren't valid repository URLs.
+
 ### v6.3 - Copilot Path Encoding and Portability Fixes (2026-04-23)
 
 - **Related PR:** [#130](https://github.com/fini-net/template-repo/pull/130)
