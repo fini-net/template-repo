@@ -265,13 +265,7 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
 			echo -e "${CYAN}Install gum:${NC} See https://github.com/charmbracelet/gum#installation"
 			;;
 		cue)
-			if [[ "$PKG_MGR" == "apt-get" ]]; then
-				echo -e "${CYAN}Install cue:${NC} See https://github.com/cue-lang/cue#installation"
-			elif [[ "$PKG_MGR" == "dnf" ]]; then
-				echo -e "${CYAN}Install cue:${NC} See https://github.com/cue-lang/cue#installation"
-			elif [[ "$PKG_MGR" == "pacman" ]]; then
-				echo -e "${CYAN}Install cue:${NC} See https://github.com/cue-lang/cue#installation"
-			fi
+			echo -e "${CYAN}Install cue:${NC} See https://github.com/cue-lang/cue#installation"
 			;;
 		esac
 	done
