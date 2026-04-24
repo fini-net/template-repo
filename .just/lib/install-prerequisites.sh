@@ -3,7 +3,7 @@
 #
 # Usage: ./.just/lib/install-prerequisites.sh
 #
-# This script checks for required tools (just, gh, shellcheck, markdownlint-cli2, jq, gum)
+# This script checks for required tools (just, gh, shellcheck, markdownlint-cli2, jq, gum, cue)
 # and helps install them:
 #
 # - macOS: Automatically installs missing tools using Homebrew
@@ -64,6 +64,12 @@ if command -v gum &>/dev/null; then
 	INSTALLED+=("gum")
 else
 	MISSING+=("gum")
+fi
+
+if command -v cue &>/dev/null; then
+	INSTALLED+=("cue")
+else
+	MISSING+=("cue")
 fi
 
 # report what's already installed
@@ -163,6 +169,15 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 				echo -e "${RED}Failed to install gum${NC}"
 			fi
 			;;
+		cue)
+			echo -e "${CYAN}Installing cue...${NC}"
+			if brew install cue; then
+				INSTALL_SUCCESS+=("cue")
+			else
+				INSTALL_FAILED+=("cue")
+				echo -e "${RED}Failed to install cue${NC}"
+			fi
+			;;
 		esac
 	done
 
@@ -249,6 +264,15 @@ elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
 		gum)
 			echo -e "${CYAN}Install gum:${NC} See https://github.com/charmbracelet/gum#installation"
 			;;
+		cue)
+			if [[ "$PKG_MGR" == "apt-get" ]]; then
+				echo -e "${CYAN}Install cue:${NC} See https://github.com/cue-lang/cue#installation"
+			elif [[ "$PKG_MGR" == "dnf" ]]; then
+				echo -e "${CYAN}Install cue:${NC} See https://github.com/cue-lang/cue#installation"
+			elif [[ "$PKG_MGR" == "pacman" ]]; then
+				echo -e "${CYAN}Install cue:${NC} See https://github.com/cue-lang/cue#installation"
+			fi
+			;;
 		esac
 	done
 
@@ -270,6 +294,7 @@ else
 	echo "  markdownlint-cli2: npm install -g markdownlint-cli2"
 	echo "  jq: https://stedolan.github.io/jq/download/"
 	echo "  gum: https://github.com/charmbracelet/gum#installation"
+	echo "  cue: https://github.com/cue-lang/cue#installation"
 	exit 1
 fi
 
