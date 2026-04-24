@@ -4,6 +4,29 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## April 2026 - Guard rails
 
+### v6.3 - Copilot Path Encoding and Portability Fixes (2026-04-23)
+
+- **Related PR:** [#130](https://github.com/fini-net/template-repo/pull/130)
+- Fixes issue [#114](https://github.com/fini-net/template-repo/issues/114)
+
+Fixed four bugs in `.just/copilot.just` identified across 15 PR code reviews.
+
+**Changes:**
+
+- **`sed -i` portability** - Replaced `sed -i` (which differs between BSD and GNU)
+  with a temp-file approach (`sed ... > file.tmp && mv file.tmp file`) for
+  cross-platform compatibility.
+- **URL-encoded backup paths** - Backup filenames now use URL-encoding
+  (`%2F` for `/`, `%5F` for `_`, `%25` for `%`) instead of replacing `/` with `_`,
+  which was ambiguous and lossy. `copilot_rollback` decodes the new format with a
+  legacy fallback for old backups.
+- **Unambiguous suggestion matching** - `copilot_pick` now matches suggestions by
+  both file path and line number (instead of line number alone), preventing
+  incorrect matches when multiple files have suggestions on the same line.
+- **Self-contained polling script** - `copilot_refresh` now writes the poll loop
+  to a temp script file and passes variables as arguments, instead of serializing
+  the function with `declare -f` which breaks with complex function state.
+
 ### v6.2 - Template Sync Refinements (2026-04-23)
 
 - **Related PR:** [#129](https://github.com/fini-net/template-repo/pull/129)

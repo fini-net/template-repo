@@ -97,7 +97,8 @@ copilot_pick: _on_a_pull_request
         exit 0
     fi
 
-    # Extract line number from selection to match back to original comment
+    # Extract file path and line number from selection to match back to original comment
+    file_path=$(echo "$selected" | cut -d':' -f1)
     line_num=$(echo "$selected" | cut -d':' -f2 | cut -d' ' -f1)
 
     # Validate line number is numeric
@@ -106,14 +107,21 @@ copilot_pick: _on_a_pull_request
         exit 1
     fi
 
-    # Get the full suggestion data
-    suggestion_data=$(jq -r --arg line "$line_num" '.[] | select(.originalLine == ($line | tonumber))' "$copilot_comments")
-    file_path=$(echo "$suggestion_data" | jq -r '.path')
+    # Get the full suggestion data - match by both path and line to avoid ambiguity
+    suggestion_data=$(jq -r --arg path "$file_path" --arg line "$line_num" \
+        '.[] | select(.path == $path and .originalLine == ($line | tonumber))' "$copilot_comments")
+
+    if [[ -z "$suggestion_data" ]]; then
+        echo "{{RED}}Error: Could not find matching suggestion for $file_path:$line_num{{NORMAL}}"
+        exit 1
+    fi
+
     original_line=$(echo "$suggestion_data" | jq -r '.originalLine')
     suggestion_body=$(echo "$suggestion_data" | jq -r '.body')
 
     echo ""
-    jq -r --arg line "$line_num" '.[] | select(.originalLine == ($line | tonumber)) |
+    jq -r --arg path "$file_path" --arg line "$line_num" \
+        '.[] | select(.path == $path and .originalLine == ($line | tonumber)) |
         "{{GREEN}}File:{{NORMAL}} \(.path)\n{{GREEN}}Line:{{NORMAL}} \(.originalLine)\n\n\(.body)"' \
         "$copilot_comments"
 
@@ -145,9 +153,9 @@ copilot_pick: _on_a_pull_request
             backup_dir=".just/copilot_backups"
             mkdir -p "$backup_dir"
             timestamp=$(date +%Y%m%d_%H%M%S)_$$
-            # Store relative path from repo root for proper restoration
+            # URL-encode path for safe backup filenames (reversible, unlike _ replacement)
             relative_path=$(git ls-files --full-name "$file_path" 2>/dev/null || echo "$file_path")
-            safe_path=${relative_path//\//_}
+            safe_path=$(echo "$relative_path" | sed 's|%|%25|g; s|/|%2F|g; s|_|%5F|g')
             backup_file="$backup_dir/${safe_path}_${timestamp}.bak"
             
             cp "$file_path" "$backup_file"
@@ -202,10 +210,12 @@ copilot_pick: _on_a_pull_request
                     tail -n +$((original_line + 1)) "$file_path" >> "${file_path}.tmp"
                     mv "${file_path}.tmp" "$file_path"
                 else
-                    # Single line: use sed with proper escaping
+                    # Single line: use temp file approach for cross-platform compatibility
+                    # (sed -i syntax differs between BSD and GNU)
                     # shellcheck disable=SC2016
                     escaped_code=$(echo "$suggested_code" | sed 's|[][\\\.*^$()+?{|/]|\\&|g')
-                    sed -i "${original_line}s|.*|${escaped_code}|" "$file_path"
+                    sed "${original_line}s|.*|${escaped_code}|" "$file_path" > "${file_path}.tmp"
+                    mv "${file_path}.tmp" "$file_path"
                 fi
                 
                 # Verify the change was applied successfully
@@ -241,6 +251,7 @@ copilot_pick: _on_a_pull_request
 [group('Copilot')]
 copilot_refresh: _on_a_pull_request
     #!/usr/bin/env bash
+    # shellcheck disable=SC2016
     set -euo pipefail
 
     # Check if jq is installed
@@ -277,74 +288,81 @@ copilot_refresh: _on_a_pull_request
     POLL_INTERVAL=5
     INITIAL_DELAY=10  # Give Copilot time to start processing
 
-    poll_for_review() {
-        echo "{{BLUE}}Waiting ${INITIAL_DELAY}s for Copilot to start processing...{{NORMAL}}"
-        sleep $INITIAL_DELAY
-        
-        elapsed=$INITIAL_DELAY
-        while (( elapsed < MAX_WAIT )); do
-            # Check for Copilot review using GraphQL - check both review existence and comments
-            # shellcheck disable=SC2016
-            copilot_data=$(gh api graphql \
-                -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
-                --jq '.data.repository.pullRequest.reviews.nodes[] | select(.author.login=="copilot-pull-request-reviewer") | {state: .state, commentCount: (.comments.totalCount)}' \
-                -f query='
-                query($name: String!, $owner: String!, $pr: Int!) {
-                    repository(owner: $owner, name: $name) {
-                        pullRequest(number: $pr) {
-                            reviews(last: 1) {
-                                nodes {
-                                    author {
-                                        login
-                                    }
-                                    state
-                                    comments {
-                                        totalCount
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                ' 2>/dev/null)
-
-            if [[ -n "$copilot_data" ]]; then
-                # Extract review state and comment count
-                review_state=$(echo "$copilot_data" | jq -r '.state // "UNKNOWN"')
-                comment_count=$(echo "$copilot_data" | jq -r '.commentCount // 0')
-                
-                # Consider review complete if we have a state and comments
-                if [[ "$review_state" != "null" && "$review_state" != "UNKNOWN" ]] && [[ "$comment_count" -gt 0 ]]; then
-                    echo "{{GREEN}}Review complete after ${elapsed}s (state: $review_state, $comment_count comments){{NORMAL}}"
-                    return 0
-                elif [[ "$review_state" != "null" && "$review_state" != "UNKNOWN" ]]; then
-                    echo "{{YELLOW}}Review found but still processing (state: $review_state, $comment_count comments){{NORMAL}}"
-                fi
-            fi
-
-            sleep $POLL_INTERVAL
-            elapsed=$((elapsed + POLL_INTERVAL))
-
-            # Only show dots if not using gum
-            if [ "${USING_GUM:-0}" = "0" ]; then
-                echo -n "."
-            fi
-        done
-
-        echo ""
-        echo "{{YELLOW}}Review not completed after ${MAX_WAIT}s - it may still be processing{{NORMAL}}"
-        return 1
-    }
+    # Write a self-contained polling script to avoid declare -f serialization issues
+    poll_script=$(mktemp /tmp/justfile.copilot_poll.XXXXXX)
+    {
+        printf '#!/usr/bin/env bash\n'
+        printf 'set -euo pipefail\n'
+        printf 'MAX_WAIT="$1"; POLL_INTERVAL="$2"; INITIAL_DELAY="$3"\n'
+        printf 'PR_REPO_OWNER="$4"; PR_REPO_NAME="$5"; PR_NUMBER="$6"\n'
+        printf 'USING_GUM="${7:-0}"\n'
+        printf '\n'
+        printf 'echo "Waiting ${INITIAL_DELAY}s for Copilot to start processing..."\n'
+        printf 'sleep "$INITIAL_DELAY"\n'
+        printf '\n'
+        printf 'elapsed=$INITIAL_DELAY\n'
+        printf 'while (( elapsed < MAX_WAIT )); do\n'
+        printf '    copilot_data=$(gh api graphql \\\n'
+        printf '        -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \\\n'
+        printf '        --jq '"'"'.data.repository.pullRequest.reviews.nodes[] | select(.author.login=="copilot-pull-request-reviewer") | {state: .state, commentCount: (.comments.totalCount)}'"'"' \\\n'
+        printf '        -f query='"'"'\n'
+        printf '        query($name: String!, $owner: String!, $pr: Int!) {\n'
+        printf '            repository(owner: $owner, name: $name) {\n'
+        printf '                pullRequest(number: $pr) {\n'
+        printf '                    reviews(last: 1) {\n'
+        printf '                        nodes {\n'
+        printf '                            author { login }\n'
+        printf '                            state\n'
+        printf '                            comments { totalCount }\n'
+        printf '                        }\n'
+        printf '                    }\n'
+        printf '                }\n'
+        printf '            }\n'
+        printf '        }\n'
+        printf '        '"'"' 2>/dev/null) || true\n'
+        printf '\n'
+        printf '    if [[ -n "$copilot_data" ]]; then\n'
+        printf '        review_state=$(echo "$copilot_data" | jq -r '"'"'.state // "UNKNOWN"'"'"')\n'
+        printf '        comment_count=$(echo "$copilot_data" | jq -r '"'"'.commentCount // 0'"'"')\n'
+        printf '        if [[ "$review_state" != "null" && "$review_state" != "UNKNOWN" ]] && [[ "$comment_count" -gt 0 ]]; then\n'
+        printf '            echo "Review complete after ${elapsed}s (state: $review_state, $comment_count comments)"\n'
+        printf '            exit 0\n'
+        printf '        elif [[ "$review_state" != "null" && "$review_state" != "UNKNOWN" ]]; then\n'
+        printf '            echo "Review found but still processing (state: $review_state, $comment_count comments)"\n'
+        printf '        fi\n'
+        printf '    fi\n'
+        printf '\n'
+        printf '    sleep "$POLL_INTERVAL"\n'
+        printf '    elapsed=$((elapsed + POLL_INTERVAL))\n'
+        printf '\n'
+        printf '    if [ "$USING_GUM" = "0" ]; then\n'
+        printf '        echo -n "."\n'
+        printf '    fi\n'
+        printf 'done\n'
+        printf '\n'
+        printf 'echo ""\n'
+        printf 'echo "Review not completed after ${MAX_WAIT}s - it may still be processing"\n'
+        printf 'exit 1\n'
+    } > "$poll_script"
+    chmod +x "$poll_script"
 
     # Use gum spin if available, otherwise fall back to simple progress
     if command -v gum &> /dev/null; then
-        USING_GUM=1 gum spin --spinner dot --title "Waiting for Copilot review..." -- bash -c "MAX_WAIT=$MAX_WAIT; POLL_INTERVAL=$POLL_INTERVAL; PR_REPO_OWNER='$PR_REPO_OWNER'; PR_REPO_NAME='$PR_REPO_NAME'; PR_NUMBER='$PR_NUMBER'; $(declare -f poll_for_review); poll_for_review"
+        USING_GUM=1 gum spin --spinner dot --title "Waiting for Copilot review..." -- \
+            bash "$poll_script" "$MAX_WAIT" "$POLL_INTERVAL" "$INITIAL_DELAY" \
+            "$PR_REPO_OWNER" "$PR_REPO_NAME" "$PR_NUMBER" "1"
         review_ready=$?
     else
         echo "{{BLUE}}Waiting for Copilot review...{{NORMAL}}"
-        USING_GUM=0 poll_for_review
-        review_ready=$?
+        if bash "$poll_script" "$MAX_WAIT" "$POLL_INTERVAL" "$INITIAL_DELAY" \
+            "$PR_REPO_OWNER" "$PR_REPO_NAME" "$PR_NUMBER" "0"; then
+            review_ready=0
+        else
+            review_ready=1
+        fi
     fi
+
+    rm -f "$poll_script"
 
     if [[ $review_ready -eq 0 ]]; then
         echo ""
@@ -429,9 +447,15 @@ copilot_rollback:
             filename=$(basename "$backup")
             timestamp=${filename##*_}
             timestamp=${timestamp%.bak}
-            # Convert safe path back to original file path
+            # URL-decode the safe path back to original file path
+            # (reversible unlike the old _ for / approach)
             safe_path=${filename%_*}
-            target_file=${safe_path//_/\/}
+            if echo "$safe_path" | grep -qE '%2F|%5F|%25'; then
+                target_file=$(echo "$safe_path" | sed 's|%5F|_|g; s|%2F|/|g; s|%25|%|g')
+            else
+                # Legacy fallback: old backups used _ for / replacement
+                target_file=${safe_path//_/\/}
+            fi
             # Validate the reconstructed path doesn't escape repo root
             if [[ "$target_file" =~ ^\.\./|/\.\./|\.\.$ ]] || [[ "$target_file" =~ ^/ ]]; then
                 echo "{{RED}}Warning: Skipping invalid backup path: $target_file{{NORMAL}}"
