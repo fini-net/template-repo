@@ -7,6 +7,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 ### v6.5 - Install gh-observer (2026-05-01)
 
 - **Related PR:** [#142](https://github.com/fini-net/template-repo/pull/142)
+- Fixes issue [#123](https://github.com/fini-net/template-repo/issues/123)
 
 Added `gh-observer` as a required tool in the prerequisites installation script.
 The `gh-observer` extension was already used by the `pr` recipe (v5.7) but wasn't
