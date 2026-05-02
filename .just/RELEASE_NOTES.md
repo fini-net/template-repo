@@ -2,6 +2,25 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
+## May 2026 - The Repolish Updates
+
+### v6.5 - Install gh-observer (2026-05-01)
+
+- **Related PR:** [#142](https://github.com/fini-net/template-repo/pull/142)
+
+Added `gh-observer` as a required tool in the prerequisites installation script.
+The `gh-observer` extension was already used by the `pr` recipe (v5.7) but wasn't
+listed in the prerequisites, so a missing installation would silently fall back
+to the polling loop. Now it's properly detected, installed, and reported alongside
+the other tools.
+
+**Changes:**
+
+- **gh-observer in prerequisites** - Added `gh-observer` (the `gh observer` extension)
+  to `install-prerequisites.sh`: detection via `gh extension list`, Homebrew-style
+  installation using `gh extension install chicks-net/gh-observer` on macOS, and
+  manual install instructions for Linux and other platforms.
+
 ## April 2026 - Guard rails
 
 ### v6.4 - Prerequisites Update and Cue Schema Fix (2026-04-23)
