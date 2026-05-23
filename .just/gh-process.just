@@ -254,19 +254,19 @@ pr_checks: _on_a_pull_request && claude_review
         # shellcheck disable=SC2016
         COPILOT_JSON=$(gh api graphql \
             -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
-            --jq '[ .data.repository.pullRequest.reviews.nodes.[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes.[] ]' \
+            --jq '[ .data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .comments.nodes[] | select(.author.login=="copilot-pull-request-reviewer") ]' \
             -f query='
             query($name: String!, $owner: String!, $pr: Int!) {
                 repository(owner: $owner, name: $name) {
                     pullRequest(number: $pr) {
-                        reviews(last: 20) {
+                        reviewThreads(first: 100) {
                             nodes {
-                                author {
-                                    resourcePath
-                                    login
-                                }
+                                isResolved
                                 comments(first: 100) {
                                     nodes {
+                                        author {
+                                            login
+                                        }
                                         body
                                         path
                                         originalLine
@@ -285,9 +285,9 @@ pr_checks: _on_a_pull_request && claude_review
 
         # Display output to maintain current behavior
         if [[ "$COPILOT_COUNT" -eq 0 ]]; then
-            echo "🐈‍⬛ No Copilot suggestions - looks good!"
+            echo "🐈‍⬛ No unresolved Copilot suggestions - looks good!"
         else
-            echo "🐈‍⬛ Total Copilot suggestions: $COPILOT_COUNT"
+            echo "🐈‍⬛ Unresolved Copilot suggestions: $COPILOT_COUNT"
             echo "$COPILOT_JSON" | jq '.'
         fi
     else
@@ -382,9 +382,9 @@ claude_review: _on_a_pull_request
         COPILOT_COUNT=$(cat "$COPILOT_COUNT_FILE")
         echo ""
         if [[ "$COPILOT_COUNT" -eq 0 ]]; then
-            echo "🐈‍⬛ No Copilot suggestions - looks good!"
+            echo "🐈‍⬛ No unresolved Copilot suggestions - looks good!"
         else
-            echo "🐈‍⬛ Total Copilot suggestions: $COPILOT_COUNT"
+            echo "🐈‍⬛ Unresolved Copilot suggestions: $COPILOT_COUNT"
         fi
         rm -f "$COPILOT_COUNT_FILE"
     fi
