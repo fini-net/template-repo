@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-05-02T02:15:42Z",
+  "generated_at": "2026-05-23T04:46:58Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -88,11 +88,51 @@
 ]},
     ".just/copilot.just": {"versions": [
         {
+          "checksum": "e166d5e76a043895529a9305ba4b9b2bb23f3b78f73bd6da790fa172d1f3ca31",
+          "commit": "a8d841d478429c076b2c3b6ed87660d2acceb048",
+          "date": "2026-05-22T21:46:52-07:00",
+          "version": "",
+          "is_latest": true
+        }
+,
+        {
+          "checksum": "559397e31aa01c3e3e3a6d8a4e98daef9903df642db2a29b6b9952574677cd1a",
+          "commit": "fe320018b8286386985139c7dd3c0ae79e847d37",
+          "date": "2026-05-22T21:38:58-07:00",
+          "version": "",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "c57256f14d3ff266c05da1e7a973aaaa69be0dc79cd62498a6f2bfb52a280c9d",
+          "commit": "67d6d494d7e3e64cd146b3a775d35d3343e77056",
+          "date": "2026-05-22T21:32:44-07:00",
+          "version": "",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "367c620c68f7a720c64a12dec34cdcea4502aea6aad7ea9dd33fd88872051aed",
+          "commit": "be30982d7d6b977209f5efc1214e20bcb74a2aa8",
+          "date": "2026-05-22T21:09:10-07:00",
+          "version": "",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "c201a27ad98f83f4cea179d74da61ae442a7510f56c7aa3be23d0f7fefe894a7",
+          "commit": "f1ae62cad50c68dcd13783741baf3bb020eeaa38",
+          "date": "2026-05-22T21:06:20-07:00",
+          "version": "",
+          "is_latest": false
+        }
+,
+        {
           "checksum": "91eb7eaaf47705a2cce883eb747f3d1a2b47d3d76b941646e2605464f8db853d",
           "commit": "30aee89c82f35514ba7ee0189b89530bf7a7423f",
           "date": "2026-04-23T17:29:04-07:00",
           "version": "v6.3",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -162,11 +202,35 @@
 ]},
     ".just/gh-process.just": {"versions": [
         {
-          "checksum": "d36b7863842e4b2a6587e959afaf3d55e1e7856b451e16fb4a5573a058cde74f",
-          "commit": "0b810e304a18dd385f2a4f37dbff7db661b570b0",
-          "date": "2026-05-01T19:12:26-07:00",
-          "version": "v6.5",
+          "checksum": "1ad88b1431d1527cedf1572219c059e2ab08ed1f0134512f416f59b3e31d31a0",
+          "commit": "fe320018b8286386985139c7dd3c0ae79e847d37",
+          "date": "2026-05-22T21:38:58-07:00",
+          "version": "",
           "is_latest": true
+        }
+,
+        {
+          "checksum": "2f6cdd9426ece56746301be6d5d4cfaf00164e9f189ea9a6e89fef58d1c48968",
+          "commit": "0994c806c58e3dc311c4615f50c5561437c6367c",
+          "date": "2026-05-22T21:29:36-07:00",
+          "version": "v6.6",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "1db59eaed7c64361daf7258b69ffbc7e9524cbeda7156760d6b79cecc3e79e95",
+          "commit": "f1ae62cad50c68dcd13783741baf3bb020eeaa38",
+          "date": "2026-05-22T21:06:20-07:00",
+          "version": "",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "d36b7863842e4b2a6587e959afaf3d55e1e7856b451e16fb4a5573a058cde74f",
+          "commit": "bf35bf743fb040da4a6f8f0d8be9ce499c564d76",
+          "date": "2026-05-01T19:34:47-07:00",
+          "version": "v6.5",
+          "is_latest": false
         }
 ,
         {
@@ -730,8 +794,8 @@
     ".just/lib/install-prerequisites.sh": {"versions": [
         {
           "checksum": "8ad88b05b97d46b9f37a40a4a8520d6419c711effb2ad6762280260ac7d31133",
-          "commit": "0b810e304a18dd385f2a4f37dbff7db661b570b0",
-          "date": "2026-05-01T19:12:26-07:00",
+          "commit": "bf35bf743fb040da4a6f8f0d8be9ce499c564d76",
+          "date": "2026-05-01T19:34:47-07:00",
           "version": "v6.5",
           "is_latest": true
         }

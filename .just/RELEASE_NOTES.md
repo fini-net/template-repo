@@ -4,6 +4,31 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## May 2026 - The Repolish Updates
 
+### v6.6 - Cleaner Copilot Review Feedback (2026-05-22)
+
+- **Related PRs:** [#152](https://github.com/fini-net/template-repo/pull/152)
+- Fixes issue [#151](https://github.com/fini-net/template-repo/issues/151)
+
+Improved Copilot review feedback in two ways: filtering out resolved suggestions
+and auto-resolving old suggestions before requesting fresh reviews. Previously,
+resolved suggestions cluttered the output and stale suggestions from previous
+review rounds lingered alongside fresh ones, making it hard to tell which items
+still needed attention.
+
+**Changes:**
+
+- **Unresolved-only filter** - Added `isResolved` filter to the GraphQL query
+  so only open Copilot review threads are shown.
+- **Resolve before refresh** - `copilot_refresh` now fetches all unresolved
+  Copilot review thread IDs via GraphQL, then calls the `resolveReviewThread`
+  mutation on each one before requesting the new Copilot review.
+- **Cleaner feedback** - Resolved suggestions are excluded from the count and
+  display, reducing noise after addressing feedback.
+- **Detailed reporting** - Shows how many suggestions were resolved and warns
+  if any failed to resolve (e.g., due to permission issues).
+- **Clean feedback loop** - Each refresh starts with a clean slate so all
+  suggestions come from the latest review round.
+
 ### v6.5 - Install gh-observer (2026-05-01)
 
 - **Related PR:** [#142](https://github.com/fini-net/template-repo/pull/142)

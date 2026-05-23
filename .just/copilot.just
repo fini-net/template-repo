@@ -25,7 +25,7 @@ copilot_pick: _on_a_pull_request
         exit 1
     fi
 
-    echo "🐈‍⬛😾 Fetching Copilot suggestions..."
+    echo "🐈‍⬛😾 Fetching unresolved Copilot suggestions..."
 
     # Get PR metadata
     PR_META=$(gh pr view --json number,headRepository,headRepositoryOwner)
@@ -36,25 +36,26 @@ copilot_pick: _on_a_pull_request
     # Fetch Copilot comments
     copilot_comments=$(mktemp /tmp/justfile.XXXXXX)
 
-    # Note: GraphQL limits - fetches only the latest review (last: 1) and first 100 comments
-    # Then filter to only Copilot reviews to ensure we only get the most recent Copilot feedback
-    # This approach avoids potential GraphQL syntax issues with author filters
+    # Note: Uses reviewThreads instead of reviews so we can filter by isResolved.
+    # Only unresolved threads are included so the picker shows actionable suggestions.
+    # Note: reviewThreads(first: 100) limits to 100 threads; pagination not implemented.
+    # This is unlikely to be an issue in practice (PRs rarely exceed 100 review threads).
     # shellcheck disable=SC2016
     gh api graphql \
         -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
-        --jq '[ .data.repository.pullRequest.reviews.nodes[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes[] ]' \
+        --jq '[ .data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .comments.nodes[] | select(.author.login=="copilot-pull-request-reviewer") ]' \
         -f query='
         query($name: String!, $owner: String!, $pr: Int!) {
             repository(owner: $owner, name: $name) {
                 pullRequest(number: $pr) {
-                    reviews(last: 1) {
+                    reviewThreads(first: 100) {
                         nodes {
-                            author {
-                                resourcePath
-                                login
-                            }
+                            isResolved
                             comments(first: 100) {
                                 nodes {
+                                    author {
+                                        login
+                                    }
                                     body
                                     path
                                     originalLine
@@ -71,11 +72,11 @@ copilot_pick: _on_a_pull_request
     COMMENT_COUNT=$(jq 'length' "$copilot_comments")
 
     if [[ "$COMMENT_COUNT" -eq 0 ]]; then
-        echo "{{BLUE}}No Copilot suggestions found{{NORMAL}}"
+        echo "{{BLUE}}No unresolved Copilot suggestions found{{NORMAL}}"
         exit 0
     fi
 
-    echo "{{GREEN}}Found $COMMENT_COUNT Copilot suggestions{{NORMAL}}"
+    echo "{{GREEN}}Found $COMMENT_COUNT unresolved Copilot suggestions{{NORMAL}}"
     echo ""
 
     # Format suggestions for gum display
@@ -269,6 +270,66 @@ copilot_refresh: _on_a_pull_request
     PR_NUMBER=$(echo "$PR_META" | jq -r '.number')
     REPO="${PR_REPO_OWNER}/${PR_REPO_NAME}"
 
+    # Resolve all existing unresolved Copilot review threads
+    echo "🐈‍⬛ Resolving existing Copilot suggestions..."
+
+    # Note: reviewThreads(first: 100) limits to 100 threads; see copilot_pick for comment.
+
+    # shellcheck disable=SC2016
+    THREAD_IDS=$(gh api graphql \
+        -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
+        --jq '[ .data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | select(any(.comments.nodes[]; .author.login == "copilot-pull-request-reviewer")) | .id ]' \
+        -f query='
+        query($name: String!, $owner: String!, $pr: Int!) {
+            repository(owner: $owner, name: $name) {
+                pullRequest(number: $pr) {
+                    reviewThreads(first: 100) {
+                        nodes {
+                            id
+                            isResolved
+                            comments(first: 100) {
+                                nodes {
+                                    author {
+                                        login
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        ')
+
+    THREAD_COUNT=$(echo "$THREAD_IDS" | jq 'length')
+
+    if [[ "$THREAD_COUNT" -gt 0 ]]; then
+        RESOLVED=0
+        FAILED=0
+        err_file=$(mktemp /tmp/justfile.copilot_resolve_err.XXXXXX)
+        for thread_id in $(echo "$THREAD_IDS" | jq -r '.[]'); do
+            if gh api graphql \
+                -f threadId="$thread_id" \
+                -f query='mutation($threadId: ID!) { resolveReviewThread(input: { threadId: $threadId }) { thread { isResolved } } }' \
+                >>/dev/null 2>>"$err_file"; then
+                ((RESOLVED++)) || true
+            else
+                ((FAILED++)) || true
+            fi
+        done
+        echo "{{GREEN}}✓ Resolved $RESOLVED Copilot suggestion(s){{NORMAL}}"
+        if [[ $FAILED -gt 0 ]]; then
+            echo "{{YELLOW}}⚠ Failed to resolve $FAILED suggestion(s){{NORMAL}}"
+            if [[ -s "$err_file" ]]; then
+                echo "{{YELLOW}}  Error details:{{NORMAL}}"
+                sed 's/^/  /' "$err_file"
+            fi
+        fi
+        rm -f "$err_file"
+    else
+        echo "{{BLUE}}No unresolved Copilot suggestions to resolve{{NORMAL}}"
+    fi
+
     # Request Copilot review
     echo "🐈‍⬛ Requesting Copilot review on PR #${PR_NUMBER}..."
 
@@ -368,22 +429,24 @@ copilot_refresh: _on_a_pull_request
         echo ""
         echo "{{GREEN}}Review complete!{{NORMAL}}"
 
-        # Count suggestions using GraphQL
+        # Count unresolved suggestions using GraphQL
+        # Note: reviewThreads(first: 100) limits to 100 threads; see copilot_pick for comment.
         # shellcheck disable=SC2016
         COPILOT_COUNT=$(gh api graphql \
             -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
-            --jq '[ .data.repository.pullRequest.reviews.nodes[] | select(.author.login=="copilot-pull-request-reviewer") | .comments.nodes[] ] | length' \
+            --jq '[ .data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .comments.nodes[] | select(.author.login=="copilot-pull-request-reviewer") ] | length' \
             -f query='
             query($name: String!, $owner: String!, $pr: Int!) {
                 repository(owner: $owner, name: $name) {
                     pullRequest(number: $pr) {
-                        reviews(last: 1) {
+                        reviewThreads(first: 100) {
                             nodes {
-                                author {
-                                    login
-                                }
+                                isResolved
                                 comments(first: 100) {
                                     nodes {
+                                        author {
+                                            login
+                                        }
                                         body
                                         path
                                         originalLine
@@ -397,12 +460,12 @@ copilot_refresh: _on_a_pull_request
             ')
 
         if [[ $COPILOT_COUNT -gt 0 ]]; then
-            echo "🐈‍⬛ Found ${COPILOT_COUNT} Copilot suggestions"
+            echo "🐈‍⬛ Found ${COPILOT_COUNT} unresolved Copilot suggestions"
             echo ""
             echo "To browse interactively:"
             echo "  {{GREEN}}just copilot_pick{{NORMAL}}"
         else
-            echo "🐈‍⬛ No suggestions - looks good!"
+            echo "🐈‍⬛ No unresolved suggestions - looks good!"
         fi
     else
         echo "{{YELLOW}}Review may still be processing (waited ${MAX_WAIT}s total). Options:{{NORMAL}}"
