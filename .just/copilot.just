@@ -268,6 +268,58 @@ copilot_refresh: _on_a_pull_request
     PR_NUMBER=$(echo "$PR_META" | jq -r '.number')
     REPO="${PR_REPO_OWNER}/${PR_REPO_NAME}"
 
+    # Resolve all existing unresolved Copilot review threads
+    echo "🐈‍⬛ Resolving existing Copilot suggestions..."
+
+    # shellcheck disable=SC2016
+    THREAD_IDS=$(gh api graphql \
+        -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
+        --jq '[ .data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | select(.comments.nodes[].author.login == "copilot-pull-request-reviewer") | .id ]' \
+        -f query='
+        query($name: String!, $owner: String!, $pr: Int!) {
+            repository(owner: $owner, name: $name) {
+                pullRequest(number: $pr) {
+                    reviewThreads(first: 100) {
+                        nodes {
+                            id
+                            isResolved
+                            comments(first: 100) {
+                                nodes {
+                                    author {
+                                        login
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        ')
+
+    THREAD_COUNT=$(echo "$THREAD_IDS" | jq 'length')
+
+    if [[ "$THREAD_COUNT" -gt 0 ]]; then
+        RESOLVED=0
+        FAILED=0
+        for thread_id in $(echo "$THREAD_IDS" | jq -r '.[]'); do
+            if gh api graphql \
+                -f threadId="$thread_id" \
+                -f query='mutation($threadId: ID!) { resolveReviewThread(input: { threadId: $threadId }) { thread { isResolved } } }' \
+                &>/dev/null; then
+                ((RESOLVED++))
+            else
+                ((FAILED++))
+            fi
+        done
+        echo "{{GREEN}}✓ Resolved $RESOLVED Copilot suggestion(s){{NORMAL}}"
+        if [[ $FAILED -gt 0 ]]; then
+            echo "{{YELLOW}}⚠ Failed to resolve $FAILED suggestion(s){{NORMAL}}"
+        fi
+    else
+        echo "{{BLUE}}No unresolved Copilot suggestions to resolve{{NORMAL}}"
+    fi
+
     # Request Copilot review
     echo "🐈‍⬛ Requesting Copilot review on PR #${PR_NUMBER}..."
 
