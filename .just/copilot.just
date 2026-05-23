@@ -38,6 +38,8 @@ copilot_pick: _on_a_pull_request
 
     # Note: Uses reviewThreads instead of reviews so we can filter by isResolved.
     # Only unresolved threads are included so the picker shows actionable suggestions.
+    # Note: reviewThreads(first: 100) limits to 100 threads; pagination not implemented.
+    # This is unlikely to be an issue in practice (PRs rarely exceed 100 review threads).
     # shellcheck disable=SC2016
     gh api graphql \
         -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
@@ -271,10 +273,12 @@ copilot_refresh: _on_a_pull_request
     # Resolve all existing unresolved Copilot review threads
     echo "🐈‍⬛ Resolving existing Copilot suggestions..."
 
+    # Note: reviewThreads(first: 100) limits to 100 threads; see copilot_pick for comment.
+
     # shellcheck disable=SC2016
     THREAD_IDS=$(gh api graphql \
         -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
-        --jq '[ .data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | select(.comments.nodes[].author.login == "copilot-pull-request-reviewer") | .id ]' \
+        --jq '[ .data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | select(any(.comments.nodes[]; .author.login == "copilot-pull-request-reviewer")) | .id ]' \
         -f query='
         query($name: String!, $owner: String!, $pr: Int!) {
             repository(owner: $owner, name: $name) {
@@ -302,11 +306,12 @@ copilot_refresh: _on_a_pull_request
     if [[ "$THREAD_COUNT" -gt 0 ]]; then
         RESOLVED=0
         FAILED=0
+        err_file=$(mktemp /tmp/justfile.copilot_resolve_err.XXXXXX)
         for thread_id in $(echo "$THREAD_IDS" | jq -r '.[]'); do
             if gh api graphql \
                 -f threadId="$thread_id" \
                 -f query='mutation($threadId: ID!) { resolveReviewThread(input: { threadId: $threadId }) { thread { isResolved } } }' \
-                &>/dev/null; then
+                2>"$err_file"; then
                 ((RESOLVED++))
             else
                 ((FAILED++))
@@ -315,7 +320,12 @@ copilot_refresh: _on_a_pull_request
         echo "{{GREEN}}✓ Resolved $RESOLVED Copilot suggestion(s){{NORMAL}}"
         if [[ $FAILED -gt 0 ]]; then
             echo "{{YELLOW}}⚠ Failed to resolve $FAILED suggestion(s){{NORMAL}}"
+            if [[ -s "$err_file" ]]; then
+                echo "{{YELLOW}}  Error details:{{NORMAL}}"
+                sed 's/^/  /' "$err_file"
+            fi
         fi
+        rm -f "$err_file"
     else
         echo "{{BLUE}}No unresolved Copilot suggestions to resolve{{NORMAL}}"
     fi
@@ -420,6 +430,7 @@ copilot_refresh: _on_a_pull_request
         echo "{{GREEN}}Review complete!{{NORMAL}}"
 
         # Count unresolved suggestions using GraphQL
+        # Note: reviewThreads(first: 100) limits to 100 threads; see copilot_pick for comment.
         # shellcheck disable=SC2016
         COPILOT_COUNT=$(gh api graphql \
             -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
