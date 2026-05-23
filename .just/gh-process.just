@@ -251,6 +251,7 @@ pr_checks: _on_a_pull_request && claude_review
         COPILOT_COUNT_FILE="/tmp/copilot_count_${PR_REPO_OWNER}_${PR_REPO_NAME}_${PR_NUMBER}"
 
         # Capture GraphQL output
+        # Note: reviewThreads(first: 100) limits to 100 threads; see copilot_pick for comment.
         # shellcheck disable=SC2016
         COPILOT_JSON=$(gh api graphql \
             -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \

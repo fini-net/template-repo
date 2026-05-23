@@ -6,7 +6,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ### v6.6 - Cleaner Copilot Review Feedback (2026-05-22)
 
-- **Related PRs:** [#152](https://github.com/fini-net/template-repo/pull/152), TBD
+- **Related PRs:** [#152](https://github.com/fini-net/template-repo/pull/152)
 - Fixes issue [#151](https://github.com/fini-net/template-repo/issues/151)
 
 Improved Copilot review feedback in two ways: filtering out resolved suggestions

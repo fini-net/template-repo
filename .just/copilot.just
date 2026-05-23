@@ -311,10 +311,10 @@ copilot_refresh: _on_a_pull_request
             if gh api graphql \
                 -f threadId="$thread_id" \
                 -f query='mutation($threadId: ID!) { resolveReviewThread(input: { threadId: $threadId }) { thread { isResolved } } }' \
-                2>"$err_file"; then
-                ((RESOLVED++))
+                2>>"$err_file"; then
+                ((RESOLVED++)) || true
             else
-                ((FAILED++))
+                ((FAILED++)) || true
             fi
         done
         echo "{{GREEN}}✓ Resolved $RESOLVED Copilot suggestion(s){{NORMAL}}"
