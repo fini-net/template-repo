@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-06-20T18:33:46Z",
+  "generated_at": "2026-06-20T18:49:01Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -170,11 +170,19 @@
 ]},
     ".just/gh-process.just": {"versions": [
         {
+          "checksum": "93f084b0258c2eb83d5f8108e2c77b369349f1f40e0af4fe0bb4460966fbfd42",
+          "commit": "5cb5b6ae03757ed7a0fa8a5c9b5c609ffeb8b545",
+          "date": "2026-06-20T11:37:01-07:00",
+          "version": "v6.7",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "1ad88b1431d1527cedf1572219c059e2ab08ed1f0134512f416f59b3e31d31a0",
           "commit": "b2035a68578444a7a772ea1052d75e344b11007f",
           "date": "2026-05-22T21:52:28-07:00",
           "version": "",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -665,11 +673,19 @@
 ]},
     ".just/lib/generate_checksums.sh": {"versions": [
         {
+          "checksum": "03cb85d7973e998759e17f858dd6756aa69feacd35ab01dbbed0e75ba21f2bd5",
+          "commit": "5cb5b6ae03757ed7a0fa8a5c9b5c609ffeb8b545",
+          "date": "2026-06-20T11:37:01-07:00",
+          "version": "v6.7",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "979be68aca85892b761eb4a2a8342eea300bcac073e64802f9fb662eaead9d28",
           "commit": "73d9e57268ef1bdf2662ea7c5437f455128c1d1d",
           "date": "2026-03-22T20:52:08-07:00",
           "version": "",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -725,11 +741,27 @@
 ]},
     ".just/lib/template_update.sh": {"versions": [
         {
+          "checksum": "f5008d007e44dc23ac4b66da8c71edcaa4c0b6bccd6d5c029cb65e0ac7f3a0da",
+          "commit": "33e51a9f17de34864445fecef1dccc1bc75b24f8",
+          "date": "2026-06-20T11:48:45-07:00",
+          "version": "",
+          "is_latest": true
+        }
+,
+        {
+          "checksum": "0b5b9e1f35ca0837962981f9b2c570962529f887c18ddc5ae2b67e2696b2d40d",
+          "commit": "5cb5b6ae03757ed7a0fa8a5c9b5c609ffeb8b545",
+          "date": "2026-06-20T11:37:01-07:00",
+          "version": "v6.7",
+          "is_latest": false
+        }
+,
+        {
           "checksum": "dfddad2e4d078b2cb3dc79f84fe867caabc3445bcf7f5e144e80af06214c6c0e",
           "commit": "b2829dce75d11019decf0a1ad3af36c8fbe70bc2",
           "date": "2026-04-23T16:28:02-07:00",
           "version": "",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
