@@ -2,6 +2,43 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
+## June 2026 - Template sync robustness
+
+### v6.7 - Fix update_from_template failures on test fixtures (2026-06-20)
+
+- Fixes issue [#162](https://github.com/fini-net/template-repo/issues/162)
+
+Running `just update_from_template` in a derived repo failed with seven
+`Download failed after 3 attempts` lines for `.just/test/fixtures/...` paths.
+Three compounding bugs were found and fixed.
+
+**Changes:**
+
+- **Exclude test fixtures from the manifest** - `.just/lib/generate_checksums.sh`
+  now uses `git ls-files '.just/*.just' ':(exclude).just/test/**'` so git's
+  pathspec `*` (which matches across `/`) no longer pulls nested fixture paths
+  like `.just/test/fixtures/template_sync/01_unmodified_file/expected_state/.just/test.just`
+  into `CHECKSUMS.json`. Those fixtures are only meaningful inside template-repo
+  itself and should never be distributed to derived repos. Regenerated the
+  manifest, which dropped from 25 to 18 tracked files.
+- **Fix `is_cleaned` jq scoping bug** - The `any($fp | startswith(.))`
+  expression in `template_update.sh` rebound `.` to `$fp` after the pipe, so
+  `startswith(.)` became `startswith($fp)` — always true. This silently treated
+  *every* missing file as "cleaned", masking the fixture symptom and breaking
+  `update_from_template` for genuinely new template modules. Replaced with
+  `any(. as $p | $fp | startswith($p))` to capture the array element before
+  piping.
+- **`mkdir -p` before download** - `download_file` now creates the target
+  directory with `mkdir -p "$(dirname "$filepath")"` before writing
+  `${filepath}.tmp`. Previously the nested `.just/test/fixtures/.../.just/`
+  directory didn't exist in derived repos, so `curl -o` failed on every retry.
+- **Surface curl stderr on failure** - The final failure branch now captures
+  curl's stderr to a temp file and prints it (`curl error: ...`) instead of
+  `2>/dev/null` swallowing the real "no such directory" error, which is what
+  produced the misleading "Download failed after 3 attempts" message.
+- **Backward compat** - `.just/test` remains in `CLEANED_FILES` so derived repos
+  that somehow already received the fixture files still skip them as cleaned.
+
 ## May 2026 - The Repolish Updates
 
 ### v6.6 - Cleaner Copilot Review Feedback (2026-05-22)
