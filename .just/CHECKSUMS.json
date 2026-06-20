@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-05-23T04:46:58Z",
+  "generated_at": "2026-06-20T18:33:46Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -89,42 +89,10 @@
     ".just/copilot.just": {"versions": [
         {
           "checksum": "e166d5e76a043895529a9305ba4b9b2bb23f3b78f73bd6da790fa172d1f3ca31",
-          "commit": "a8d841d478429c076b2c3b6ed87660d2acceb048",
-          "date": "2026-05-22T21:46:52-07:00",
+          "commit": "b2035a68578444a7a772ea1052d75e344b11007f",
+          "date": "2026-05-22T21:52:28-07:00",
           "version": "",
           "is_latest": true
-        }
-,
-        {
-          "checksum": "559397e31aa01c3e3e3a6d8a4e98daef9903df642db2a29b6b9952574677cd1a",
-          "commit": "fe320018b8286386985139c7dd3c0ae79e847d37",
-          "date": "2026-05-22T21:38:58-07:00",
-          "version": "",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "c57256f14d3ff266c05da1e7a973aaaa69be0dc79cd62498a6f2bfb52a280c9d",
-          "commit": "67d6d494d7e3e64cd146b3a775d35d3343e77056",
-          "date": "2026-05-22T21:32:44-07:00",
-          "version": "",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "367c620c68f7a720c64a12dec34cdcea4502aea6aad7ea9dd33fd88872051aed",
-          "commit": "be30982d7d6b977209f5efc1214e20bcb74a2aa8",
-          "date": "2026-05-22T21:09:10-07:00",
-          "version": "",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "c201a27ad98f83f4cea179d74da61ae442a7510f56c7aa3be23d0f7fefe894a7",
-          "commit": "f1ae62cad50c68dcd13783741baf3bb020eeaa38",
-          "date": "2026-05-22T21:06:20-07:00",
-          "version": "",
-          "is_latest": false
         }
 ,
         {
@@ -203,26 +171,10 @@
     ".just/gh-process.just": {"versions": [
         {
           "checksum": "1ad88b1431d1527cedf1572219c059e2ab08ed1f0134512f416f59b3e31d31a0",
-          "commit": "fe320018b8286386985139c7dd3c0ae79e847d37",
-          "date": "2026-05-22T21:38:58-07:00",
+          "commit": "b2035a68578444a7a772ea1052d75e344b11007f",
+          "date": "2026-05-22T21:52:28-07:00",
           "version": "",
           "is_latest": true
-        }
-,
-        {
-          "checksum": "2f6cdd9426ece56746301be6d5d4cfaf00164e9f189ea9a6e89fef58d1c48968",
-          "commit": "0994c806c58e3dc311c4615f50c5561437c6367c",
-          "date": "2026-05-22T21:29:36-07:00",
-          "version": "v6.6",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "1db59eaed7c64361daf7258b69ffbc7e9524cbeda7156760d6b79cecc3e79e95",
-          "commit": "f1ae62cad50c68dcd13783741baf3bb020eeaa38",
-          "date": "2026-05-22T21:06:20-07:00",
-          "version": "",
-          "is_latest": false
         }
 ,
         {
@@ -667,69 +619,6 @@
           "date": "2026-01-27T17:59:16-08:00",
           "version": "v5.2",
           "is_latest": false
-        }
-]},
-    ".just/test/fixtures/template_sync/01_unmodified_file/expected_state/.just/test.just": {"versions": [
-        {
-          "checksum": "6e9a19950b3e382780a1806f8289b8361a9342d9181fa695a7d97f6585d1fcd5",
-          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
-          "date": "2026-01-27T17:59:16-08:00",
-          "version": "v5.2",
-          "is_latest": true
-        }
-]},
-    ".just/test/fixtures/template_sync/01_unmodified_file/input/.just/test.just": {"versions": [
-        {
-          "checksum": "0771fc3cb3cdda4ee6195858bb5294c062c5c257ce950e4c928fe879fd7b2f41",
-          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
-          "date": "2026-01-27T17:59:16-08:00",
-          "version": "v5.2",
-          "is_latest": true
-        }
-]},
-    ".just/test/fixtures/template_sync/01_unmodified_file/template_versions/test.just": {"versions": [
-        {
-          "checksum": "6e9a19950b3e382780a1806f8289b8361a9342d9181fa695a7d97f6585d1fcd5",
-          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
-          "date": "2026-01-27T17:59:16-08:00",
-          "version": "v5.2",
-          "is_latest": true
-        }
-]},
-    ".just/test/fixtures/template_sync/02_modified_file/expected_state/.just/test.just": {"versions": [
-        {
-          "checksum": "efe193e8ff6b11fab194c06f9e56f2a5215933ef96d8df718cb253506fe3218b",
-          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
-          "date": "2026-01-27T17:59:16-08:00",
-          "version": "v5.2",
-          "is_latest": true
-        }
-]},
-    ".just/test/fixtures/template_sync/02_modified_file/input/.just/test.just": {"versions": [
-        {
-          "checksum": "efe193e8ff6b11fab194c06f9e56f2a5215933ef96d8df718cb253506fe3218b",
-          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
-          "date": "2026-01-27T17:59:16-08:00",
-          "version": "v5.2",
-          "is_latest": true
-        }
-]},
-    ".just/test/fixtures/template_sync/03_already_latest/expected_state/.just/test.just": {"versions": [
-        {
-          "checksum": "03345a668d809b85f90081f70df6b5b1d15467740eaee3db3e8d8fc4afc60f93",
-          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
-          "date": "2026-01-27T17:59:16-08:00",
-          "version": "v5.2",
-          "is_latest": true
-        }
-]},
-    ".just/test/fixtures/template_sync/03_already_latest/input/.just/test.just": {"versions": [
-        {
-          "checksum": "03345a668d809b85f90081f70df6b5b1d15467740eaee3db3e8d8fc4afc60f93",
-          "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
-          "date": "2026-01-27T17:59:16-08:00",
-          "version": "v5.2",
-          "is_latest": true
         }
 ]},
     ".just/testing.just": {"versions": [
