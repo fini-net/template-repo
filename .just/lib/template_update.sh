@@ -82,7 +82,7 @@ download_file() {
 
 	# Ensure the target directory exists (defense in depth: derived repos
 	# may receive files under paths whose parent dirs don't exist yet)
-	mkdir -p "$(dirname "$filepath")"
+	mkdir -p "$(dirname "$filepath")" || return 1
 
 	# Backup existing file
 	if [[ -f "$filepath" ]]; then
@@ -91,29 +91,29 @@ download_file() {
 
 	while [[ $attempt -le $max ]]; do
 		if curl -sSL -f "$TEMPLATE_URL/$filepath" -o "$temp_file" 2>"$err_file"; then
-		# Verify it's not empty
-		if [[ ! -s "$temp_file" ]]; then
-			echo -e "      ${RED}Downloaded file is empty${NORMAL}"
-			rm -f "$temp_file" "$err_file"
-			[[ -f "$backup_file" ]] && mv "$backup_file" "$filepath"
-			return 1
-		fi
-
-		# Verify checksum if expected checksum provided
-		if [[ -n "$expected_checksum" ]]; then
-			local downloaded_checksum
-			downloaded_checksum=$(compute_checksum "$temp_file")
-			if [[ "$downloaded_checksum" != "$expected_checksum" ]]; then
-				echo -e "      ${RED}Checksum mismatch${NORMAL}"
+			# Verify it's not empty
+			if [[ ! -s "$temp_file" ]]; then
+				echo -e "      ${RED}Downloaded file is empty${NORMAL}"
 				rm -f "$temp_file" "$err_file"
 				[[ -f "$backup_file" ]] && mv "$backup_file" "$filepath"
 				return 1
 			fi
-		fi
 
-		# Move into place and clean up
-		mv "$temp_file" "$filepath"
-		rm -f "$backup_file" "$err_file"
+			# Verify checksum if expected checksum provided
+			if [[ -n "$expected_checksum" ]]; then
+				local downloaded_checksum
+				downloaded_checksum=$(compute_checksum "$temp_file")
+				if [[ "$downloaded_checksum" != "$expected_checksum" ]]; then
+					echo -e "      ${RED}Checksum mismatch${NORMAL}"
+					rm -f "$temp_file" "$err_file"
+					[[ -f "$backup_file" ]] && mv "$backup_file" "$filepath"
+					return 1
+				fi
+			fi
+
+			# Move into place and clean up
+			mv "$temp_file" "$filepath"
+			rm -f "$backup_file" "$err_file"
 
 			# Make executable (except common.sh which is only sourced)
 			if [[ "$(basename "$filepath")" != "common.sh" ]]; then
@@ -144,7 +144,7 @@ process_file() {
 
 	# Check if this is a cleaned file (or under a cleaned directory)
 	local is_cleaned=false
-	if jq -e --arg fp "$filepath" '.cleaned_files // [] | any(. as $p | $fp | startswith($p))' "$MANIFEST_FILE" >/dev/null 2>&1; then
+	if jq -e --arg fp "$filepath" '.cleaned_files // [] | any(. as $p | $fp | startswith($p + "/") or $fp == $p)' "$MANIFEST_FILE" >/dev/null 2>&1; then
 		is_cleaned=true
 	fi
 
