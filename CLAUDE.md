@@ -177,6 +177,7 @@ Workflows in `.github/workflows/`:
 - **cue-verify.yml** - Validates `.repo.toml` format and flags
 - **pr-body-tests.yml** - Tests PR body update logic
 - **template-sync.yml** - Tests template synchronization system
+- **renovate-validate.yml** - Validates `.github/renovate.json` config
 
 ### Testing infrastructure
 

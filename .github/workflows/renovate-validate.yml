@@ -1,0 +1,38 @@
+---
+name: Validate Renovate config
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - '.github/renovate.json'
+      - '.github/workflows/renovate-validate.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - '.github/renovate.json'
+      - '.github/workflows/renovate-validate.yml'
+  workflow_dispatch:
+
+# global permissions
+permissions: {}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Validate renovate.json
+        uses: docker://ghcr.io/renovatebot/renovate@sha256:bd6dc280e3834278d2a22ec87b9de241d5c4b0b602f09a7618aee76b0392c9e8 # 43.233.1
+        with:
+          args: renovate-config-validator .github/renovate.json
