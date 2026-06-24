@@ -2,32 +2,6 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
-## June 2026 - cue-sync-from-github test coverage
-
-### v6.10 - Complete cue-sync test matrix (2026-06-24)
-
-- **Related PR:** [#175](https://github.com/fini-net/template-repo/pull/175)
-
-Addresses Claude Code review feedback on the v6.9 cue-sync-from-github
-fix. The test suite added alongside the fix had two coverage gaps and
-several minor hygiene issues.
-
-**Changes:**
-
-- Added `.just/test/fixtures/cue_sync/commented_topics.toml` and a
-  corresponding test case. This is the headline fix for issue #165, yet
-  the original test matrix only covered `commented_description` -
-  `commented_topics` is the exact regression the v6.9 awk change targets.
-- Added `.just/test/fixtures/cue_sync/active_keys.toml` and a happy-path
-  test case with both `description` and `topics` active, guarding against
-  any future awk change silently breaking the pre-existing in-place
-  replace behaviour.
-- Added trailing newlines to all new files added in v6.9
-  (`cue_sync_test.sh`, `cue-sync-tests.yml`, and the four fixtures),
-  which previously ended without a final `\n`.
-- Fixed `cat "$output" | sed ...` (SC2002) in `cue_sync_test.sh` debug
-  output; `just shellcheck` flags this.
-
 ## June 2026 - cue-sync-from-github robustness fix
 
 ### v6.9 - Handle commented/missing topics & defer backup deletion (2026-06-24)
@@ -72,6 +46,19 @@ so `cue vet` passing does not prove the sync wrote anything.
   outside the existing-file branch; the verification now runs inside
   each branch (existing-file and create-new-file) so the backup
   restore logic can wrap it.
+- Added `.just/test/fixtures/cue_sync/commented_topics.toml` and a
+  corresponding test case. This is the headline fix for issue #165, yet
+  the original test matrix only covered `commented_description` -
+  `commented_topics` is the exact regression the awk change targets.
+- Added `.just/test/fixtures/cue_sync/active_keys.toml` and a happy-path
+  test case with both `description` and `topics` active, guarding against
+  any future awk change silently breaking the pre-existing in-place
+  replace behaviour.
+- Added trailing newlines to all new files added in this release
+  (`cue_sync_test.sh`, `cue-sync-tests.yml`, and the four fixtures),
+  which previously ended without a final `\n`.
+- Fixed `cat "$output" | sed ...` (SC2002) in `cue_sync_test.sh` debug
+  output; `just shellcheck` flags this.
 
 ## June 2026 - PR body trailing blank line fix
 
