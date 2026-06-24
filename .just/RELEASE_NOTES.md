@@ -2,6 +2,77 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
+## June 2026 - cue-sync-from-github test coverage
+
+### v6.10 - Complete cue-sync test matrix (2026-06-24)
+
+- **Related PR:** [#175](https://github.com/fini-net/template-repo/pull/175)
+
+Addresses Claude Code review feedback on the v6.9 cue-sync-from-github
+fix. The test suite added alongside the fix had two coverage gaps and
+several minor hygiene issues.
+
+**Changes:**
+
+- Added `.just/test/fixtures/cue_sync/commented_topics.toml` and a
+  corresponding test case. This is the headline fix for issue #165, yet
+  the original test matrix only covered `commented_description` -
+  `commented_topics` is the exact regression the v6.9 awk change targets.
+- Added `.just/test/fixtures/cue_sync/active_keys.toml` and a happy-path
+  test case with both `description` and `topics` active, guarding against
+  any future awk change silently breaking the pre-existing in-place
+  replace behaviour.
+- Added trailing newlines to all new files added in v6.9
+  (`cue_sync_test.sh`, `cue-sync-tests.yml`, and the four fixtures),
+  which previously ended without a final `\n`.
+- Fixed `cat "$output" | sed ...` (SC2002) in `cue_sync_test.sh` debug
+  output; `just shellcheck` flags this.
+
+## June 2026 - cue-sync-from-github robustness fix
+
+### v6.9 - Handle commented/missing topics & defer backup deletion (2026-06-24)
+
+- **Related PR:** [#175](https://github.com/fini-net/template-repo/pull/175)
+- Fixes issue [#165](https://github.com/fini-net/template-repo/issues/165)
+
+`just cue-sync-from-github` silently failed to sync `topics` (and would
+have failed for `description` too) when the corresponding line in
+`.repo.toml` was either **commented out** (`# topics = []`) or **missing
+entirely** from the `[about]` section. The recipe still reported
+"Successfully synced from GitHub to .repo.toml", and the trailing
+`just cue-verify` was the only signal of the failure - by which point
+the `.repo.toml.backup` restore point had already been deleted.
+
+**Root cause:** The awk block's match patterns anchored on `^topics =`/`^description =`, so a leading `#` defeated the match, and there was
+no insert-if-missing logic. Compounding this, the backup was deleted as
+soon as `cue vet` passed - but `topics` is optional in the CUE schema,
+so `cue vet` passing does not prove the sync wrote anything.
+
+**Changes:**
+
+- **Rewrote the awk block in `.just/cue-verify.just`** to:
+  - Match commented-out lines via a `[#[:space:]]*` prefix tolerance, so
+    `# topics = [...]` is rewritten in place just like an active line.
+  - Track whether each key (`description`, `topics`) was written during
+    the pass, and insert any missing keys at the end of the `[about]`
+    block, *before* any trailing blank line that separates it from the
+    next section. Blank lines inside `[about]` are buffered and flushed
+    only after pending missing-key insertions, so the inserted key lands
+    adjacent to the preceding key (e.g. `license`) rather than after the
+    blank line (which would visually attach it to the next `[section]`).
+    Missing keys are flushed either when the next `[section]` begins or
+    at EOF via an `END` block. This preserves the original field order of
+    any other keys in `[about]` (e.g. `license`).
+- **Deferred backup deletion** in `cue-sync-from-github`: the
+  `.repo.toml.backup` is now preserved through both `cue vet` *and* the
+  trailing `just cue-verify`. If `cue-verify` reports a mismatch (the
+  signal for a silent topics-write failure), the working copy is
+  restored from backup rather than leaving a half-synced file behind.
+- Removed the duplicate trailing `just cue-verify` call that existed
+  outside the existing-file branch; the verification now runs inside
+  each branch (existing-file and create-new-file) so the backup
+  restore logic can wrap it.
+
 ## June 2026 - PR body trailing blank line fix
 
 ### v6.8 - Trailing blank line accumulation fix (2026-06-23)

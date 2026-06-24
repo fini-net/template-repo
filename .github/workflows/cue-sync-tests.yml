@@ -1,0 +1,46 @@
+---
+name: Cue Sync Tests
+
+on:
+  push:
+    paths:
+      - '.just/cue-verify.just'
+      - '.just/lib/cue_sync_test.sh'
+      - '.just/test/fixtures/cue_sync/**'
+      - '.github/workflows/cue-sync-tests.yml'
+  pull_request:
+    paths:
+      - '.just/cue-verify.just'
+      - '.just/lib/cue_sync_test.sh'
+      - '.just/test/fixtures/cue_sync/**'
+      - '.github/workflows/cue-sync-tests.yml'
+
+# global permissions
+permissions: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install just
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | \
+            bash -s -- --to /usr/local/bin
+
+      - name: Make test script executable
+        run: chmod +x .just/lib/cue_sync_test.sh
+
+      - name: Run cue-sync tests
+        run: just cue_sync_test
