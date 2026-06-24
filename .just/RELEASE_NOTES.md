@@ -17,8 +17,7 @@ entirely** from the `[about]` section. The recipe still reported
 `just cue-verify` was the only signal of the failure - by which point
 the `.repo.toml.backup` restore point had already been deleted.
 
-**Root cause:** The awk block's match patterns anchored on `^topics = `
-/ `^description = `, so a leading `#` defeated the match, and there was
+**Root cause:** The awk block's match patterns anchored on `^topics =`/`^description =`, so a leading `#` defeated the match, and there was
 no insert-if-missing logic. Compounding this, the backup was deleted as
 soon as `cue vet` passed - but `topics` is optional in the CUE schema,
 so `cue vet` passing does not prove the sync wrote anything.
