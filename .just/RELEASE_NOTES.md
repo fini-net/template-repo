@@ -2,10 +2,57 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
+## June 2026 - PR body trailing blank line fix
+
+### v6.8 - Trailing blank line accumulation fix (2026-06-23)
+
+- **Related PR:** [#174](https://github.com/fini-net/template-repo/pull/174)
+- Fixes issue [#173](https://github.com/fini-net/template-repo/issues/173)
+
+Running `just again` repeatedly on a PR caused trailing blank lines to
+accumulate at the bottom of the PR description. Each `pr_update` cycle
+added ~2 trailing blank lines, so a PR iterated on 8 times ended up with
+~16 trailing blank lines after the `## Meta` section.
+
+**Root cause:** A feedback loop between three actors, each appending a
+trailing newline:
+
+1. GitHub's REST/GraphQL API appends a trailing `\n` when storing a PR
+   body via `gh pr edit --body-file`.
+2. `jq -r '.body'` in `pr_update` appends its own trailing `\n` (jq
+   always emits a trailing newline on raw output).
+3. `.just/lib/update_pr_body.sh` emitted `footer_content` verbatim,
+   preserving trailing blank lines instead of trimming them.
+
+**Changes:**
+
+- **Trim trailing blank lines from `footer_content`** -
+  `.just/lib/update_pr_body.sh` now strips trailing empty entries from
+  the `footer_content` bash array before emitting the footer. This
+  breaks the accumulation cycle at the parser regardless of how many
+  newlines the GitHub API or jq add during round-trips. The header is
+  intentionally left untrimmed to keep the fix scoped to the documented
+  bug.
+- **Regression test fixture** - Added
+  `.just/test/fixtures/pr_bodies/15_trailing_blanks/` with an input
+  body carrying 4 trailing blank lines (simulating the post-round-trip
+  state after a few `pr_update` cycles) and an expected output with
+  those blanks stripped. Auto-discovered by `pr_body_test.sh`.
+- **Version bump** - `.just/gh-process.just` `pr` recipe comment bumped
+  from `v6.7` to `v6.8`.
+- **Checksums regenerated** - `.just/CHECKSUMS.json` updated so derived
+  repos can sync the fix via `just update_from_template`.
+
+**Related:** The v4.4 blank-line preservation fix (PR #50) correctly
+guarded blank lines *between* sections but inadvertently also preserved
+the trailing-blank-line accumulation path this issue describes. The v5.8
+CRLF normalization (PR #107) is a related robustness effort.
+
 ## June 2026 - Template sync robustness
 
 ### v6.7 - Fix update_from_template failures on test fixtures (2026-06-20)
 
+- **Related PR:** [#163](https://github.com/fini-net/template-repo/pull/163)
 - Fixes issue [#162](https://github.com/fini-net/template-repo/issues/162)
 
 Running `just update_from_template` in a derived repo failed with seven
