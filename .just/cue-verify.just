@@ -275,8 +275,12 @@ cue-sync-from-github:
             exit 1
         fi
 
-        # Run full verification to confirm the new file matches GitHub
+        # Mirror existing-file branch: clean up on failure (no backup to restore).
         echo ""
         echo "{{BLUE}}Running full verification...{{NORMAL}}"
-        just cue-verify
+        if ! just cue-verify; then
+            rm .repo.toml
+            echo "{{RED}}Created .repo.toml failed verification - file removed.{{NORMAL}}"
+            exit 1
+        fi
     fi

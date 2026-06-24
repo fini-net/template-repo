@@ -6,7 +6,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ### v6.9 - Handle commented/missing topics & defer backup deletion (2026-06-24)
 
-- **Related PR:** TBD
+- **Related PR:** [#175](https://github.com/fini-net/template-repo/pull/175)
 - Fixes issue [#165](https://github.com/fini-net/template-repo/issues/165)
 
 `just cue-sync-from-github` silently failed to sync `topics` (and would
