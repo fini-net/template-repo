@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-06-24T04:31:08Z",
+  "generated_at": "2026-06-24T04:31:32Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -121,11 +121,19 @@
 ]},
     ".just/cue-verify.just": {"versions": [
         {
+          "checksum": "553f938f4f904a16d7b9f8a87e872001f0306bb9c2344d2c30c43d8297fb3af1",
+          "commit": "1f0b3c360013ba48d8c4fd82cbcdb589154f2900",
+          "date": "2026-06-23T21:31:30-07:00",
+          "version": "",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "1b4223ba284ba2e57a6cd886f295bf68c32d08385ff2997e6501892903c2a346",
           "commit": "626d593e054effd54a80fa77feb668fb467775a1",
           "date": "2026-06-23T20:57:04-07:00",
           "version": "",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -663,11 +671,19 @@
 ]},
     ".just/testing.just": {"versions": [
         {
+          "checksum": "edce3d39140b737e024c72c1fc69d3002994eb1eec42a6ec22ea40a8468744ed",
+          "commit": "1f0b3c360013ba48d8c4fd82cbcdb589154f2900",
+          "date": "2026-06-23T21:31:30-07:00",
+          "version": "",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "3e53ab06d0c8854bdf26547f0b81416e4a69c2ce44e9a4c4554587e3055b24bb",
           "commit": "6dd0fa22488df81b587b152eb4ee2b30951d6515",
           "date": "2026-01-29T20:10:22-08:00",
           "version": "",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -700,6 +716,15 @@
           "commit": "2f946c9e168a2a72f052124608d0b402d56106e5",
           "date": "2026-01-27T17:59:16-08:00",
           "version": "v5.2",
+          "is_latest": true
+        }
+]},
+    ".just/lib/cue_sync_test.sh": {"versions": [
+        {
+          "checksum": "d3f12e0a9be19ed1222bf59a3bc2f41c7f2e269a36faafc8ca497cd044acc175",
+          "commit": "1f0b3c360013ba48d8c4fd82cbcdb589154f2900",
+          "date": "2026-06-23T21:31:30-07:00",
+          "version": "",
           "is_latest": true
         }
 ]},
