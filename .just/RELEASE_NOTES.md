@@ -6,6 +6,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ### v6.8 - Trailing blank line accumulation fix (2026-06-23)
 
+- **Related PR:** [#174](https://github.com/fini-net/template-repo/pull/174)
 - Fixes issue [#173](https://github.com/fini-net/template-repo/issues/173)
 
 Running `just again` repeatedly on a PR caused trailing blank lines to
@@ -51,6 +52,7 @@ CRLF normalization (PR #107) is a related robustness effort.
 
 ### v6.7 - Fix update_from_template failures on test fixtures (2026-06-20)
 
+- **Related PR:** [#163](https://github.com/fini-net/template-repo/pull/163)
 - Fixes issue [#162](https://github.com/fini-net/template-repo/issues/162)
 
 Running `just update_from_template` in a derived repo failed with seven
