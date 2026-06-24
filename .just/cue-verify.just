@@ -191,27 +191,58 @@ cue-sync-from-github:
         # Update .repo.toml using awk (portable across macOS and Linux)
         GH_DESC_ESCAPED="${GH_DESC//\"/\\\"}"
 
-        # Use state-aware awk that only matches within [about] section
+        # State-aware awk that handles three cases for each key:
+        #   1. Active line (e.g. `topics = [...]`)        -> replace in place
+        #   2. Commented line (e.g. `# topics = [...]`)   -> replace in place
+        #   3. Missing line                               -> insert at end of [about] block
+        # The `[#[:space:]]*` prefix tolerates a leading `#` and optional space so
+        # commented-out keys are still matched and rewritten. Missing keys are
+        # flushed either when the next `[section]` begins or at EOF (END block),
+        # preserving the original field order of any other keys in [about].
+        # See issue #165 for the failure modes this addresses.
         awk -v desc="$GH_DESC_ESCAPED" -v topics="[$TOPICS_TOML]" '
-            /^\[about\]/ { in_about=1 }
-            /^\[/ && !/^\[about\]/ { in_about=0 }
-            in_about && /^description = / { print "description = \"" desc "\""; next }
-            in_about && /^topics = / { print "topics = " topics; next }
+            /^\[about\]/ { in_about=1; print; next }
+            /^\[/ && !/^\[about\]/ {
+                if (in_about) {
+                    if (!desc_written)   { print "description = \"" desc "\""; desc_written=1 }
+                    if (!topics_written) { print "topics = " topics; topics_written=1 }
+                }
+                in_about=0
+            }
+            in_about && /^[#[:space:]]*description[[:space:]]*=/ { print "description = \"" desc "\""; desc_written=1; next }
+            in_about && /^[#[:space:]]*topics[[:space:]]*=/      { print "topics = " topics; topics_written=1; next }
             { print }
+            END {
+                if (in_about) {
+                    if (!desc_written)   { print "description = \"" desc "\""; desc_written=1 }
+                    if (!topics_written) { print "topics = " topics; topics_written=1 }
+                }
+            }
         ' .repo.toml > .repo.toml.tmp && mv .repo.toml.tmp .repo.toml
 
-        # Validate the TOML is still valid after modification
+        # Validate the TOML is still valid after modification.
+        # NOTE: cue vet passing does NOT prove the sync wrote the right values
+        # (topics is optional in the CUE schema), so the backup is preserved
+        # until the trailing `just cue-verify` also passes. See issue #165.
         echo "{{BLUE}}Validating modified TOML...{{NORMAL}}"
-        if cue vet .repo.toml docs/repo-toml.cue; then
-            # Validation passed - safe to remove backup
-            rm .repo.toml.backup
-            echo "{{GREEN}}Successfully synced from GitHub to .repo.toml{{NORMAL}}"
-        else
-            # Validation failed - restore from backup
+        if ! cue vet .repo.toml docs/repo-toml.cue; then
             mv .repo.toml.backup .repo.toml
             echo "{{RED}}Sync failed - TOML validation error. Restored from backup.{{NORMAL}}"
             exit 1
         fi
+
+        # Run full verification (this catches silent topics/description write
+        # failures that cue vet cannot, by comparing against the GitHub API).
+        echo ""
+        echo "{{BLUE}}Running full verification...{{NORMAL}}"
+        if ! just cue-verify; then
+            mv .repo.toml.backup .repo.toml
+            echo "{{RED}}Sync failed - verification mismatch. Restored from backup.{{NORMAL}}"
+            exit 1
+        fi
+
+        rm .repo.toml.backup
+        echo "{{GREEN}}Successfully synced from GitHub to .repo.toml{{NORMAL}}"
     else
         echo "{{YELLOW}}.repo.toml not found - creating from GitHub metadata{{NORMAL}}"
 
@@ -238,16 +269,14 @@ cue-sync-from-github:
 
         # Validate the new TOML
         echo "{{BLUE}}Validating new TOML...{{NORMAL}}"
-        if cue vet .repo.toml docs/repo-toml.cue; then
-            echo "{{GREEN}}Created .repo.toml from GitHub metadata{{NORMAL}}"
-        else
+        if ! cue vet .repo.toml docs/repo-toml.cue; then
             rm .repo.toml
             echo "{{RED}}Failed to create valid .repo.toml{{NORMAL}}"
             exit 1
         fi
-    fi
 
-    # Run full verification to confirm sync worked
-    echo ""
-    echo "{{BLUE}}Running full verification...{{NORMAL}}"
-    just cue-verify
+        # Run full verification to confirm the new file matches GitHub
+        echo ""
+        echo "{{BLUE}}Running full verification...{{NORMAL}}"
+        just cue-verify
+    fi
