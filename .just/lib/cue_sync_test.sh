@@ -141,7 +141,7 @@ run_test() {
         (( passed += 1 ))
     else
         echo "    --- output ---"
-        cat "$output" | sed 's/^/    /'
+        sed 's/^/    /' "$output"
         echo "    --- end ---"
         (( failed += 1 ))
     fi
@@ -176,6 +176,23 @@ main() {
     run_test "missing_topics.toml" "$desc" "$topics" \
         'topics = \[[^]]*\]' "topics = [$topics]" \
         "missing topics inserted inside [about]"
+
+    # Case 4: commented topics -> replaced in place, inside [about]
+    # This is the headline fix for issue #165 and previously had no test.
+    run_test "commented_topics.toml" "$desc" "$topics" \
+        'topics = \[[^]]*\]' "topics = [$topics]" \
+        "commented topics replaced inside [about]"
+
+    # Case 5: happy path - both keys active -> replaced in place, inside [about]
+    # Regression guard against any future awk change silently breaking the
+    # pre-existing in-place replace behaviour. Asserts both keys in two calls
+    # since run_test takes a single key assertion.
+    run_test "active_keys.toml" "$desc" "$topics" \
+        'description = "[^"]*"' "description = \"$desc\"" \
+        "active description replaced inside [about]"
+    run_test "active_keys.toml" "$desc" "$topics" \
+        'topics = \[[^]]*\]' "topics = [$topics]" \
+        "active topics replaced inside [about]"
 
     echo
     echo -e "Results: ${GREEN}$passed passed${NORMAL}, ${RED}$failed failed${NORMAL}"
