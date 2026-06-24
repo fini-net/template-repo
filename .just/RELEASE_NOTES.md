@@ -2,31 +2,59 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
-## June 2026 - cue-sync-from-github test coverage
+## June 2026 - Version reconciliation
 
-### v6.10 - Complete cue-sync test matrix (2026-06-24)
+### v7.0 - Resolve v6.9/v6.10 version-label confusion (2026-06-24)
 
-- **Related PR:** [#175](https://github.com/fini-net/template-repo/pull/175)
+- **Related PR:** [#178](https://github.com/fini-net/template-repo/pull/178)
 
-Addresses Claude Code review feedback on the v6.9 cue-sync-from-github
-fix. The test suite added alongside the fix had two coverage gaps and
-several minor hygiene issues.
+PR #175 (v6.9) landed on `main` as a single squash commit, but the messy
+branch history that preceded it leaked two artifacts through into the
+shipped state: the `pr` recipe comment in `.just/gh-process.just` read
+`# PR create v6.10`, and `RELEASE_NOTES.md` carried a separate
+`### v6.10 - Complete cue-sync test matrix` section describing follow-up
+review work that never existed as its own release. The
+`.just/CHECKSUMS.json` manifest was similarly misaligned - its "latest"
+entries for `.just/cue-verify.just`, `.just/testing.just`, and
+`.just/lib/cue_sync_test.sh` pointed at intermediate branch commits
+(`dc02707`, `1f0b3c3`, `626d593`) with empty `version` strings, rather
+than the squash commit (`d499305`) that actually landed on `main`.
+
+v7.0 reconciles the labels so the version recorded for each file matches
+what actually shipped.
 
 **Changes:**
 
-- Added `.just/test/fixtures/cue_sync/commented_topics.toml` and a
-  corresponding test case. This is the headline fix for issue #165, yet
-  the original test matrix only covered `commented_description` -
-  `commented_topics` is the exact regression the v6.9 awk change targets.
-- Added `.just/test/fixtures/cue_sync/active_keys.toml` and a happy-path
-  test case with both `description` and `topics` active, guarding against
-  any future awk change silently breaking the pre-existing in-place
-  replace behaviour.
-- Added trailing newlines to all new files added in v6.9
-  (`cue_sync_test.sh`, `cue-sync-tests.yml`, and the four fixtures),
-  which previously ended without a final `\n`.
-- Fixed `cat "$output" | sed ...` (SC2002) in `cue_sync_test.sh` debug
-  output; `just shellcheck` flags this.
+- **Reverted the `pr` recipe comment** in `.just/gh-process.just` from
+  `# PR create v6.10` back to `# PR create v6.9`, undoing the spurious
+  bump. (The pr recipe logic itself is unchanged in v7.0 - this PR only
+  touches the comment text and bookkeeping.) The commit that performs
+  this revert is itself tagged `v7.0` in the regenerated manifest, so it
+  becomes the new latest checkpoint for `gh-process.just` while
+  `d499305` is recorded as the prior `v6.9` historical entry.
+- **Folded the v6.10 release notes into v6.9.** The four bullets that
+  described the cue-sync test-matrix completion (the
+  `commented_topics.toml` and `active_keys.toml` fixtures, trailing
+  newlines on the v6.9-added files, and the `SC2002` fix in
+  `cue_sync_test.sh`) all shipped inside PR #175's squash, so they belong
+  under v6.9. The standalone `### v6.10` section and its month header are
+  removed; the bullets are appended to the existing v6.9 "Changes" list.
+- **Regenerated `.just/CHECKSUMS.json`:**
+  - Dropped the orphan intermediate-branch commits (`dc02707`,
+    `1f0b3c3`, `626d593`) from the manifests for `cue-verify.just`,
+    `testing.just`, and `lib/cue_sync_test.sh`. These never reached
+    `main` and were producing misleading "latest" pointers.
+  - Retagged the surviving latest entry for each of those files to
+    point at the real main squash commit `d499305` with `version:
+    "v6.9"`, so `just checksums_verify` in derived repos resolves
+    against the commit they actually received.
+  - For `gh-process.just`, recorded this PR's commit (`80f3451`) as the
+    new `v7.0` latest entry and demoted the previous latest to a
+    historical `v6.9` entry pinned to `d499305`.
+  - Refreshed `generated_at`.
+
+No issue was filed for this work - it was a pure bookkeeping follow-up
+to PR #175's landing.
 
 ## June 2026 - cue-sync-from-github robustness fix
 
@@ -72,6 +100,16 @@ so `cue vet` passing does not prove the sync wrote anything.
   outside the existing-file branch; the verification now runs inside
   each branch (existing-file and create-new-file) so the backup
   restore logic can wrap it.
+- Added `.just/test/fixtures/cue_sync/commented_topics.toml` and a
+  corresponding test case. This is the headline fix for issue #165, yet
+  the original test matrix only covered `commented_description` -
+  `commented_topics` is the exact regression the awk change targets.
+- Added `.just/test/fixtures/cue_sync/active_keys.toml` and a happy-path
+  test case with both `description` and `topics` active, guarding against
+  any future awk change silently breaking the pre-existing in-place
+  replace behaviour.
+- Fixed `cat "$output" | sed ...` (SC2002) in `cue_sync_test.sh` debug
+  output; `just shellcheck` flags this.
 
 ## June 2026 - PR body trailing blank line fix
 
@@ -109,10 +147,6 @@ trailing newline:
   body carrying 4 trailing blank lines (simulating the post-round-trip
   state after a few `pr_update` cycles) and an expected output with
   those blanks stripped. Auto-discovered by `pr_body_test.sh`.
-- **Version bump** - `.just/gh-process.just` `pr` recipe comment bumped
-  from `v6.7` to `v6.8`.
-- **Checksums regenerated** - `.just/CHECKSUMS.json` updated so derived
-  repos can sync the fix via `just update_from_template`.
 
 **Related:** The v4.4 blank-line preservation fix (PR #50) correctly
 guarded blank lines *between* sections but inadvertently also preserved
