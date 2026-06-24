@@ -29,9 +29,14 @@ so `cue vet` passing does not prove the sync wrote anything.
     `# topics = [...]` is rewritten in place just like an active line.
   - Track whether each key (`description`, `topics`) was written during
     the pass, and insert any missing keys at the end of the `[about]`
-    block (flushed either when the next `[section]` begins or at EOF via
-    an `END` block). This preserves the original field order of any
-    other keys in `[about]` (e.g. `license`).
+    block, *before* any trailing blank line that separates it from the
+    next section. Blank lines inside `[about]` are buffered and flushed
+    only after pending missing-key insertions, so the inserted key lands
+    adjacent to the preceding key (e.g. `license`) rather than after the
+    blank line (which would visually attach it to the next `[section]`).
+    Missing keys are flushed either when the next `[section]` begins or
+    at EOF via an `END` block. This preserves the original field order of
+    any other keys in `[about]` (e.g. `license`).
 - **Deferred backup deletion** in `cue-sync-from-github`: the
   `.repo.toml.backup` is now preserved through both `cue vet` *and* the
   trailing `just cue-verify`. If `cue-verify` reports a mismatch (the

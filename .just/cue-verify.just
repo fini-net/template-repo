@@ -194,29 +194,41 @@ cue-sync-from-github:
         # State-aware awk that handles three cases for each key:
         #   1. Active line (e.g. `topics = [...]`)        -> replace in place
         #   2. Commented line (e.g. `# topics = [...]`)   -> replace in place
-        #   3. Missing line                               -> insert at end of [about] block
+        #   3. Missing line                               -> insert inside [about] block
         # The `[#[:space:]]*` prefix tolerates a leading `#` and optional space so
         # commented-out keys are still matched and rewritten. Missing keys are
-        # flushed either when the next `[section]` begins or at EOF (END block),
-        # preserving the original field order of any other keys in [about].
-        # See issue #165 for the failure modes this addresses.
+        # inserted at the end of the `[about]` block, *before* any trailing blank
+        # line that separates it from the next section. This is achieved by
+        # buffering blank lines while inside `[about]` and flushing them only
+        # after any pending missing-key insertions, so the inserted key lands
+        # adjacent to the preceding key (e.g. `license`) rather than after the
+        # blank line (which would visually attach it to the next `[section]`).
+        # Missing keys are flushed either when the next `[section]` begins or at
+        # EOF (END block), preserving the original field order of any other keys
+        # in [about]. See issue #165 for the failure modes this addresses.
         awk -v desc="$GH_DESC_ESCAPED" -v topics="[$TOPICS_TOML]" '
-            /^\[about\]/ { in_about=1; print; next }
+            function flush_blanks() { if (blanks != "") { printf "%s", blanks; blanks="" } }
+            /^\[about\]/ { in_about=1; flush_blanks(); print; next }
             /^\[/ && !/^\[about\]/ {
                 if (in_about) {
                     if (!desc_written)   { print "description = \"" desc "\""; desc_written=1 }
                     if (!topics_written) { print "topics = " topics; topics_written=1 }
                 }
                 in_about=0
+                flush_blanks()
+                print
+                next
             }
-            in_about && /^[#[:space:]]*description[[:space:]]*=/ { print "description = \"" desc "\""; desc_written=1; next }
-            in_about && /^[#[:space:]]*topics[[:space:]]*=/      { print "topics = " topics; topics_written=1; next }
-            { print }
+            in_about && /^[#[:space:]]*description[[:space:]]*=/ { flush_blanks(); print "description = \"" desc "\""; desc_written=1; next }
+            in_about && /^[#[:space:]]*topics[[:space:]]*=/      { flush_blanks(); print "topics = " topics; topics_written=1; next }
+            in_about && /^[[:space:]]*$/ { blanks=blanks "\n"; next }
+            { flush_blanks(); print }
             END {
                 if (in_about) {
                     if (!desc_written)   { print "description = \"" desc "\""; desc_written=1 }
                     if (!topics_written) { print "topics = " topics; topics_written=1 }
                 }
+                flush_blanks()
             }
         ' .repo.toml > .repo.toml.tmp && mv .repo.toml.tmp .repo.toml
 
@@ -280,7 +292,9 @@ cue-sync-from-github:
         echo "{{BLUE}}Running full verification...{{NORMAL}}"
         if ! just cue-verify; then
             rm .repo.toml
-            echo "{{RED}}Created .repo.toml failed verification - file removed.{{NORMAL}}"
+            echo "{{RED}}Newly created .repo.toml failed verification - file removed.{{NORMAL}}"
             exit 1
         fi
+
+        echo "{{GREEN}}Successfully synced from GitHub to .repo.toml{{NORMAL}}"
     fi
