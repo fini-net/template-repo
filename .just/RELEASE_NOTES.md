@@ -2,6 +2,37 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
+## June 2026 - Prerequisites brew-only pinning
+
+### v7.1 - Drop npm fallback for markdownlint-cli2 (2026-06-25)
+
+- **Related PR:** [#186](https://github.com/fini-net/template-repo/pull/186)
+
+PR #186 pinned `markdownlint-cli2` via Homebrew to satisfy Scorecard's
+Pinned-Dependencies check, but the macOS install path still fell back to
+`npm install -g markdownlint-cli2` when Homebrew was absent — an unpinned
+install that left the Scorecard warning in place. v7.1 removes the npm
+fallback so the prerequisites installer is brew-only on macOS, matching
+the PR's stated goal.
+
+**Changes:**
+
+- **Removed the npm fallback branch** in `.just/lib/install-prerequisites.sh`
+  for the macOS `markdownlint-cli2` case. The `elif command -v npm` arm
+  (with its yellow "falling back to npm (unpinned - Scorecard may still
+  warn)" message) is gone; the remaining `else` now reports "Homebrew is
+  not installed! Install Homebrew first." and points at
+  <https://brew.sh>, without suggesting Node.js as an alternative.
+- **Stripped the npm parenthetical** from the unsupported-OS install
+  hint line, which now reads `markdownlint-cli2: brew install
+  markdownlint-cli2` instead of `... (or npm install -g markdownlint-cli2)`.
+- **Linux case unchanged** — the linux branch still prints an npm hint
+  when neither brew is available, since brew is uncommon on Linux and
+  the hint is user-facing guidance rather than an automated fallback.
+
+No issue was filed for this follow-up; it is a scope-tightening commit
+on PR #186 itself.
+
 ## June 2026 - Version reconciliation
 
 ### v7.0 - Resolve v6.9/v6.10 version-label confusion (2026-06-24)
