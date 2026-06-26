@@ -7,7 +7,7 @@
   "packageRules": [
     {
       "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["major", "minor", "patch"],
+      "matchUpdateTypes": ["major", "minor", "patch", "digest"],
       "automerge": false,
       "minimumReleaseAge": "3 days"
     },
