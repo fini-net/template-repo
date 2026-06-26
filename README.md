@@ -60,7 +60,7 @@ Thirteen workflows handle automation and quality, all hardened with [StepSecurit
 - ✅ [Zizmor](.github/workflows/zizmor.yml) - Static security analysis for GitHub Actions workflows
 - ✅ [Claude mention integration](.github/workflows/claude.yml) - Mentions Claude AI when appropriate
 - ✅ [Claude Code review](.github/workflows/claude-code-review.yml) - AI-powered code review automation
-- ✅ [Cue verification](.github/workflows/cue-verify.yml) - Validates `.repo.toml` format and flags
+- ✅ [CUE verification](.github/workflows/cue-verify.yml) - Validates `.repo.toml` format and flags
 - ✅ [Dependency Review](.github/workflows/dependency-review.yml) - Scans PRs for vulnerable dependency versions
 - ✅ [OpenSSF Scorecard](.github/workflows/scorecards.yml) - Automated security posture assessment with badge
 - ✅ [Checksums Verification](.github/workflows/checksums-verify.yml) - Verifies CHECKSUMS.json matches all tracked files
