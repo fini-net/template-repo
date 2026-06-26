@@ -2,7 +2,7 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
-## June 2026 - Prerequisites brew-only pinning
+## June 2026 - Bug squash June
 
 ### v7.1 - Drop npm fallback for markdownlint-cli2 (2026-06-25)
 
@@ -30,8 +30,6 @@ the PR's stated goal.
 - **Linux case unchanged** — the linux branch still prints an npm hint
   when neither brew is available, since brew is uncommon on Linux and
   the hint is user-facing guidance rather than an automated fallback.
-
-## June 2026 - Version reconciliation
 
 ### v7.0 - Resolve v6.9/v6.10 version-label confusion (2026-06-24)
 
@@ -84,8 +82,6 @@ what actually shipped.
 
 No issue was filed for this work - it was a pure bookkeeping follow-up
 to PR #175's landing.
-
-## June 2026 - cue-sync-from-github robustness fix
 
 ### v6.9 - Handle commented/missing topics & defer backup deletion (2026-06-24)
 
@@ -140,8 +136,6 @@ so `cue vet` passing does not prove the sync wrote anything.
 - Fixed `cat "$output" | sed ...` (SC2002) in `cue_sync_test.sh` debug
   output; `just shellcheck` flags this.
 
-## June 2026 - PR body trailing blank line fix
-
 ### v6.8 - Trailing blank line accumulation fix (2026-06-23)
 
 - **Related PR:** [#174](https://github.com/fini-net/template-repo/pull/174)
@@ -181,8 +175,6 @@ trailing newline:
 guarded blank lines *between* sections but inadvertently also preserved
 the trailing-blank-line accumulation path this issue describes. The v5.8
 CRLF normalization (PR #107) is a related robustness effort.
-
-## June 2026 - Template sync robustness
 
 ### v6.7 - Fix update_from_template failures on test fixtures (2026-06-20)
 
