@@ -4,6 +4,30 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## June 2026 - Bug squash June
 
+### v7.4 - fix is_cleaned jq filter in checksums_verify (2026-06-26)
+
+- **Related issue:** [#195](https://github.com/fini-net/template-repo/issues/195)
+
+The `is_cleaned` jq filter in `.just/template-sync.just` was always evaluating
+to true for any non-empty `cleaned_files` list, causing `checksums_verify` to
+silently report "removed by clean_template" for every missing file regardless
+of whether it was actually listed in `cleaned_files`.
+
+The broken filter `any($fp | startswith(.))` rebinds `.` to `$fp` inside `any`,
+so `startswith(.)` becomes `startswith($fp)` — a string always starts with
+itself, so the result is always true.
+
+The same bug was fixed in `.just/lib/template_update.sh` in v6.7 (PR #163)
+but the companion check in `template-sync.just` was missed. v7.4 applies the
+same corrected filter:
+
+```jq
+any(. as $p | $fp | startswith($p + "/") or $fp == $p)
+```
+
+This correctly matches only files that are equal to a cleaned path or are
+nested under a cleaned directory.
+
 ### v7.3 - shellcheck auto-generates repo-toml.sh (2026-06-26)
 
 - **Related issue:** [#192](https://github.com/fini-net/template-repo/issues/192)
