@@ -116,7 +116,7 @@ run_test() {
     fi
 
     local workspace
-    workspace=$(mktemp -d)
+    workspace=$(mktemp -d -t cue_sync_test.XXXXXX)
     cp "$fixture_path" "$workspace/.repo.toml"
 
     local output="$workspace/out.toml"

@@ -84,6 +84,11 @@ _remove_template_files: _on_a_branch
         rm -f ".github/workflows/checksums-verify.yml"
     fi
 
+    if [[ -f ".github/workflows/cue-sync-tests.yml" ]]; then
+        echo "Removing .github/workflows/cue-sync-tests.yml"
+        rm -f ".github/workflows/cue-sync-tests.yml"
+    fi
+
     # Remove test scripts
     if [[ -f ".just/lib/pr_body_test.sh" ]]; then
         echo "Removing .just/lib/pr_body_test.sh"
@@ -93,6 +98,11 @@ _remove_template_files: _on_a_branch
     if [[ -f ".just/lib/template_sync_test.sh" ]]; then
         echo "Removing .just/lib/template_sync_test.sh"
         rm -f ".just/lib/template_sync_test.sh"
+    fi
+
+    if [[ -f ".just/lib/cue_sync_test.sh" ]]; then
+        echo "Removing .just/lib/cue_sync_test.sh"
+        rm -f ".just/lib/cue_sync_test.sh"
     fi
 
     # Remove this cleanup script after use
