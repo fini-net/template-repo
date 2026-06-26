@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-06-26T20:30:50Z",
+  "generated_at": "2026-06-26T21:25:06Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -920,6 +920,7 @@
     ".just/test",
     ".github/workflows/pr-body-tests.yml",
     ".github/workflows/checksums-verify.yml",
-    ".github/workflows/cue-sync-tests.yml"
+    ".github/workflows/cue-sync-tests.yml",
+    ".github/workflows/template-sync.yml"
   ]
 }

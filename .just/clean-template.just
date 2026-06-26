@@ -89,6 +89,11 @@ _remove_template_files: _on_a_branch
         rm -f ".github/workflows/cue-sync-tests.yml"
     fi
 
+    if [[ -f ".github/workflows/template-sync.yml" ]]; then
+        echo "Removing .github/workflows/template-sync.yml"
+        rm -f ".github/workflows/template-sync.yml"
+    fi
+
     # Remove test scripts
     if [[ -f ".just/lib/pr_body_test.sh" ]]; then
         echo "Removing .just/lib/pr_body_test.sh"

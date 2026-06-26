@@ -25,6 +25,7 @@ CLEANED_FILES=(
 	".github/workflows/pr-body-tests.yml"
 	".github/workflows/checksums-verify.yml"
 	".github/workflows/cue-sync-tests.yml"
+	".github/workflows/template-sync.yml"
 )
 
 # Get list of all .just/*.just files

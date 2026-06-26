@@ -21,6 +21,15 @@ to `_remove_template_files` and to `CLEANED_FILES` in `generate_checksums.sh`,
 matching the existing `pr_body_test.sh` pattern. The `cue_sync_test` recipe
 itself was already removed via the wholesale `.just/testing.just` deletion.
 
+v7.2 also strips `.github/workflows/template-sync.yml`, which runs
+`just template_sync_test` — a recipe that references the now-removed
+`template_sync_test.sh`. Derived repos were left with a workflow that fails
+on every qualifying push/PR. The same `_remove_template_files` / `CLEANED_FILES`
+pattern applies. The `update_from_template` machinery
+(`.just/template-sync.just`, `.just/lib/template_update.sh`,
+`.just/lib/generate_checksums.sh`, `.just/CHECKSUMS.json`) is intentionally
+retained so derived repos can still self-update from template-repo.
+
 While touching the runner, fix `mktemp -d` at `cue_sync_test.sh:119` to use
 a portable template (`mktemp -d -t cue_sync_test.XXXXXX`) so it works on
 BSD/macOS, which require X's in the template. Flagged by Copilot in
