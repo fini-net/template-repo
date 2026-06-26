@@ -12,17 +12,21 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 
 ### Standard development cycle
 
+> **AI agents:** Do not run `just pr`. Hand off to the user so they can review and create the PR themselves.
+
 1. `just branch <name>` - Create a new feature branch (format: `$USER/YYYY-MM-DD-<name>`)
-2. Make changes and commit (first commit message becomes PR title)
+2. Make changes and commit. The first commit on a branch must start with an emoji followed by a `[topic_area]` tag (e.g., `🚀 [docs] update CLAUDE.md`, `🐛 [fix] correct typo`). This first commit message becomes the PR title.
 3. `just pr` - Create PR, push changes, and watch checks
 4. `just merge` - Squash merge PR, delete branch, return to main, and pull latest
 5. `just sync` - Return to main branch and pull latest (escape hatch)
 
 ### AI Review Workflows
 
+> **AI agents:** Do not run `just pr`. Hand off to the user so they can review and create the PR themselves.
+
 **Copilot Review:**
 
-1. `just pr` - Create PR (triggers initial Copilot review if enabled)
+1. User runs `just pr` - Create PR (triggers initial Copilot review if enabled)
 2. Make changes based on review feedback
 3. `just copilot_refresh` - Request fresh review after changes
 4. `just copilot_pick` - Browse suggestions interactively using gum
@@ -30,7 +34,7 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 
 **Claude Review:**
 
-1. `just pr` - Create PR (triggers initial Claude review if enabled)
+1. User runs `just pr` - Create PR (triggers initial Claude review if enabled)
 2. `just claude_review` - View Claude's latest PR code review comments
 3. Make changes based on review feedback
 4. Iterate as needed
@@ -226,6 +230,8 @@ When using this template for a new project:
 - The `again` recipe is for iterating on PRs: push, update description, watch checks
 - Release notes for workflow changes are tracked in `.just/RELEASE_NOTES.md`.  Each new version should get an entry in this file.
 - Changes to the `.just/*` files should increment the version number for the `pr` recipe in `.just/gh-process.just`
+- AI agents (Claude Code, Copilot, etc.) must not run `just pr`; the user should create the PR themselves after reviewing changes
+- The first commit on a branch must start with an emoji followed by a `[topic_area]` tag (e.g., `📝 [docs] add guidance`)
 
 ## Dependencies
 
