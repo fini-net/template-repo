@@ -35,9 +35,7 @@ jobs:
           persist-credentials: false
 
       - name: Install just
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | \
-            bash -s -- --to /usr/local/bin
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
 
       - name: Make test script executable
         run: chmod +x .just/lib/cue_sync_test.sh
