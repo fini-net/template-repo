@@ -7,6 +7,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 ### v7.1 - Drop npm fallback for markdownlint-cli2 (2026-06-25)
 
 - **Related PR:** [#186](https://github.com/fini-net/template-repo/pull/186)
+- Fixes issue [#185](https://github.com/fini-net/template-repo/issues/185)
 
 PR #186 pinned `markdownlint-cli2` via Homebrew to satisfy Scorecard's
 Pinned-Dependencies check, but the macOS install path still fell back to
@@ -30,8 +31,6 @@ the PR's stated goal.
   when neither brew is available, since brew is uncommon on Linux and
   the hint is user-facing guidance rather than an automated fallback.
 
-No issue was filed for this follow-up; it is a scope-tightening commit
-on PR #186 itself.
 
 ## June 2026 - Version reconciliation
 
