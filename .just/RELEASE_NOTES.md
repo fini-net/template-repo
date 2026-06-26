@@ -4,6 +4,37 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## June 2026 - Bug squash June
 
+### v7.2 - clean_template strips cue-sync test infra; mktemp portability (2026-06-26)
+
+- **Related issue:** [#194](https://github.com/fini-net/template-repo/issues/194)
+
+`just clean_template` already removed the PR-body test infrastructure
+(`.just/testing.just`, `.just/lib/pr_body_test.sh`, `.just/test/`, and the
+`pr-body-tests.yml` / `checksums-verify.yml` workflows) but the cue-sync test
+infra added in v6.9 (PR #175) was never added to the cleanup. Derived repos
+that ran `clean_template` shipped a dead `.just/lib/cue_sync_test.sh` runner
+whose missing-fixtures guard at line 156–160 exits 0 with "Tests skipped" —
+`just cue_sync_test` asserted nothing and went green in 9+ derived repos.
+
+v7.2 adds `.github/workflows/cue-sync-tests.yml` and `.just/lib/cue_sync_test.sh`
+to `_remove_template_files` and to `CLEANED_FILES` in `generate_checksums.sh`,
+matching the existing `pr_body_test.sh` pattern. The `cue_sync_test` recipe
+itself was already removed via the wholesale `.just/testing.just` deletion.
+
+v7.2 also strips `.github/workflows/template-sync.yml`, which runs
+`just template_sync_test` — a recipe that references the now-removed
+`template_sync_test.sh`. Derived repos were left with a workflow that fails
+on every qualifying push/PR. The same `_remove_template_files` / `CLEANED_FILES`
+pattern applies. The `update_from_template` machinery
+(`.just/template-sync.just`, `.just/lib/template_update.sh`,
+`.just/lib/generate_checksums.sh`, `.just/CHECKSUMS.json`) is intentionally
+retained so derived repos can still self-update from template-repo.
+
+While touching the runner, fix `mktemp -d` at `cue_sync_test.sh:119` to use
+a portable template (`mktemp -d -t cue_sync_test.XXXXXX`) so it works on
+BSD/macOS, which require X's in the template. Flagged by Copilot in
+`fini-projects#31`.
+
 ### v7.1 - Drop npm fallback for markdownlint-cli2 (2026-06-25)
 
 - **Related PR:** [#186](https://github.com/fini-net/template-repo/pull/186)

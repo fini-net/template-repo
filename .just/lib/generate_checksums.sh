@@ -20,9 +20,12 @@ CLEANED_FILES=(
 	".just/clean-template.just"
 	".just/lib/pr_body_test.sh"
 	".just/lib/template_sync_test.sh"
+	".just/lib/cue_sync_test.sh"
 	".just/test"
 	".github/workflows/pr-body-tests.yml"
 	".github/workflows/checksums-verify.yml"
+	".github/workflows/cue-sync-tests.yml"
+	".github/workflows/template-sync.yml"
 )
 
 # Get list of all .just/*.just files
