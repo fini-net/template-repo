@@ -22,9 +22,11 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 
 ### AI Review Workflows
 
+> **AI agents:** Do not run `just pr`. Hand off to the user so they can review and create the PR themselves.
+
 **Copilot Review:**
 
-1. `just pr` - Create PR (triggers initial Copilot review if enabled)
+1. User runs `just pr` - Create PR (triggers initial Copilot review if enabled)
 2. Make changes based on review feedback
 3. `just copilot_refresh` - Request fresh review after changes
 4. `just copilot_pick` - Browse suggestions interactively using gum
@@ -32,7 +34,7 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 
 **Claude Review:**
 
-1. `just pr` - Create PR (triggers initial Claude review if enabled)
+1. User runs `just pr` - Create PR (triggers initial Claude review if enabled)
 2. `just claude_review` - View Claude's latest PR code review comments
 3. Make changes based on review feedback
 4. Iterate as needed
