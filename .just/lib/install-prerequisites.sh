@@ -153,18 +153,9 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 					INSTALL_FAILED+=("markdownlint-cli2")
 					echo -e "${RED}Failed to install markdownlint-cli2${NC}"
 				fi
-			elif command -v npm &>/dev/null; then
-				echo -e "${YELLOW}brew not found; falling back to npm (unpinned - Scorecard may still warn)${NC}"
-				if npm install -g markdownlint-cli2; then
-					INSTALL_SUCCESS+=("markdownlint-cli2")
-				else
-					INSTALL_FAILED+=("markdownlint-cli2")
-					echo -e "${RED}Failed to install markdownlint-cli2${NC}"
-				fi
 			else
-				echo -e "${RED}Neither brew nor npm is installed! Install Homebrew or Node.js first.${NC}"
+				echo -e "${RED}Homebrew is not installed! Install Homebrew first.${NC}"
 				echo "Install Homebrew: https://brew.sh"
-				echo "Install Node.js: brew install node"
 				INSTALL_FAILED+=("markdownlint-cli2")
 			fi
 			;;
@@ -324,7 +315,7 @@ else
 	echo "  just: https://github.com/casey/just#installation"
 	echo "  gh: https://cli.github.com/manual/installation"
 	echo "  shellcheck: https://github.com/koalaman/shellcheck#installing"
-	echo "  markdownlint-cli2: brew install markdownlint-cli2 (or npm install -g markdownlint-cli2)"
+	echo "  markdownlint-cli2: brew install markdownlint-cli2"
 	echo "  jq: https://stedolan.github.io/jq/download/"
 	echo "  gum: https://github.com/charmbracelet/gum#installation"
 	echo "  cue: https://github.com/cue-lang/cue#installation"
