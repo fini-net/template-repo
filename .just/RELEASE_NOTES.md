@@ -31,7 +31,6 @@ the PR's stated goal.
   when neither brew is available, since brew is uncommon on Linux and
   the hint is user-facing guidance rather than an automated fallback.
 
-
 ## June 2026 - Version reconciliation
 
 ### v7.0 - Resolve v6.9/v6.10 version-label confusion (2026-06-24)
