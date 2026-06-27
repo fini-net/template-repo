@@ -16,6 +16,7 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 
 1. `just branch <name>` - Create a new feature branch (format: `$USER/YYYY-MM-DD-<name>`)
 2. Make changes and commit. The first commit on a branch must start with an emoji followed by a `[topic_area]` tag (e.g., `🚀 [docs] update CLAUDE.md`, `🐛 [fix] correct typo`). This first commit message becomes the PR title.
+   - For changes to any `.just/*` file: also include `gh-process vX.Y` (with the new version number) in the first line of the commit message, placed right after the topic tag (e.g., `🚀 [just] gh-process v7.5 add copilot_refresh hook`).
 3. `just pr` - Create PR, push changes, and watch checks
 4. `just merge` - Squash merge PR, delete branch, return to main, and pull latest
 5. `just sync` - Return to main branch and pull latest (escape hatch)
@@ -231,7 +232,7 @@ When using this template for a new project:
 - Release notes for workflow changes are tracked in `.just/RELEASE_NOTES.md`.  Each new version should get an entry in this file.
 - Changes to the `.just/*` files should increment the version number for the `pr` recipe in `.just/gh-process.just`
 - AI agents (Claude Code, Copilot, etc.) must not run `just pr`; the user should create the PR themselves after reviewing changes
-- The first commit on a branch must start with an emoji followed by a `[topic_area]` tag (e.g., `📝 [docs] add guidance`)
+- The first commit on a branch must start with an emoji followed by a `[topic_area]` tag (e.g., `📝 [docs] add guidance`). Changes to `.just/*` files should use the `[just]` topic tag
 
 ## Dependencies
 
