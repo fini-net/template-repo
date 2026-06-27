@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-06-27T05:32:51Z",
+  "generated_at": "2026-06-27T05:50:42Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -793,11 +793,19 @@
 ]},
     ".just/lib/cue_sync_test.sh": {"versions": [
         {
+          "checksum": "bdb666bf1bcb521d4d88604cdabbf3ac59697ba68909c9792e4c873654ba8b7c",
+          "commit": "15dadb419d5aa69ed856899de78f1998ee7eaf29",
+          "date": "2026-06-26T22:50:03-07:00",
+          "version": "",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "9212322cab0d816589c2cb698cddee6d69d6960095109443f917b13c0e5c596f",
           "commit": "a1245bb33be11b9deb5add68d8fa5f4e77588dd4",
           "date": "2026-06-26T22:30:07-07:00",
           "version": "",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -901,11 +909,19 @@
 ]},
     ".just/lib/template_sync_test.sh": {"versions": [
         {
+          "checksum": "20c0962c161ec80c5dab5da775e10e1cc147ce410694ad73804e39d91d4f3894",
+          "commit": "15dadb419d5aa69ed856899de78f1998ee7eaf29",
+          "date": "2026-06-26T22:50:03-07:00",
+          "version": "",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "446eee8a9c9a7dcf05206f6b8b32948e2e6888caf0c9a80f529efd2ff2b8121a",
           "commit": "a1245bb33be11b9deb5add68d8fa5f4e77588dd4",
           "date": "2026-06-26T22:30:07-07:00",
           "version": "",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
