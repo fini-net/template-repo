@@ -16,7 +16,8 @@ readonly BLUE='\033[0;34m'
 readonly NORMAL='\033[0m'
 
 readonly FIXTURES_DIR=".just/test/fixtures/cue_sync"
-readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+readonly REPO_ROOT
 
 passed=0
 failed=0

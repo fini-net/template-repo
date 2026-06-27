@@ -13,7 +13,8 @@ readonly BLUE='\033[0;34m'
 readonly NORMAL='\033[0m'
 
 readonly FIXTURES_DIR=".just/test/fixtures/template_sync"
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly SCRIPT_DIR
 
 passed=0
 failed=0
