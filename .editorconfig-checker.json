@@ -1,0 +1,10 @@
+{
+  "Exclude": [
+    "\\.just/repo-toml\\.sh$",
+    "\\.just/test/fixtures/",
+    "\\.just/lib/generate_checksums\\.sh$",
+    "^LICENSE$",
+    "^\\.opencode/",
+    "^\\.cache/"
+  ]
+}

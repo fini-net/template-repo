@@ -15,5 +15,5 @@ import? '.just/clean-template.just'
 # list recipes (default works without naming it)
 [group('Utility')]
 list:
-	just --list
-	@echo "{{GREEN}}Your justfile is waiting for more scripts and snippets{{NORMAL}}"
+    just --list
+    @echo "{{GREEN}}Your justfile is waiting for more scripts and snippets{{NORMAL}}"
