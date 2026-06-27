@@ -16,7 +16,7 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 
 1. `just branch <name>` - Create a new feature branch (format: `$USER/YYYY-MM-DD-<name>`)
 2. Make changes and commit. The first commit on a branch must start with an emoji followed by a `[topic_area]` tag (e.g., `🚀 [docs] update CLAUDE.md`, `🐛 [fix] correct typo`). This first commit message becomes the PR title.
-   - For changes to any `.just/*` file: also include `gh-process vX.Y` (with the new version number) in the first line of the commit message, placed right after the topic tag (e.g., `🚀 [just] gh-process v7.5 add copilot_refresh hook`).
+    - For changes to any `.just/*` file: also include `gh-process vX.Y` (with the new version number) in the first line of the commit message, placed right after the topic tag (e.g., `🚀 [just] gh-process v7.5 add copilot_refresh hook`).
 3. `just pr` - Create PR, push changes, and watch checks
 4. `just merge` - Squash merge PR, delete branch, return to main, and pull latest
 5. `just sync` - Return to main branch and pull latest (escape hatch)
@@ -211,9 +211,9 @@ Run locally: `markdownlint-cli2 **/*.md`
 When using this template for a new project:
 
 1. Search and replace:
-   - `fini-net` → your GitHub org
-   - `template-repo` → your repo name
-   - `chicks-net` → your username (especially in `.github/workflows/auto-assign.yml`)
+    - `fini-net` → your GitHub org
+    - `template-repo` → your repo name
+    - `chicks-net` → your username (especially in `.github/workflows/auto-assign.yml`)
 2. Update `.repo.toml` with your repository metadata
 3. Run `just clean_template` to strip template documentation and files from README
 4. Run `just cue-sync-from-github` to sync description and topics from GitHub

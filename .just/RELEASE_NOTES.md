@@ -222,11 +222,11 @@ added ~2 trailing blank lines, so a PR iterated on 8 times ended up with
 trailing newline:
 
 1. GitHub's REST/GraphQL API appends a trailing `\n` when storing a PR
-   body via `gh pr edit --body-file`.
+  body via `gh pr edit --body-file`.
 2. `jq -r '.body'` in `pr_update` appends its own trailing `\n` (jq
-   always emits a trailing newline on raw output).
+  always emits a trailing newline on raw output).
 3. `.just/lib/update_pr_body.sh` emitted `footer_content` verbatim,
-   preserving trailing blank lines instead of trimming them.
+  preserving trailing blank lines instead of trimming them.
 
 **Changes:**
 

@@ -1,0 +1,41 @@
+---
+name: EditorConfig
+
+# Validates that files conform to .editorconfig using the
+# editorconfig-checker GitHub action. Runs over the whole repo.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**'
+      - .editorconfig
+  pull_request:
+    paths:
+      - '**'
+      - .editorconfig
+
+# global permissions
+permissions: {}
+
+jobs:
+  editorconfig:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up editorconfig-checker
+        uses: editorconfig-checker/action-editorconfig-checker@840e866d93b8e032123c23bac69dece044d4d84c # v2.2.0
+
+      - name: Run editorconfig-checker
+        run: editorconfig-checker
