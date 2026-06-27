@@ -15,7 +15,7 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 > **AI agents:** Do not run `just pr`. Hand off to the user so they can review and create the PR themselves.
 
 1. `just branch <name>` - Create a new feature branch (format: `$USER/YYYY-MM-DD-<name>`)
-2. Make changes and commit. The first commit on a branch must start with an emoji followed by a `[topic_area]` tag (e.g., `🚀 [docs] update CLAUDE.md`, `🐛 [fix] correct typo`). This first commit message becomes the PR title. Branches that update `.just/gh-process.just` must also include `gh-process vX.Y` (with the new version number) in the first line of the commit message.
+2. Make changes and commit. The first commit on a branch must start with an emoji followed by a `[topic_area]` tag (e.g., `🚀 [docs] update CLAUDE.md`, `🐛 [fix] correct typo`). This first commit message becomes the PR title. Branches that update any `.just/*` file must also include `gh-process vX.Y` (with the new version number) in the first line of the commit message, placed right after the topic tag (e.g., `🚀 [just] gh-process v7.5 add copilot_refresh hook`).
 3. `just pr` - Create PR, push changes, and watch checks
 4. `just merge` - Squash merge PR, delete branch, return to main, and pull latest
 5. `just sync` - Return to main branch and pull latest (escape hatch)
