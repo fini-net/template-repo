@@ -4,6 +4,47 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## June 2026 - Bug squash June
 
+### v7.8 - fail on malformed web_url in repo_toml_generate (2026-06-28)
+
+- Fixes issue [#200](https://github.com/fini-net/template-repo/issues/200)
+
+`repo_toml_generate` derived `ORG_NAME` and `REPO_NAME` from `WEB_URL`
+via two `sed -E` substitutions at `.just/repo-toml.just:43-44`. On a
+no-match, `sed` echoes the input through unchanged, so the subsequent
+`-z` validation at lines 47-52 could not catch malformed `web_url`
+values: `not-a-url` passed through unchanged (non-empty, so `-z` was
+happy) and produced garbage derived names, while
+`https://github.com/org/repo/extra` silently dropped the trailing
+segment and produced a wrong `REPO_NAME`.
+
+v7.8 replaces the sed calls and the `-z` guard with a single bash
+regex match:
+
+```bash
+if [[ "$WEB_URL_RAW" =~ ^https://github\.com/([^/]+)/([^/]+)$ ]]; then
+    ORG_NAME="${BASH_REMATCH[1]}"
+    REPO_NAME="${BASH_REMATCH[2]}"
+else
+    echo "Error: web_url does not match expected format"
+    exit 1
+fi
+```
+
+This mirrors the cue schema at `docs/repo-toml.cue:24`
+(`^https://github\\.com/[^/]+/[^/]+$`) as defense-in-depth: `cue vet`
+runs earlier in the recipe (lines 20-24) and would already reject most
+malformed values, but the extraction now fails explicitly on the same
+pattern so a future schema loosening or a bypassed cue stage can't
+silently produce garbage.
+
+The strict match rejects:
+
+- Missing scheme / wrong host (`not-a-url`, `http://example.com/o/r`)
+- Bare host or empty org/repo (`https://github.com/`, `https://github.com/org`)
+- Extra path segments (`https://github.com/org/repo/extra`)
+- Trailing slash (`https://github.com/org/repo/`)
+- Empty string
+
 ### v7.7 - fix errexit bypass in cue-sync-from-github (2026-06-28)
 
 - **Related PR:** [#213](https://github.com/fini-net/template-repo/pull/213)
