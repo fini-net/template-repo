@@ -72,7 +72,7 @@ else
 	MISSING+=("cue")
 fi
 
-if gh extension list 2>/dev/null | grep -q 'gh-observer'; then
+if command -v gh &>/dev/null && gh extension list 2>/dev/null | grep -q 'gh-observer'; then
 	INSTALLED+=("gh-observer")
 else
 	MISSING+=("gh-observer")
