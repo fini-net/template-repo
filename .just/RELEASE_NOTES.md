@@ -4,6 +4,22 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## June 2026 - Bug squash June
 
+### v7.5 - skip workflow watcher in pr_checks when repo has no workflows (2026-06-28)
+
+- **Related issue:** [#182](https://github.com/fini-net/template-repo/issues/182)
+
+`pr_checks` was unconditionally invoking `gh observer` (or `gh pr checks --watch`)
+even on repos with no `.github/workflows` directory. The previous guard in the `pr`
+recipe body (`exit 0` when workflows were absent) never actually prevented
+`pr_checks` from running: in just, subsequent dependencies (`recipe: dep && post_dep`)
+always execute after the recipe body exits successfully — `exit 0` ends the bash
+subprocess, but just still dispatches `post_dep`.
+
+v7.5 moves the guard into `pr_checks` itself, wrapping only the watcher invocation
+in `if [[ -e ".github/workflows" ]]; then ... fi`. The misleading dead-code guard
+in the `pr` recipe body was also removed. The Copilot/Claude review steps after
+the watcher are unaffected and continue to run regardless.
+
 ### v7.4 - fix is_cleaned jq filter in checksums_verify (2026-06-26)
 
 - **Related issue:** [#195](https://github.com/fini-net/template-repo/issues/195)
