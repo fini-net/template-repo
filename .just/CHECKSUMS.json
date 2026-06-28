@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-06-28T16:00:25Z",
+  "generated_at": "2026-06-28T16:31:02Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -203,18 +203,10 @@
     ".just/gh-process.just": {"versions": [
         {
           "checksum": "38639dfbc41f3e332a9e33a5bb4535df24b7aa95612e5a03ec3e16369a022e9c",
-          "commit": "8c788f7c64dc51aee52dc8168a898bd721bc60b7",
-          "date": "2026-06-28T09:00:07-07:00",
-          "version": "",
-          "is_latest": true
-        }
-,
-        {
-          "checksum": "98acbd5f9ed752b1f2ea89b106de8b4036b4360286d77045d0ba865be4633b36",
-          "commit": "49de3bcd2a8f62de8f01afd06740e7a11aaa75fa",
-          "date": "2026-06-28T15:48:11Z",
+          "commit": "94e6a2a58c9a01e862f3988f57b4bd0664ecf7fd",
+          "date": "2026-06-28T09:14:11-07:00",
           "version": "v7.5",
-          "is_latest": false
+          "is_latest": true
         }
 ,
         {
@@ -867,11 +859,19 @@
 ]},
     ".just/lib/install-prerequisites.sh": {"versions": [
         {
+          "checksum": "badd72e8de8d4e843e7d3a4b51362e759d67063fe26f9714e3e8ae7238b65bbb",
+          "commit": "ebefbcf5b59f64bc71b9dba434d9e4a7029b4686",
+          "date": "2026-06-28T09:27:48-07:00",
+          "version": "v7.6",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "7ea52aee2f07360be9e45e0a23326714d4ec042adedc25653a0c7c6a702af928",
           "commit": "568c76cfe3f47d4c9e8f35bc5ff7d9d58dc8f2ac",
           "date": "2026-06-25T17:24:21-07:00",
           "version": "v7.1",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
