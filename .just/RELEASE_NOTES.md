@@ -4,6 +4,25 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## June 2026 - Bug squash June
 
+### v7.6 - guard gh-observer detection when gh absent (2026-06-28)
+
+- **Related PR:** [#212](https://github.com/fini-net/template-repo/pull/212)
+- **Related issue:** [#201](https://github.com/fini-net/template-repo/issues/201)
+
+`.just/lib/install-prerequisites.sh:75` ran `gh extension list` to detect
+`gh-observer` without first verifying that `gh` itself was installed. The
+top-level `gh` guard at line 39 only covered the `gh` tool detection
+block, leaving the `gh-observer` detection at line 75 unguarded. On a
+system without `gh`, the scan emitted a `command not found` error
+(despite the `2>/dev/null` redirection, which only suppresses stderr
+from `gh`, not the shell's own "command not found" message for a missing
+binary).
+
+v7.6 adds a `command -v gh &>/dev/null &&` guard to the `gh-observer`
+detection block. When `gh` is absent, `gh-observer` now falls cleanly
+into the `MISSING` list instead of producing noisy errors, matching the
+behavior of every other tool in the scan.
+
 ### v7.5 - skip workflow watcher in pr_checks when repo has no workflows (2026-06-28)
 
 - **Related PR:** [#211](https://github.com/fini-net/template-repo/pull/211)
