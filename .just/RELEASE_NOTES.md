@@ -6,6 +6,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ### v7.6 - guard gh-observer detection when gh absent (2026-06-28)
 
+- **Related PR:** [#211](https://github.com/fini-net/template-repo/pull/212)
 - **Related issue:** [#201](https://github.com/fini-net/template-repo/issues/201)
 
 `.just/lib/install-prerequisites.sh:75` ran `gh extension list` to detect
