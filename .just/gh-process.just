@@ -215,7 +215,7 @@ pr_checks: _on_a_pull_request && claude_review
     #!/usr/bin/env bash
 
     # Skip workflow watcher when repo has no GitHub Actions workflows
-    if [[ -e ".github/workflows" ]]; then
+    if [[ -d ".github/workflows" ]]; then
         # Use gh observer if installed, otherwise fall back to gh pr checks --watch
         if gh observer --help >/dev/null 2>&1; then
             echo ""
