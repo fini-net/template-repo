@@ -230,7 +230,8 @@ cue-sync-from-github:
                 }
                 flush_blanks()
             }
-        ' .repo.toml > .repo.toml.tmp && mv .repo.toml.tmp .repo.toml
+        ' .repo.toml > .repo.toml.tmp
+        mv .repo.toml.tmp .repo.toml
 
         # Validate the TOML is still valid after modification.
         # NOTE: cue vet passing does NOT prove the sync wrote the right values

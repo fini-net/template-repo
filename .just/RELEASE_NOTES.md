@@ -4,6 +4,23 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## June 2026 - Bug squash June
 
+### v7.7 - fix errexit bypass in cue-sync-from-github (2026-06-28)
+
+- **Related issue:** [#197](https://github.com/fini-net/template-repo/issues/197)
+
+The `cue-sync-from-github` recipe wrote its awk output via
+`awk ... > .repo.toml.tmp && mv .repo.toml.tmp .repo.toml`
+at `.just/cue-verify.just:233`. The script runs under `set -euo pipefail`,
+but commands in a `&&` list are exempt from errexit — so if `awk` failed,
+the failure was swallowed and the recipe continued with the stale
+`.repo.toml`, proceeding to the `cue vet` and `just cue-verify` stages
+unexpectedly. This undermined the two-stage validation that v6.9 added
+specifically to catch silent sync failures.
+
+v7.7 splits the `&&`-joined line into two separate commands so `set -e`
+behaves as intended: if `awk` exits non-zero, the recipe aborts
+immediately and `mv` is skipped, leaving the backup/restore path intact.
+
 ### v7.6 - guard gh-observer detection when gh absent (2026-06-28)
 
 - **Related PR:** [#212](https://github.com/fini-net/template-repo/pull/212)
