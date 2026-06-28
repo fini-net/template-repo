@@ -6,6 +6,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ### v7.7 - fix errexit bypass in cue-sync-from-github (2026-06-28)
 
+- **Related PR:** [#213](https://github.com/fini-net/template-repo/pull/213)
 - **Related issue:** [#197](https://github.com/fini-net/template-repo/issues/197)
 
 The `cue-sync-from-github` recipe wrote its awk output via
