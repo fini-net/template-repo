@@ -118,6 +118,9 @@ fi
 
 # Trim trailing blank lines from footer (GitHub API + jq round-trip accumulation; issue #173)
 while [[ ${#footer_content[@]} -gt 0 && -z "${footer_content[${#footer_content[@]}-1]}" ]]; do
+	# bash evaluates unset's subscript as arithmetic even when single-quoted,
+	# so ${#footer_content[@]} resolves correctly here. Single-quoting prevents
+	# premature expansion by the calling shell before unset sees it.
 	unset 'footer_content[${#footer_content[@]}-1]'
 done
 

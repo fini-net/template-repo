@@ -4,6 +4,36 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## June 2026 - Bug squash June
 
+### v8.2 - document unset single-quote idiom (2026-06-29)
+
+- Fixes issue [#203](https://github.com/fini-net/template-repo/issues/203)
+
+`.just/lib/update_pr_body.sh` trims trailing blank lines from the
+PR footer with a `while`/`unset` loop:
+
+```bash
+unset 'footer_content[${#footer_content[@]}-1]'
+```
+
+This is correct — bash's `unset` builtin evaluates its subscript as
+arithmetic even when the argument is single-quoted, so
+`${#footer_content[@]}` resolves at call time inside `unset`, not in
+the calling shell. The single quotes are load-bearing: without them
+the calling shell would expand `${#footer_content[@]}` to the array
+length *before* `unset` ran, producing a literal index like
+`footer_content[5-1]` that would never shrink as the loop iterated.
+
+The idiom kept tripping reviewers as a false-positive bug. Copilot
+flagged it as a hard error in `fini-net/gh-amp#17` (claiming the
+single quotes prevented evaluation), and Claude's deeper review on
+template-repo PR #174 confirmed it was safe but suggested
+documenting the fragility. Each re-flag costs a review round-trip.
+
+v8.2 adds a three-line comment directly above the `unset` inside the
+loop, explaining why the single-quoting is correct and what it
+guards against. No behavior change; the `15_trailing_blanks` fixture
+in `pr_body_test` continues to exercise the loop.
+
 ### v8.1 - fix awk backslash mangling in cue-sync (2026-06-29)
 
 - Fixes issue [#198](https://github.com/fini-net/template-repo/issues/198)
