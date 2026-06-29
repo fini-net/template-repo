@@ -27,23 +27,23 @@
 function flush_blanks() { if (blanks != "") { printf "%s", blanks; blanks="" } }
 /^\[about\]/ { in_about=1; flush_blanks(); print; next }
 /^\[/ && !/^\[about\]/ {
-    if (in_about) {
-        if (!desc_written)   { print "description = \"" desc "\""; desc_written=1 }
-        if (!topics_written) { print "topics = " topics; topics_written=1 }
-    }
-    in_about=0
-    flush_blanks()
-    print
-    next
+	if (in_about) {
+		if (!desc_written)   { print "description = \"" desc "\""; desc_written=1 }
+		if (!topics_written) { print "topics = " topics; topics_written=1 }
+	}
+	in_about=0
+	flush_blanks()
+	print
+	next
 }
 in_about && /^[#[:space:]]*description[[:space:]]*=/ { flush_blanks(); print "description = \"" desc "\""; desc_written=1; next }
 in_about && /^[#[:space:]]*topics[[:space:]]*=/      { flush_blanks(); print "topics = " topics; topics_written=1; next }
 in_about && /^[[:space:]]*$/ { blanks=blanks "\n"; next }
 { flush_blanks(); print }
 END {
-    if (in_about) {
-        if (!desc_written)   { print "description = \"" desc "\""; desc_written=1 }
-        if (!topics_written) { print "topics = " topics; topics_written=1 }
-    }
-    flush_blanks()
+	if (in_about) {
+		if (!desc_written)   { print "description = \"" desc "\""; desc_written=1 }
+		if (!topics_written) { print "topics = " topics; topics_written=1 }
+	}
+	flush_blanks()
 }
