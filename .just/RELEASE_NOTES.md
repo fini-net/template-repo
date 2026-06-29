@@ -4,6 +4,24 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## June 2026 - Bug squash June
 
+### Docs - clarify `.just/*` versioning rule and emoji wording in CLAUDE.md (2026-06-28)
+
+- No CHECKSUMS-tracked file changed in this entry, so no version bump.
+
+CLAUDE.md previously scattered the "bump version + add release-notes
+entry" rule across three places (the dev-workflow step, and two bullets
+in "Important implementation notes"), making it easy to miss that the
+rule applies to **every** `.just/*` file, not only `gh-process.just`.
+The guidance is now consolidated into a dedicated
+[Versioning `.just/*` changes](../CLAUDE.md#versioning-just-changes)
+section that states the two coupled actions once and lists the
+affected modules explicitly.
+
+The emoji guidance was also reworded to make explicit that the leading
+emoji on the first commit is a free choice by the committer — there is
+no `just` recipe that randomizes or validates it, despite the prior
+wording implying a convention without a mechanism.
+
 ### v7.8 - fail on malformed web_url in repo_toml_generate (2026-06-28)
 
 - Fixes issue [#200](https://github.com/fini-net/template-repo/issues/200)
