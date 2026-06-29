@@ -4,6 +4,23 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## June 2026 - Bug squash June
 
+### v7.9 - fix `copilot_rollback` restoring to wrong path (2026-06-29)
+
+`copilot_rollback` reconstructed the original file path from the backup
+filename by stripping suffixes from the **right**. Because the timestamp
+format (`YYYYMMDD_HHMMSS_PID`) contains two literal underscores,
+`${filename%_*}` only removed the trailing `_<PID>.bak` and left the
+`YYYYMMDD_HHMMSS` fragment glued onto the encoded path. The result was
+a non-existent target like `.just/copilot.just_20260626_143022`, so the
+restore silently wrote to the wrong file and the real source was never
+restored (issue #199).
+
+The parser now strips from the **left**: `${filename%%_*}` takes
+everything before the first `_` as the safe path (safe because
+`safe_path` is `%5F`-encoded and contains no literal `_`), and
+`${filename#*_}` yields the full `YYYYMMDD_HHMMSS_PID` timestamp. The
+backup-writing code was already correct; only the parser needed fixing.
+
 ### Docs - clarify `.just/*` versioning rule and emoji wording in CLAUDE.md (2026-06-28)
 
 - No CHECKSUMS-tracked file changed in this entry, so no version bump.
