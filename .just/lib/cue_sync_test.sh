@@ -30,7 +30,13 @@ failed=0
 
 run_awk() {
 	local input="$1" desc="$2" topics="$3"
-	awk -v desc="$desc" -v topics="[$topics]" -f "$AWK_PROGRAM" "$input"
+	# Mirror the escape step performed by the cue-sync-from-github recipe
+	# (.just/cue-verify.just): awk's -v assignment processes backslash escape
+	# sequences before the program runs, so backslashes must be double-escaped
+	# first, then double-quotes escaped for TOML. See issue #198.
+	local escaped="${desc//\\/\\\\}"
+	escaped="${escaped//\"/\\\"}"
+	awk -v desc="$escaped" -v topics="[$topics]" -f "$AWK_PROGRAM" "$input"
 }
 
 # Assert helpers - count failures via a global flag
@@ -173,6 +179,16 @@ main() {
 	run_test "active_keys.toml" "$desc" "$topics" \
 		'topics = \[[^]]*\]' "topics = [$topics]" \
 		"active topics replaced inside [about]"
+
+	# Case 6: backslashes in description must be preserved through the awk -v
+	# handoff. awk's -v assignment processes backslash escape sequences
+	# (\n, \t, \p -> p) before the program runs, so a description like
+	# "C:\path\to\thing" would be silently mangled to "C:athothing" unless
+	# the recipe double-escapes backslashes before invoking awk. See #198.
+	local bs_desc='C:\path\to\thing'
+	run_test "active_keys.toml" "$bs_desc" "$topics" \
+		'description = "[^"]*"' "description = \"$bs_desc\"" \
+		"backslashes in description preserved through awk -v (issue #198)"
 
 	echo
 	echo -e "Results: ${GREEN}$passed passed${NORMAL}, ${RED}$failed failed${NORMAL}"

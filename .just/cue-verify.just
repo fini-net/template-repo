@@ -189,7 +189,12 @@ cue-sync-from-github:
         echo "{{YELLOW}}Created backup: .repo.toml.backup{{NORMAL}}"
 
         # Update .repo.toml using awk (portable across macOS and Linux)
-        GH_DESC_ESCAPED="${GH_DESC//\"/\\\"}"
+        # Double-escape backslashes BEFORE the quote-escape step: awk's `-v`
+        # assignment processes backslash escape sequences (\n, \t, \p -> p)
+        # before the program runs, so a single backslash in the GitHub
+        # description would be silently mangled. See issue #198.
+        GH_DESC_ESCAPED="${GH_DESC//\\/\\\\}"
+        GH_DESC_ESCAPED="${GH_DESC_ESCAPED//\"/\\\"}"
 
         # The state-aware awk program lives in .just/lib/cue_sync.awk so the
         # test runner (.just/lib/cue_sync_test.sh) invokes the exact same

@@ -4,6 +4,24 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## June 2026 - Bug squash June
 
+### v8.1 - fix awk backslash mangling in cue-sync (2026-06-29)
+
+- Fixes issue [#198](https://github.com/fini-net/template-repo/issues/198)
+
+`cue-sync-from-github` escaped the GitHub description for TOML but
+passed the result to awk via `-v desc=...`. awk's `-v` assignment
+processes backslash escape sequences before the program runs, so any
+backslash in a repo description (Windows paths, regexes, prose) was
+silently mangled — `C:\path\to\thing` became `C:athothing`. The
+resulting TOML was structurally valid, so `cue vet` didn't catch it;
+the trailing `cue-verify` then detected a mismatch against the GitHub
+API, restored the backup, and exited 1 — leaving sync permanently
+broken for any repo with a backslash in its description.
+
+v8.1 double-escapes backslashes before the quote-escape step so awk's
+`-v` un-escapes them back to single backslashes, and the TOML writer
+sees the original value.
+
 ### v8.0 - extract shared `cue_sync.awk` (2026-06-29)
 
 - Fixes issue [#196](https://github.com/fini-net/template-repo/issues/196)
