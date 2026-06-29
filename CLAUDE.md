@@ -16,7 +16,7 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 
 1. `just branch <name>` - Create a new feature branch (format: `$USER/YYYY-MM-DD-<name>`)
 2. Make changes and commit. The first commit on a branch must start with an emoji followed by a `[topic_area]` tag (e.g., `🚀 [docs] update CLAUDE.md`, `🐛 [fix] correct typo`). The emoji is a free choice by the committer — there is no recipe that picks one for you. This first commit message becomes the PR title.
-    - For changes to any `.just/*` file: also bump the version and add a release-notes entry, as described in [Versioning `.just/*` changes](#versioning-just-changes). The version token (`gh-process vX.Y`) goes in the first line of the commit message, right after the `[just]` topic tag.
+    - For changes to any `.just/*` file: also bump the version and add a release-notes entry, as described in [Versioning `.just/*` changes](#versioning-just-changes).
 3. `just pr` - Create PR, push changes, and watch checks
 4. `just merge` - Squash merge PR, delete branch, return to main, and pull latest
 5. `just sync` - Return to main branch and pull latest (escape hatch)
@@ -236,7 +236,7 @@ When using this template for a new project:
 
 Any change to **any** file under `.just/*` (not only `gh-process.just` — this covers `compliance.just`, `copilot.just`, `repo-toml.just`, `shellcheck.just`, `cue-verify.just`, `claude.just`, `pr-hook.just`, `testing.just`, `template-sync.just`, and any other module) requires **two** coupled actions on the same branch:
 
-1. **Bump the version.** Increment the `vX.Y` number in the `# PR create vX.Y` comment header in `.just/gh-process.just` (currently `v7.8`). This comment drives the pr-creation help text, so keep the `PR create vX.Y` wording and only change the version digits. Then include the same version token — in the `gh-process vX.Y` form — in the first line of the first commit message, right after the `[just]` topic tag (e.g., `🚀 [just] gh-process v7.9 add copilot_refresh hook`).
+1. **Bump the version.** Increment the `vX.Y` number in the `# PR create vX.Y` comment header in `.just/gh-process.just`. This comment drives the pr-creation help text, so keep the `PR create vX.Y` wording and only change the version digits. The first commit must use the `[just]` topic tag with the version token in `gh-process vX.Y` form in the first line (e.g., `🤜 [just] gh-process v7.9 add copilot_refresh hook`).
 2. **Add a release-notes entry.** Add a dated entry to `.just/RELEASE_NOTES.md` describing what changed and why, mirroring the style of existing entries.
 
 These two actions always go together and apply equally to every `.just/*` file. A change to `compliance.just` (for example) still bumps the version in `gh-process.just` and still adds a `RELEASE_NOTES.md` entry — there is a single rolling version across all `.just/*` modules, not per-module versions.
