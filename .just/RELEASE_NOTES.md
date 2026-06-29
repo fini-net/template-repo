@@ -7,6 +7,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 ### v8.0 - extract shared `cue_sync.awk` (2026-06-29)
 
 - Fixes issue [#196](https://github.com/fini-net/template-repo/issues/196)
+- **Related PR:** [#219](https://github.com/fini-net/template-repo/pull/219)
 
 The awk program powering `cue-sync-from-github` was duplicated verbatim
 between `.just/cue-verify.just` (the production recipe) and
@@ -72,6 +73,7 @@ wording implying a convention without a mechanism.
 ### v7.8 - fail on malformed web_url in repo_toml_generate (2026-06-28)
 
 - Fixes issue [#200](https://github.com/fini-net/template-repo/issues/200)
+- **Related PR:** [#214](https://github.com/fini-net/template-repo/pull/214)
 
 `repo_toml_generate` derived `ORG_NAME` and `REPO_NAME` from `WEB_URL`
 via two `sed -E` substitutions at `.just/repo-toml.just:43-44`. On a
