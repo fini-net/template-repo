@@ -6,7 +6,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ### Docs - clarify `.just/*` versioning rule and emoji wording in CLAUDE.md (2026-06-28)
 
-- No `.just/*` file changed in this entry, so no version bump.
+- No CHECKSUMS-tracked file changed in this entry, so no version bump.
 
 CLAUDE.md previously scattered the "bump version + add release-notes
 entry" rule across three places (the dev-workflow step, and two bullets
