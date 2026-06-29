@@ -30,13 +30,11 @@ failed=0
 
 run_awk() {
 	local input="$1" desc="$2" topics="$3"
-	# Mirror the escape step performed by the cue-sync-from-github recipe
-	# (.just/cue-verify.just): awk's -v assignment processes backslash escape
-	# sequences before the program runs, so backslashes must be double-escaped
-	# first, then double-quotes escaped for TOML. See issue #198.
-	local escaped="${desc//\\/\\\\}"
-	escaped="${escaped//\"/\\\"}"
-	awk -v desc="$escaped" -v topics="[$topics]" -f "$AWK_PROGRAM" "$input"
+	# Pass description via the environment (desc=...), not awk's -v, because
+	# -v processes backslash escape sequences before the program runs. The
+	# awk program applies TOML-escaping on emit, so callers pass the raw
+	# description unmodified. See issue #198.
+	desc="$desc" awk -v topics="[$topics]" -f "$AWK_PROGRAM" "$input"
 }
 
 # Assert helpers - count failures via a global flag
@@ -180,15 +178,17 @@ main() {
 		'topics = \[[^]]*\]' "topics = [$topics]" \
 		"active topics replaced inside [about]"
 
-	# Case 6: backslashes in description must be preserved through the awk -v
-	# handoff. awk's -v assignment processes backslash escape sequences
-	# (\n, \t, \p -> p) before the program runs, so a description like
-	# "C:\path\to\thing" would be silently mangled to "C:athothing" unless
-	# the recipe double-escapes backslashes before invoking awk. See #198.
+	# Case 6: backslashes in description must survive the sync and produce
+	# valid TOML. The description is passed raw via the environment; the awk
+	# program TOML-escapes backslashes (-> \\) and double-quotes (-> \") on
+	# emit. Asserting the escaped form verifies both that -v mangling is
+	# avoided (would have lost backslashes entirely) and that the output is
+	# valid TOML (a raw `\p` would fail cue vet). See #198.
 	local bs_desc='C:\path\to\thing'
+	local bs_desc_toml='C:\\path\\to\\thing'
 	run_test "active_keys.toml" "$bs_desc" "$topics" \
-		'description = "[^"]*"' "description = \"$bs_desc\"" \
-		"backslashes in description preserved through awk -v (issue #198)"
+		'description = "[^"]*"' "description = \"$bs_desc_toml\"" \
+		"backslashes in description preserved and TOML-escaped (issue #198)"
 
 	echo
 	echo -e "Results: ${GREEN}$passed passed${NORMAL}, ${RED}$failed failed${NORMAL}"

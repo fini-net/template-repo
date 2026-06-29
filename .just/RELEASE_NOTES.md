@@ -18,9 +18,26 @@ the trailing `cue-verify` then detected a mismatch against the GitHub
 API, restored the backup, and exited 1 — leaving sync permanently
 broken for any repo with a backslash in its description.
 
-v8.1 double-escapes backslashes before the quote-escape step so awk's
-`-v` un-escapes them back to single backslashes, and the TOML writer
-sees the original value.
+The initial fix double-escaped backslashes before the quote-escape
+step so awk's `-v` un-escaped them back to single backslashes. That
+prevented the mangling but produced **invalid TOML** — a raw
+`description = "C:\path"` contains an illegal `\p` escape, so
+`cue vet` failed on the modified file and the sync still broke. The
+same unescaped write also affected the else branch that creates a
+new `.repo.toml` from scratch, where there was no previous file to
+restore from, so the failure was permanent on first-time sync.
+
+v8.1 moves the contract to its root: the description is passed to
+awk via the environment (`desc=...`), not `-v`, so no escape
+processing happens before the program runs. The awk program itself
+applies TOML-escaping (`\`→`\\`, `"`→`\"`) on emit via a new
+`toml_escape()` helper, so the output is valid TOML regardless of
+the description's contents. The else branch that bootstraps a new
+`.repo.toml` mirrors the same escape in shell before `printf`. The
+mirrored escape step in the test runner (`cue_sync_test.sh`) is
+gone — both paths now pass the raw description and let awk own the
+escaping. `ENVIRON` is POSIX awk, supported by gawk, mawk, nawk,
+and busybox awk on all target platforms.
 
 ### v8.0 - extract shared `cue_sync.awk` (2026-06-29)
 

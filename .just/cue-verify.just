@@ -188,14 +188,6 @@ cue-sync-from-github:
         cp .repo.toml .repo.toml.backup
         echo "{{YELLOW}}Created backup: .repo.toml.backup{{NORMAL}}"
 
-        # Update .repo.toml using awk (portable across macOS and Linux)
-        # Double-escape backslashes BEFORE the quote-escape step: awk's `-v`
-        # assignment processes backslash escape sequences (\n, \t, \p -> p)
-        # before the program runs, so a single backslash in the GitHub
-        # description would be silently mangled. See issue #198.
-        GH_DESC_ESCAPED="${GH_DESC//\\/\\\\}"
-        GH_DESC_ESCAPED="${GH_DESC_ESCAPED//\"/\\\"}"
-
         # The state-aware awk program lives in .just/lib/cue_sync.awk so the
         # test runner (.just/lib/cue_sync_test.sh) invokes the exact same
         # logic. See issue #196 for why the program is no longer inlined.
@@ -208,7 +200,14 @@ cue-sync-from-github:
         # landing adjacent to the preceding key (e.g. `license`) rather than
         # visually attaching to the next `[section]`. See issue #165 for the
         # failure modes this addresses.
-        awk -v desc="$GH_DESC_ESCAPED" -v topics="[$TOPICS_TOML]" \
+        #
+        # Description is passed via the environment (desc=...), not awk's -v,
+        # because -v processes backslash escape sequences before the program
+        # runs, which would mangle backslashes in the GitHub description. The
+        # awk program applies TOML-escaping (backslash and double-quote) on
+        # emit, so the output is valid TOML regardless of the description's
+        # contents. See issue #198.
+        desc="$GH_DESC" awk -v topics="[$TOPICS_TOML]" \
             -f .just/lib/cue_sync.awk .repo.toml > .repo.toml.tmp
         mv .repo.toml.tmp .repo.toml
 
@@ -241,11 +240,19 @@ cue-sync-from-github:
         GIT_SSH="git@github.com:$ORG_NAME/$REPO_NAME.git"
         WEB_URL="https://github.com/$ORG_NAME/$REPO_NAME"
 
+        # TOML-escape the description for the new file: backslash -> \\ and
+        # double-quote -> \". Without this, a description containing a
+        # backslash (e.g. `C:\path`) produces invalid TOML and cue vet fails,
+        # leaving the repo unable to bootstrap .repo.toml on first sync.
+        # See issue #198.
+        GH_DESC_TOML="${GH_DESC//\\/\\\\}"
+        GH_DESC_TOML="${GH_DESC_TOML//\"/\\\"}"
+
         printf '%s\n' \
             "# .repo.toml" \
             "" \
             "[about]" \
-            "description = \"$GH_DESC\"" \
+            "description = \"$GH_DESC_TOML\"" \
             "topics = [$TOPICS_TOML]" \
             "" \
             "[urls]" \
