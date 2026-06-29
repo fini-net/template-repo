@@ -4,9 +4,41 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## June 2026 - Bug squash June
 
+### v8.2 - document unset single-quote idiom (2026-06-29)
+
+- Fixes issue [#203](https://github.com/fini-net/template-repo/issues/203)
+- **Related PR:** [#222](https://github.com/fini-net/template-repo/pull/222)
+
+`.just/lib/update_pr_body.sh` trims trailing blank lines from the
+PR footer with a `while`/`unset` loop:
+
+```bash
+unset 'footer_content[${#footer_content[@]}-1]'
+```
+
+This is correct — bash's `unset` builtin evaluates its subscript as
+arithmetic even when the argument is single-quoted, so
+`${#footer_content[@]}` resolves at call time inside `unset`, not in
+the calling shell. The single quotes are load-bearing: without them
+the calling shell would expand `${#footer_content[@]}` to the array
+length *before* `unset` ran, producing a literal index like
+`footer_content[5-1]` that would never shrink as the loop iterated.
+
+The idiom kept tripping reviewers as a false-positive bug. Copilot
+flagged it as a hard error in `fini-net/gh-amp#17` (claiming the
+single quotes prevented evaluation), and Claude's deeper review on
+template-repo PR #174 confirmed it was safe but suggested
+documenting the fragility. Each re-flag costs a review round-trip.
+
+v8.2 adds a three-line comment directly above the `unset` inside the
+loop, explaining why the single-quoting is correct and what it
+guards against. No behavior change; the `15_trailing_blanks` fixture
+in `pr_body_test` continues to exercise the loop.
+
 ### v8.1 - fix awk backslash mangling in cue-sync (2026-06-29)
 
 - Fixes issue [#198](https://github.com/fini-net/template-repo/issues/198)
+- **Related PR:** [#221](https://github.com/fini-net/template-repo/pull/221)
 
 `cue-sync-from-github` escaped the GitHub description for TOML but
 passed the result to awk via `-v desc=...`. awk's `-v` assignment
@@ -72,6 +104,9 @@ derived repos retain, depends on it.
 
 ### v7.9 - fix `copilot_rollback` restoring to wrong path (2026-06-29)
 
+- **Related PR:** [#216](https://github.com/fini-net/template-repo/pull/216)
+- Fixes issue [#199](https://github.com/fini-net/template-repo/issues/199)
+
 `copilot_rollback` reconstructed the original file path from the backup
 filename by stripping suffixes from the **right**. Because the timestamp
 format (`YYYYMMDD_HHMMSS_PID`) contains two literal underscores,
@@ -90,8 +125,10 @@ backup-writing code was already correct; only the parser needed fixing.
 ### Docs - clarify `.just/*` versioning rule and emoji wording in CLAUDE.md (2026-06-28)
 
 - No CHECKSUMS-tracked file changed in this entry, so no version bump.
+- No issue for this improvement.
+- **Related PR:** [#215](https://github.com/fini-net/template-repo/pull/215)
 
-CLAUDE.md previously scattered the "bump version + add release-notes
+`CLAUDE.md` previously scattered the "bump version + add release-notes
 entry" rule across three places (the dev-workflow step, and two bullets
 in "Important implementation notes"), making it easy to miss that the
 rule applies to **every** `.just/*` file, not only `gh-process.just`.
@@ -203,6 +240,7 @@ the watcher are unaffected and continue to run regardless.
 
 ### v7.4 - fix is_cleaned jq filter in checksums_verify (2026-06-26)
 
+- **Related PR:** [#208](https://github.com/fini-net/template-repo/pull/208)
 - **Related issue:** [#195](https://github.com/fini-net/template-repo/issues/195)
 
 The `is_cleaned` jq filter in `.just/template-sync.just` was always evaluating
@@ -227,6 +265,7 @@ nested under a cleaned directory.
 
 ### v7.3 - shellcheck auto-generates repo-toml.sh (2026-06-26)
 
+- **Related PR:** [#207](https://github.com/fini-net/template-repo/pull/207)
 - **Related issue:** [#192](https://github.com/fini-net/template-repo/issues/192)
 
 `just shellcheck` reported 4 confusing `SC1091` "Not following" errors on every
@@ -244,6 +283,7 @@ rather than continuing and emitting 4 misleading failures.
 
 ### v7.2 - clean_template strips cue-sync test infra; mktemp portability (2026-06-26)
 
+- **Related PR:** [#205](https://github.com/fini-net/template-repo/pull/205)
 - **Related issue:** [#194](https://github.com/fini-net/template-repo/issues/194)
 
 `just clean_template` already removed the PR-body test infrastructure
