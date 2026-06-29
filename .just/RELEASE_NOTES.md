@@ -4,6 +4,36 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## June 2026 - Bug squash June
 
+### v8.0 - extract shared `cue_sync.awk` (2026-06-29)
+
+- Fixes issue [#196](https://github.com/fini-net/template-repo/issues/196)
+
+The awk program powering `cue-sync-from-github` was duplicated verbatim
+between `.just/cue-verify.just` (the production recipe) and
+`.just/lib/cue_sync_test.sh` (the test runner). The test file even
+acknowledged the hazard with a "keep this in sync with the recipe"
+comment — the exact fragility that caused the original #165 regression
+the test suite was built to guard against. If the recipe's awk was
+silently modified without updating the test copy, the tests kept
+passing while production code regressed: the test validated a **copy**,
+not the production path.
+
+v8.0 extracts the awk program to a standalone file,
+`.just/lib/cue_sync.awk`, and both the recipe and the test runner now
+invoke it via `awk -f .just/lib/cue_sync.awk`. A change to the awk is
+automatically exercised by both callers, and the "keep in sync"
+comment is gone.
+
+To keep derivative repos in lockstep with future awk changes, the
+checksum generator (`.just/lib/generate_checksums.sh`) now globs
+`.just/lib/*.awk` alongside `*.sh`, so `cue_sync.awk` becomes a
+CHECKSUMS-tracked file and flows through `just update_from_template`.
+The `cue-sync-tests.yml` workflow path triggers also gained
+`.just/lib/cue_sync.awk` so the test suite runs whenever the awk is
+edited. `clean_template` intentionally **keeps** `cue_sync.awk`
+(only the test infra is stripped) because `cue-verify.just`, which
+derived repos retain, depends on it.
+
 ### v7.9 - fix `copilot_rollback` restoring to wrong path (2026-06-29)
 
 `copilot_rollback` reconstructed the original file path from the backup
