@@ -5,12 +5,14 @@ on:
   push:
     paths:
       - '.just/cue-verify.just'
+      - '.just/lib/cue_sync.awk'
       - '.just/lib/cue_sync_test.sh'
       - '.just/test/fixtures/cue_sync/**'
       - '.github/workflows/cue-sync-tests.yml'
   pull_request:
     paths:
       - '.just/cue-verify.just'
+      - '.just/lib/cue_sync.awk'
       - '.just/lib/cue_sync_test.sh'
       - '.just/test/fixtures/cue_sync/**'
       - '.github/workflows/cue-sync-tests.yml'

@@ -19,39 +19,18 @@ readonly FIXTURES_DIR=".just/test/fixtures/cue_sync"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 readonly REPO_ROOT
 
+# Path to the shared awk program extracted from the cue-sync-from-github
+# recipe. Both the recipe (in .just/cue-verify.just) and this test runner
+# invoke the same file via `awk -f`, so a change to the awk is exercised by
+# both paths automatically. See issue #196.
+readonly AWK_PROGRAM="$REPO_ROOT/.just/lib/cue_sync.awk"
+
 passed=0
 failed=0
 
-# The awk program extracted from the cue-sync-from-github recipe in
-# .just/cue-verify.just. Keep this in sync with the recipe. If the recipe
-# changes, update both and add a test case covering the new behaviour.
 run_awk() {
 	local input="$1" desc="$2" topics="$3"
-	awk -v desc="$desc" -v topics="[$topics]" '
-		function flush_blanks() { if (blanks != "") { printf "%s", blanks; blanks="" } }
-		/^\[about\]/ { in_about=1; flush_blanks(); print; next }
-		/^\[/ && !/^\[about\]/ {
-			if (in_about) {
-				if (!desc_written)   { print "description = \"" desc "\""; desc_written=1 }
-				if (!topics_written) { print "topics = " topics; topics_written=1 }
-			}
-			in_about=0
-			flush_blanks()
-			print
-			next
-		}
-		in_about && /^[#[:space:]]*description[[:space:]]*=/ { flush_blanks(); print "description = \"" desc "\""; desc_written=1; next }
-		in_about && /^[#[:space:]]*topics[[:space:]]*=/      { flush_blanks(); print "topics = " topics; topics_written=1; next }
-		in_about && /^[[:space:]]*$/ { blanks=blanks "\n"; next }
-		{ flush_blanks(); print }
-		END {
-			if (in_about) {
-				if (!desc_written)   { print "description = \"" desc "\""; desc_written=1 }
-				if (!topics_written) { print "topics = " topics; topics_written=1 }
-			}
-			flush_blanks()
-		}
-	' "$input"
+	awk -v desc="$desc" -v topics="[$topics]" -f "$AWK_PROGRAM" "$input"
 }
 
 # Assert helpers - count failures via a global flag
