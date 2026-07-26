@@ -21,7 +21,7 @@ on:
 permissions: {}
 
 jobs:
-  test:
+  template-sync-test:
     runs-on: ubuntu-latest
     permissions:
       contents: read
