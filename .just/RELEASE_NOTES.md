@@ -2,6 +2,51 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
+## August 2026
+
+### v8.3 - copilot_refresh detects in-progress and zero-comment reviews (2026-08-04)
+
+- Fixes issue [#288](https://github.com/fini-net/template-repo/issues/288)
+- **Related PR:** (pending)
+
+The `copilot_refresh` poll loop in `.just/copilot.just` had four bugs
+that surfaced while watching Copilot review a live PR (#85 on
+adRise/tubi-observability, `gh 2.95.0`):
+
+1. **No in-progress detection.** The poll only queried `reviews(last: 1)`,
+   never `reviewRequests`, so it could not tell "still processing" from
+   "never started" and printed dots until the 180s timeout even when
+   everything was fine.
+2. **Zero-comment reviews never registered as complete.** The loop
+   required *both* a review state *and* `comment_count > 0`, so Copilot's
+   "looks good, no suggestions" review (`COMMENTED` with
+   `comments.totalCount == 0`) timed out and exited 1 - a false failure
+   for the *best* outcome.
+3. **`gh pr view --json reviewRequests` silently drops Bot reviewers.**
+   Any detection built on that field will not work. The fix queries
+   GraphQL `reviewRequests` directly with a `... on Bot { login }`
+   fragment (Copilot shows up as `copilot-pull-request-reviewer` there;
+   REST `/pulls/{n}/requested_reviewers` returns `Copilot`).
+4. **`reviews(last: 1)` could miss Copilot's review.** If Claude or a
+   human reviewed after Copilot, the `last: 1` + jq author filter
+   yielded nothing and the loop fell back to "not complete". The fix
+   uses `reviews(last: 10)` and selects the Copilot-authored review
+   client-side.
+
+The rewritten poll loop runs a single GraphQL call per iteration that
+fetches both `reviewRequests(first: 10)` (with Bot/User/Team fragments)
+and `reviews(last: 10)`, then applies a three-state machine:
+
+1. Copilot review exists with any state -> **complete** (0 comments is
+   reported as "no suggestions", not a failure).
+2. Else if Copilot is in `reviewRequests` -> **in progress**, keep
+   polling (and track that we have seen it in progress so a later
+   disappearance is not mistaken for "never started").
+3. Else -> fail fast with a useful message ("Copilot was not found in
+   reviewRequests and has no review") instead of waiting 180s, including
+   a REST fallback hint if GraphQL ever stops surfacing the Bot
+   reviewer.
+
 ## June 2026 - Bug squash June
 
 ### v8.2 - document unset single-quote idiom (2026-06-29)
