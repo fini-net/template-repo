@@ -333,6 +333,7 @@ copilot_refresh: _on_a_pull_request
     # Request Copilot review
     echo "🐈‍⬛ Requesting Copilot review on PR #${PR_NUMBER}..."
 
+    REQUEST_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
     if gh api --method POST "/repos/${REPO}/pulls/${PR_NUMBER}/requested_reviewers" \
         -f "reviewers[]=copilot-pull-request-reviewer[bot]" &>/dev/null; then
         echo "{{GREEN}}✓ Copilot review requested successfully{{NORMAL}}"
@@ -373,6 +374,7 @@ copilot_refresh: _on_a_pull_request
         printf 'MAX_WAIT="$1"; POLL_INTERVAL="$2"; INITIAL_DELAY="$3"\n'
         printf 'PR_REPO_OWNER="$4"; PR_REPO_NAME="$5"; PR_NUMBER="$6"\n'
         printf 'USING_GUM="${7:-0}"\n'
+        printf 'REQUEST_TIME="${8:-}"\n'
         printf 'COPILOT_LOGIN="copilot-pull-request-reviewer"\n'
         printf '\n'
         printf 'echo "Waiting ${INITIAL_DELAY}s for Copilot to start processing..."\n'
@@ -421,10 +423,12 @@ copilot_refresh: _on_a_pull_request
         printf '        continue\n'
         printf '    fi\n'
         printf '\n'
-        printf '    # Pick the Copilot-authored review (most recent first since reviews(last: 10)\n'
-        printf '    # returns newest at the end; select(0) grabs the latest Copilot one).\n'
-        printf '    copilot_review=$(echo "$response" | jq -r --arg login "$COPILOT_LOGIN" '"'"'\n'
-        printf '        [.reviews.nodes[] | select(.author.login == $login)] | last | {state: .state, commentCount: (.comments.totalCount // 0)}'"'"' 2>/dev/null) || true\n'
+        printf '    # Pick the latest Copilot-authored review submitted AFTER this refresh\n'
+        printf '    # request was made, so a stale review from an earlier refresh cycle does\n'
+        printf '    # not produce a false "complete" (reviews(last: 10) returns newest at the\n'
+        printf '    # end; | last grabs the most recent Copilot one).\n'
+        printf '    copilot_review=$(echo "$response" | jq -r --arg login "$COPILOT_LOGIN" --arg requestTime "$REQUEST_TIME" '"'"'\n'
+        printf '        [.reviews.nodes[] | select(.author.login == $login and .submittedAt != null and .submittedAt > $requestTime)] | last | {state: .state, commentCount: (.comments.totalCount // 0)}'"'"' 2>/dev/null) || true\n'
         printf '\n'
         printf '    if [[ -n "$copilot_review" && "$copilot_review" != "null" ]]; then\n'
         printf '        review_state=$(echo "$copilot_review" | jq -r '"'"'.state // "UNKNOWN"'"'"' || echo "UNKNOWN")\n'
@@ -485,12 +489,12 @@ copilot_refresh: _on_a_pull_request
     if command -v gum &> /dev/null; then
         USING_GUM=1 gum spin --spinner dot --title "Waiting for Copilot review..." -- \
             bash "$poll_script" "$MAX_WAIT" "$POLL_INTERVAL" "$INITIAL_DELAY" \
-            "$PR_REPO_OWNER" "$PR_REPO_NAME" "$PR_NUMBER" "1"
+            "$PR_REPO_OWNER" "$PR_REPO_NAME" "$PR_NUMBER" "1" "$REQUEST_TIME"
         review_ready=$?
     else
         echo "{{BLUE}}Waiting for Copilot review...{{NORMAL}}"
         if bash "$poll_script" "$MAX_WAIT" "$POLL_INTERVAL" "$INITIAL_DELAY" \
-            "$PR_REPO_OWNER" "$PR_REPO_NAME" "$PR_NUMBER" "0"; then
+            "$PR_REPO_OWNER" "$PR_REPO_NAME" "$PR_NUMBER" "0" "$REQUEST_TIME"; then
             review_ready=0
         else
             review_ready=1

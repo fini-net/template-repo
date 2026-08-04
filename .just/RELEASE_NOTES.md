@@ -7,7 +7,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 ### v8.3 - copilot_refresh detects in-progress and zero-comment reviews (2026-08-04)
 
 - Fixes issue [#288](https://github.com/fini-net/template-repo/issues/288)
-- **Related PR:** (pending)
+- **Related PR:** [#289](https://github.com/fini-net/template-repo/pull/289)
 
 The `copilot_refresh` poll loop in `.just/copilot.just` had four bugs
 that surfaced while watching Copilot review a live PR (#85 on
