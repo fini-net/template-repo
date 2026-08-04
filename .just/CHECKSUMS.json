@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-08-04T21:03:34Z",
+  "generated_at": "2026-08-04T21:14:00Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -112,11 +112,19 @@
 ]},
     ".just/copilot.just": {"versions": [
         {
+          "checksum": "75358c6bdb0819bdc94e3699f26afe1a204da7f4eef1c9e32360127a332d1fa8",
+          "commit": "db87b09e763b3ae080017b17a9aad7b7e07cddb9",
+          "date": "2026-08-04T17:13:58-04:00",
+          "version": "",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "8c98ebe55e49186e075c03d0ac40e85ec5ecdf3c87b9fb11eecb34c2ac0d7a4f",
           "commit": "6a49f35069fd6e404eb85bc75a6bfdae4b71a4c7",
           "date": "2026-08-04T17:03:20-04:00",
           "version": "",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
