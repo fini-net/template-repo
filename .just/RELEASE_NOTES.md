@@ -28,10 +28,22 @@ adRise/tubi-observability, `gh 2.95.0`):
   fragment (Copilot shows up as `copilot-pull-request-reviewer` there;
   REST `/pulls/{n}/requested_reviewers` returns `Copilot`).
 4. **`reviews(last: 1)` could miss Copilot's review.** If Claude or a
-  human reviewed after Copilot, the `last: 1` + jq author filter
-  yielded nothing and the loop fell back to "not complete". The fix
-  uses `reviews(last: 10)` and selects the Copilot-authored review
-  client-side.
+   human reviewed after Copilot, the `last: 1` + jq author filter
+   yielded nothing and the loop fell back to "not complete". The fix
+   uses `reviews(last: 10)` and selects the Copilot-authored review
+   client-side.
+5. **Stale reviews from earlier refresh cycles produced false
+   "complete".** `copilot_refresh` is meant to be called repeatedly on
+   the same PR (make changes -> refresh -> iterate), but the "is there
+   already a Copilot review" check matched any Copilot-authored review
+   regardless of when it was submitted. The next refresh would hit the
+   stale review from the prior cycle immediately and print
+   `Review complete after 10s` without ever waiting for Copilot to
+   process the new commits. `submittedAt` was already fetched by the
+   GraphQL query but never used. The fix captures `REQUEST_TIME` right
+   after the REST POST that requests the reviewer and filters the jq
+   selection with `.submittedAt > $requestTime` (string comparison works
+   for ISO-8601 UTC timestamps).
 
 The rewritten poll loop runs a single GraphQL call per iteration that
 fetches both `reviewRequests(first: 10)` (with Bot/User/Team fragments)
