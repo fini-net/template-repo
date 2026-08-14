@@ -235,12 +235,13 @@ When using this template for a new project:
 
 A version bump and release-notes entry are required whenever a **CHECKSUMS-tracked** `.just/*` file changes — i.e., any file listed in [`.just/CHECKSUMS.json`](.just/CHECKSUMS.json). That file is the single source of truth for the shipped template modules (`*.just` modules and `lib/*.sh` scripts, including `testing.just` and `clean-template.just` which `clean_template` later strips for derivative repos). Documentation, metadata, and generated files under `.just/` (`RELEASE_NOTES.md`, `README.md`, `CHECKSUMS.json` itself, generated `repo-toml.sh`, and `test/` fixtures) are **not** CHECKSUMS-tracked, so edits to them do **not** trigger a bump.
 
-A CHECKSUMS-tracked change requires **two** coupled actions on the same branch:
+A CHECKSUMS-tracked change requires **three** coupled actions on the same branch:
 
 1. **Bump the version.** Increment the `vX.Y` number in the `# PR create vX.Y` comment header in `.just/gh-process.just`. This comment drives the pr-creation help text, so keep the `PR create vX.Y` wording and only change the version digits. The first commit must use the `[just]` topic tag with the version token in `gh-process vX.Y` form in the first line (e.g., `🤜 [just] gh-process v7.9 add copilot_refresh hook`).
 2. **Add a release-notes entry.** Add a dated entry to `.just/RELEASE_NOTES.md` describing what changed and why, mirroring the style of existing entries.
+3. **Regenerate CHECKSUMS in a distinct commit.** Run `just checksums_generate` and commit the updated `.just/CHECKSUMS.json` as its own commit, separate from the main change commit. Follow the form `<emoji> [just] regenerate CHECKSUMS for vX.Y` (the emoji is a free choice by the committer — there is no recipe that picks one for you). Keeping the manifest update isolated from the substantive code change lets the two concerns be reviewed independently and ensures the manifest reflects the final state of the tracked files on the branch.
 
-These two actions always go together and apply equally to every CHECKSUMS-tracked file. A change to `compliance.just` (for example) still bumps the version in `gh-process.just` and still adds a `RELEASE_NOTES.md` entry — there is a single rolling version across all `.just/*` modules, not per-module versions.
+These three actions always go together and apply equally to every CHECKSUMS-tracked file. A change to `compliance.just` (for example) still bumps the version in `gh-process.just` and still adds a `RELEASE_NOTES.md` entry — there is a single rolling version across all `.just/*` modules, not per-module versions.
 
 ## Dependencies
 

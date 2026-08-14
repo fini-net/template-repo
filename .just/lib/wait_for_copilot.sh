@@ -67,132 +67,139 @@ saw_stale_review=0
 not_found_count=0
 
 while (( elapsed < MAX_WAIT )); do
-    # Single GraphQL call: reviewRequests (with Bot fragment, since
-    # gh pr view --json reviewRequests silently drops Bot reviewers - see
-    # issue #288) + reviews(last: 10) including commit oid so we can match
-    # against HEAD. reviews(last: 10) avoids missing Copilot when another
-    # review lands after; | last grabs the most recent Copilot one.
-    #
-    # Note: GraphQL reviewRequests with the Bot fragment is the reliable
-    # signal for an in-progress Copilot review. REST
-    # /pulls/N/requested_reviewers no longer surfaces Copilot as of
-    # gh 2.95.0+ (returns {"teams":[],"users":[]} while GraphQL correctly
-    # returns copilot-pull-request-reviewer), so it is not a usable
-    # fallback. See issue #299 bug 3.
-    # shellcheck disable=SC2016
-    response=$(gh api graphql \
-        -F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
-        --jq '.data.repository.pullRequest' \
-        -f query='
-        query($name: String!, $owner: String!, $pr: Int!) {
-            repository(owner: $owner, name: $name) {
-                pullRequest(number: $pr) {
-                    reviewRequests(first: 10) {
-                        nodes {
-                            requestedReviewer {
-                                __typename
-                                ... on Bot { login }
-                                ... on User { login }
-                                ... on Team { name }
-                            }
-                        }
-                    }
-                    reviews(last: 10) {
-                        nodes {
-                            author { login }
-                            state
-                            comments { totalCount }
-                            submittedAt
-                            commit { oid }
-                        }
-                    }
-                }
-            }
-        }
-        ' 2>/dev/null) || true
+	# Single GraphQL call: reviewRequests (with Bot fragment, since
+	# gh pr view --json reviewRequests silently drops Bot reviewers - see
+	# issue #288) + reviews(last: 10) including commit oid so we can match
+	# against HEAD. reviews(last: 10) avoids missing Copilot when another
+	# review lands after; | last grabs the most recent Copilot one.
+	#
+	# Note: GraphQL reviewRequests with the Bot fragment is the reliable
+	# signal for an in-progress Copilot review. REST
+	# /pulls/N/requested_reviewers no longer surfaces Copilot as of
+	# gh 2.95.0+ (returns {"teams":[],"users":[]} while GraphQL correctly
+	# returns copilot-pull-request-reviewer), so it is not a usable
+	# fallback. See issue #299 bug 3.
+	# shellcheck disable=SC2016
+	response=$(gh api graphql \
+		-F owner="$PR_REPO_OWNER" -F name="$PR_REPO_NAME" -F pr="$PR_NUMBER" \
+		--jq '.data.repository.pullRequest' \
+		-f query='
+		query($name: String!, $owner: String!, $pr: Int!) {
+			repository(owner: $owner, name: $name) {
+				pullRequest(number: $pr) {
+					reviewRequests(first: 10) {
+						nodes {
+							requestedReviewer {
+								__typename
+								... on Bot { login }
+								... on User { login }
+								... on Team { name }
+							}
+						}
+					}
+					reviews(last: 10) {
+						nodes {
+							author { login }
+							state
+							comments { totalCount }
+							submittedAt
+							commit { oid }
+						}
+					}
+				}
+			}
+		}
+		' 2>/dev/null) || true
 
-    if [[ -z "$response" || "$response" == "null" ]]; then
-        sleep "$POLL_INTERVAL"
-        elapsed=$((elapsed + POLL_INTERVAL))
-        if [ "$USING_GUM" = "0" ]; then echo -n "."; fi
-        continue
-    fi
+	if [[ -z "$response" || "$response" == "null" ]]; then
+		sleep "$POLL_INTERVAL"
+		elapsed=$((elapsed + POLL_INTERVAL))
+		if [ "$USING_GUM" = "0" ]; then echo -n "."; fi
+		continue
+	fi
 
-    # Pick the latest Copilot-authored review whose commit oid matches HEAD.
-    # reviews(last: 10) returns newest at the end; | last grabs the most
-    # recent Copilot one. Matching on commit oid (instead of submittedAt >
-    # requestTime) unifies the pr_checks and copilot_refresh paths and
-    # rejects stale reviews left over from an older commit (#299 bug 4).
-    copilot_review=$(echo "$response" | jq -r --arg login "$COPILOT_LOGIN" --arg head "$HEAD_SHA" '
-        [.reviews.nodes[] | select(.author.login == $login and .commit.oid == $head)] | last |
-        {state: .state, commentCount: (.comments.totalCount // 0)}' 2>/dev/null) || true
+	# Pick the latest Copilot-authored review whose commit oid matches HEAD.
+	# reviews(last: 10) returns newest at the end; | last grabs the most
+	# recent Copilot one. Matching on commit oid (instead of submittedAt >
+	# requestTime) unifies the pr_checks and copilot_refresh paths and
+	# rejects stale reviews left over from an older commit (#299 bug 4).
+	copilot_review=$(echo "$response" | jq -r --arg login "$COPILOT_LOGIN" --arg head "$HEAD_SHA" '
+		[.reviews.nodes[] | select(.author.login == $login and .commit.oid == $head)] | last |
+		{state: .state, commentCount: (.comments.totalCount // 0)}' 2>/dev/null) || true
 
-    if [[ -n "$copilot_review" && "$copilot_review" != "null" ]]; then
-        review_state=$(echo "$copilot_review" | jq -r '.state // "UNKNOWN"' || echo "UNKNOWN")
-        comment_count=$(echo "$copilot_review" | jq -r '.commentCount // 0' || echo 0)
-        if [[ "${review_state:-UNKNOWN}" != "null" && "${review_state:-UNKNOWN}" != "UNKNOWN" ]]; then
-            if [[ "${comment_count:-0}" -gt 0 ]]; then
-                echo "Review complete after ${elapsed}s (state: $review_state, $comment_count comments)"
-            else
-                echo "Review complete after ${elapsed}s (state: $review_state, no suggestions)"
-            fi
-            exit 0
-        fi
-    fi
+	if [[ -n "$copilot_review" && "$copilot_review" != "null" ]]; then
+		review_state=$(echo "$copilot_review" | jq -r '.state // "UNKNOWN"' || echo "UNKNOWN")
+		comment_count=$(echo "$copilot_review" | jq -r '.commentCount // 0' || echo 0)
+		if [[ "${review_state:-UNKNOWN}" != "null" && "${review_state:-UNKNOWN}" != "UNKNOWN" ]]; then
+			if [[ "${comment_count:-0}" -gt 0 ]]; then
+				echo "Review complete after ${elapsed}s (state: $review_state, $comment_count comments)"
+			else
+				echo "Review complete after ${elapsed}s (state: $review_state, no suggestions)"
+			fi
+			exit 0
+		fi
+	fi
 
-    # No HEAD-matching Copilot review yet. Track whether a stale Copilot
-    # review (against an older commit) exists so we can warn at timeout.
-    stale_review=$(echo "$response" | jq -r --arg login "$COPILOT_LOGIN" --arg head "$HEAD_SHA" '
-        [.reviews.nodes[] | select(.author.login == $login and .commit.oid != $head)] | length' 2>/dev/null) || true
-    if [[ "${stale_review:-0}" -gt 0 ]]; then
-        saw_stale_review=1
-    fi
+	# No HEAD-matching Copilot review yet. Track whether a stale Copilot
+	# review (against an older commit) exists so we can warn at timeout
+	# or on the fast-fail path.
+	stale_review=$(echo "$response" | jq -r --arg login "$COPILOT_LOGIN" --arg head "$HEAD_SHA" '
+		[.reviews.nodes[] | select(.author.login == $login and .commit.oid != $head)] | length' 2>/dev/null) || true
+	if [[ "${stale_review:-0}" -gt 0 ]]; then
+		saw_stale_review=1
+	fi
 
-    # Is Copilot in reviewRequests (in progress)?
-    copilot_requested=$(echo "$response" | jq -r --arg login "$COPILOT_LOGIN" '
-        [.reviewRequests.nodes[].requestedReviewer | select(.login == $login)] | length' 2>/dev/null) || true
+	# Is Copilot in reviewRequests (in progress)?
+	copilot_requested=$(echo "$response" | jq -r --arg login "$COPILOT_LOGIN" '
+		[.reviewRequests.nodes[].requestedReviewer | select(.login == $login)] | length' 2>/dev/null) || true
 
-    if [[ "${copilot_requested:-0}" -gt 0 ]]; then
-        saw_in_progress=1
-        not_found_count=0
-        if [ "$USING_GUM" = "0" ]; then echo -n "."; fi
-    else
-        # Not requested and no HEAD review - either never started or was dropped.
-        # Require two consecutive "not found" polls before acting so a single
-        # GraphQL read that lags the prior REST POST that requested the review
-        # (cross-service eventual consistency on GitHub's side) does not produce
-        # a false failure on the very first poll.
-        if [[ "$saw_in_progress" -eq 0 ]]; then
-            not_found_count=$((not_found_count + 1))
-            if [[ "$not_found_count" -ge 2 ]]; then
-                echo ""
-                echo "Copilot was not found in reviewRequests and has no review on PR #${PR_NUMBER}."
-                echo "This may mean Copilot was never requested, finished and was unassigned,"
-                echo "or the Bot reviewer is not surfaced via GraphQL reviewRequests."
-                if [[ "$MODE" == "fatal" ]]; then
-                    exit 1
-                else
-                    echo "Continuing (non-fatal mode)."
-                    exit 0
-                fi
-            fi
-            if [ "$USING_GUM" = "0" ]; then echo -n "."; fi
-        else
-            # We saw it in progress earlier; it disappeared without a HEAD review landing yet.
-            if [ "$USING_GUM" = "0" ]; then echo -n "."; fi
-        fi
-    fi
+	if [[ "${copilot_requested:-0}" -gt 0 ]]; then
+		saw_in_progress=1
+		not_found_count=0
+		if [ "$USING_GUM" = "0" ]; then echo -n "."; fi
+	else
+		# Not requested and no HEAD review - either never started or was dropped.
+		# Require two consecutive "not found" polls before acting so a single
+		# GraphQL read that lags the prior REST POST that requested the review
+		# (cross-service eventual consistency on GitHub's side) does not produce
+		# a false failure on the very first poll.
+		if [[ "$saw_in_progress" -eq 0 ]]; then
+			not_found_count=$((not_found_count + 1))
+			if [[ "$not_found_count" -ge 2 ]]; then
+				echo ""
+				if [[ "$saw_stale_review" -eq 1 ]]; then
+					echo "Copilot's latest review is for an older commit (HEAD is ${HEAD_SHA:0:7})."
+					echo "The review is stale - it may not apply to the current code."
+					echo "Consider: just copilot_refresh (to request a fresh review)"
+				else
+					echo "Copilot was not found in reviewRequests and has no review on PR #${PR_NUMBER}."
+					echo "This may mean Copilot was never requested, finished and was unassigned,"
+					echo "or the Bot reviewer is not surfaced via GraphQL reviewRequests."
+				fi
+				if [[ "$MODE" == "fatal" ]]; then
+					exit 1
+				else
+					echo "Continuing (non-fatal mode)."
+					exit 0
+				fi
+			fi
+			if [ "$USING_GUM" = "0" ]; then echo -n "."; fi
+		else
+			# We saw it in progress earlier; it disappeared without a HEAD review landing yet.
+			if [ "$USING_GUM" = "0" ]; then echo -n "."; fi
+		fi
+	fi
 
-    sleep "$POLL_INTERVAL"
-    elapsed=$((elapsed + POLL_INTERVAL))
+	sleep "$POLL_INTERVAL"
+	elapsed=$((elapsed + POLL_INTERVAL))
 done
 
 echo ""
 if [[ "$saw_stale_review" -eq 1 ]]; then
-    echo "Copilot's latest review is for an older commit (HEAD is ${HEAD_SHA:0:7})."
-    echo "The review is stale - it may not apply to the current code."
-    echo "Consider: just copilot_refresh (to request a fresh review)"
+	echo "Copilot's latest review is for an older commit (HEAD is ${HEAD_SHA:0:7})."
+	echo "The review is stale - it may not apply to the current code."
+	echo "Consider: just copilot_refresh (to request a fresh review)"
 else
-    echo "Review not completed after ${MAX_WAIT}s - it may still be processing"
+	echo "Review not completed after ${MAX_WAIT}s - it may still be processing"
 fi
 exit 1

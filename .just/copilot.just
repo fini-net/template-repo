@@ -371,7 +371,7 @@ copilot_refresh: _on_a_pull_request
     # returns copilot-pull-request-reviewer), so it is not a usable
     # fallback. See issue #299 bug 3.
     if command -v gum &> /dev/null; then
-        USING_GUM=1 gum spin --spinner dot --title "Waiting for Copilot review..." -- \
+        gum spin --spinner dot --title "Waiting for Copilot review..." -- \
             .just/lib/wait_for_copilot.sh \
             "$PR_REPO_OWNER" "$PR_REPO_NAME" "$PR_NUMBER" "$PR_HEAD_SHA" \
             "$MAX_WAIT" "$POLL_INTERVAL" "$INITIAL_DELAY" "1" "fatal"
