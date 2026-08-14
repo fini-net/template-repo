@@ -86,6 +86,25 @@ review of PR #299:
   insensitive, so tabs inside the single-quoted string are fine. Also
   fixed the 3-space continuation indent in this release-notes section
   to 2-space so editorconfig-checker passes on `RELEASE_NOTES.md`.
+9. **Three follow-ups from the Claude code review of PR #299 (round 2).**
+
+    - `claude_review`'s Copilot-summary block was moved above *both* early
+      exits (the `FLAG_CLAUDE_REVIEW` disabled gate and the "No Claude
+      comment found" gate), so the summary and temp-file cleanup always run
+      when `copilot-review=true` regardless of the Claude flag. Previously
+      the `claude-review=false` path exited before the Copilot block,
+      leaking the count file and skipping the summary — the same class of
+      bug as fix 3 above, via a different early-exit path.
+    - `copilot_refresh`'s failure branch now removes the stale sentinel and
+      any stray count file, matching `claude_review`'s cleanup and
+      preventing stray `/tmp` files between runs on the timeout/stale
+      branch.
+    - `wait_for_copilot.sh`'s final timeout `exit 1` now honors `MODE`
+      (exits 0 in nonfatal mode), matching the fast-fail path and the
+      docstring contract. No live behavior change (both call sites mask the
+      exit code today — `pr_checks` uses `|| true`, `copilot_refresh` runs
+      fatal mode) but future-proofs the script for callers that check the
+      exit code.
 
 The shared `.just/lib/wait_for_copilot.sh` runs a single GraphQL call
 per iteration fetching `reviewRequests(first: 10)` (Bot/User/Team

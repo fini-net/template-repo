@@ -346,22 +346,15 @@ claude_review: _on_a_pull_request
         FLAG_CLAUDE_REVIEW="false"
     fi
 
-    # Only display Claude review if flag is enabled
-    if [[ "$FLAG_CLAUDE_REVIEW" != "true" ]]; then
-        echo "{{BLUE}}Skipping Claude review (disabled in .repo.toml){{NORMAL}}"
-        exit 0
-    fi
-
-    # Get latest commit info
-    LATEST_COMMIT_SHA=$(gh pr view --json commits --jq '.commits[-1].oid')
-    LATEST_COMMIT_DATE=$(gh pr view --json commits --jq '.commits[-1].committedDate')
-
-    # Display Copilot count summary if available (moved above the Claude
-    # comment early-exit so the end-of-run summary always prints and the
-    # temp file is always cleaned up - issue #299 bug 2. Previously the
-    # early exit at "No Claude Code review found yet" skipped this block,
-    # so the summary never mentioned Copilot and the temp file leaked
-    # (6 stale /tmp/copilot_count_* files spanning 3 days observed).
+    # Display Copilot count summary if available (moved above *both*
+    # early exits - the FLAG_CLAUDE_REVIEW disabled gate and the "No
+    # Claude comment found" gate - so the end-of-run summary always
+    # prints and the temp file is always cleaned up when copilot-review
+    # is enabled, regardless of the claude-review flag. Previously the
+    # claude-review=false early exit skipped this block, leaking the
+    # count file and skipping the summary - the same class of bug as
+    # issue #299 bug 2, via a different early-exit path. See Claude
+    # review of PR #299 (round 2, issue 1).
     if [[ "${FLAG_COPILOT_REVIEW:-false}" == "true" ]]; then
         PR_META=$(gh pr view --json number,headRepository,headRepositoryOwner)
         PR_REPO_NAME=$(echo "$PR_META" | jq -r '.headRepository.name')
@@ -389,6 +382,16 @@ claude_review: _on_a_pull_request
             rm -f "$COPILOT_COUNT_FILE" "$COPILOT_STALE_FILE"
         fi
     fi
+
+    # Only display Claude review if flag is enabled
+    if [[ "$FLAG_CLAUDE_REVIEW" != "true" ]]; then
+        echo "{{BLUE}}Skipping Claude review (disabled in .repo.toml){{NORMAL}}"
+        exit 0
+    fi
+
+    # Get latest commit info
+    LATEST_COMMIT_SHA=$(gh pr view --json commits --jq '.commits[-1].oid')
+    LATEST_COMMIT_DATE=$(gh pr view --json commits --jq '.commits[-1].committedDate')
 
     # Get Claude's latest comment
     CLAUDE_COMMENT_JSON=$(gh pr view --json comments --jq '[.comments[] | select(.author.login == "claude")] | last')

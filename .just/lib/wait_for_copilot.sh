@@ -38,7 +38,8 @@
 #                   "nonfatal"  - exit 0 with a note when not requested
 #
 # Exit codes:
-#   0  Copilot review for HEAD is complete (or not requested, nonfatal)
+#   0  Copilot review for HEAD is complete, or not requested / timed out
+#      (nonfatal)
 #   1  Timed out, or Copilot not requested (fatal mode)
 #
 # Output (stdout): progress dots / status lines. The caller is
@@ -216,4 +217,8 @@ if [[ "$saw_stale_review" -eq 1 ]]; then
 else
 	echo "Review not completed after ${MAX_WAIT}s - it may still be processing"
 fi
-exit 1
+if [[ "$MODE" == "fatal" ]]; then
+	exit 1
+else
+	exit 0
+fi

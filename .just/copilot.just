@@ -440,6 +440,14 @@ copilot_refresh: _on_a_pull_request
         echo "{{YELLOW}}Review may still be processing (waited ${MAX_WAIT}s total). Options:{{NORMAL}}"
         echo "  {{GREEN}}just copilot_pick{{NORMAL}} (check if suggestions are ready)"
         echo "  {{GREEN}}just copilot_refresh{{NORMAL}} (wait longer for completion)"
+        # Clean up any stale sentinel / count file left by wait_for_copilot.sh
+        # on the timeout or stale-review path. copilot_refresh never writes
+        # a count file, but rm -f it defensively. This mirrors the cleanup
+        # claude_review does, preventing stray /tmp files between runs.
+        # See Claude review of PR #299 (round 2, issue 2).
+        COPILOT_STALE_FILE="/tmp/copilot_stale_${PR_REPO_OWNER}_${PR_REPO_NAME}_${PR_NUMBER}"
+        COPILOT_COUNT_FILE="/tmp/copilot_count_${PR_REPO_OWNER}_${PR_REPO_NAME}_${PR_NUMBER}"
+        rm -f "$COPILOT_STALE_FILE" "$COPILOT_COUNT_FILE"
     fi
 
 # Restore from Copilot backup
