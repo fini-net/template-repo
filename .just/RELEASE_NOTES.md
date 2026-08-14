@@ -4,6 +4,66 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## August 2026
 
+### v8.4 - pr_checks waits for Copilot; shared poll script; claude_review cleanup (2026-08-14)
+
+- Fixes issue [#299](https://github.com/fini-net/template-repo/issues/299)
+- Follow-up to v8.3 (#288), which only wired the in-progress / zero-comment
+  detection into `copilot_refresh`
+
+The v8.3 fix closed #288 for `copilot_refresh` but left the main PR flow
+(`just pr` / `just again` -> `pr_checks` in `.just/gh-process.just`)
+running a **one-shot** `reviewThreads` query the moment the CI watcher
+exited. Since `gh observer` (and `gh pr checks --watch`) only wait for CI
+checks and Copilot's review is a dynamic workflow run (not a PR check),
+the watcher provides no synchronization with Copilot at all. When CI
+settled before Copilot finished (~2-3 min), `pr_checks` printed
+"🐈‍⬛ No unresolved Copilot suggestions - looks good!" - a false negative
+indistinguishable from a real clean review. Verified by live-monitoring
+adRise/tubi-observability PR #105.
+
+Five fixes ship in v8.4:
+
+1. **`pr_checks` races Copilot (main issue).** The poll/state-machine from
+   v8.3 is extracted into a shared `.just/lib/wait_for_copilot.sh` and
+   called from `pr_checks` after the CI watcher, before the thread-count
+   query (gated on `FLAG_COPILOT_REVIEW`). `MODE=nonfatal` lets
+   `pr_checks` fall through to the thread query when Copilot was never
+   requested instead of failing the whole PR flow.
+2. **`copilot_refresh` deduplicated.** The printf-generated temp poll
+   script is replaced with a call to the same shared script
+   (`MODE=fatal`), so the two paths can't drift again. The REST POST
+   that requests the reviewer is unchanged.
+3. **`claude_review` early-exit skipped the Copilot summary.** When no
+   Claude comment existed, `claude_review` exited at "No Claude Code
+   review found yet" *before* the deferred Copilot-count display, so the
+   end-of-run summary never mentioned Copilot and the temp file leaked
+   (6 stale `/tmp/copilot_count_*` files spanning 3 days observed). The
+   Copilot-count block now runs first, above the early exit.
+4. **Stale-review signal after push.** The shared script's completion
+   criterion is a Copilot-authored review whose `commit.oid` matches the
+   PR's HEAD sha (queried via `gh pr view --json headRefOid`). This
+   replaces the v8.3 `submittedAt > REQUEST_TIME` filter and works for
+   both auto-requested (`pr_checks`) and refresh-requested
+   (`copilot_refresh`) reviews. A review against an older commit is not
+   treated as complete; at timeout the script warns that the review is
+   stale and suggests `just copilot_refresh`. `REQUEST_TIME` is no
+   longer used.
+5. **REST fallback comment corrected.** The v8.3 comment claimed REST
+   `/pulls/N/requested_reviewers` was the fallback if GraphQL
+   `reviewRequests` stopped surfacing the Bot reviewer. Live evidence
+   (gh 2.95.0+) shows the reverse: GraphQL with the `... on Bot { login }`
+   fragment reliably returns `copilot-pull-request-reviewer` while REST
+   returns `{"teams":[],"users":[]}` for Copilot. The comment now
+   reflects that GraphQL is the reliable signal and REST is not a
+   usable fallback.
+
+The shared `.just/lib/wait_for_copilot.sh` runs a single GraphQL call
+per iteration fetching `reviewRequests(first: 10)` (Bot/User/Team
+fragments) and `reviews(last: 10)` (with `commit { oid }`), then applies
+the three-state machine: HEAD-matching Copilot review -> complete;
+Copilot in `reviewRequests` -> in progress; else, two consecutive misses
+-> fail fast (fatal) or note + continue (nonfatal).
+
 ### v8.3 - copilot_refresh detects in-progress and zero-comment reviews (2026-08-04)
 
 - Fixes issue [#288](https://github.com/fini-net/template-repo/issues/288)

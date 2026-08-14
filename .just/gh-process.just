@@ -13,7 +13,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v8.3
+# PR create v8.4
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -241,14 +241,47 @@ pr_checks: _on_a_pull_request && claude_review
 
     # Only display Copilot review if flag is enabled
     if [[ "$FLAG_COPILOT_REVIEW" == "true" ]]; then
-        PR_META=$(gh pr view --json number,headRepository,headRepositoryOwner)
+        PR_META=$(gh pr view --json number,headRepository,headRepositoryOwner,headRefOid)
         PR_REPO_NAME=$(echo "$PR_META" | jq -r '.headRepository.name')
         PR_REPO_OWNER=$(echo "$PR_META" | jq -r '.headRepositoryOwner.login')
         PR_NUMBER=$(echo "$PR_META" | jq '.number')
+        PR_HEAD_SHA=$(echo "$PR_META" | jq -r '.headRefOid')
         #echo "$PR_NUMBER $PR_REPO_OWNER/$PR_REPO_NAME"
 
         # Define temp file for passing count to claude_review (based on repo and PR)
         COPILOT_COUNT_FILE="/tmp/copilot_count_${PR_REPO_OWNER}_${PR_REPO_NAME}_${PR_NUMBER}"
+
+        # Wait for Copilot to finish before querying threads, so the one-shot
+        # count below runs against settled state instead of racing Copilot
+        # (issue #299: the v8.3 state machine was only wired into
+        # copilot_refresh; pr_checks ran the thread query immediately after
+        # the CI watcher exited and printed false "looks good!" negatives
+        # when CI settled before Copilot finished). The shared
+        # wait_for_copilot.sh polls reviewRequests + reviews(last: 10) and
+        # completes when a Copilot review for the HEAD commit lands.
+        # MODE=nonfatal: if Copilot was never requested (no auto-review on
+        # this repo), exit 0 and fall through to the thread query instead of
+        # failing the whole PR flow.
+        if [[ -x ".just/lib/wait_for_copilot.sh" ]]; then
+            MAX_WAIT=180
+            POLL_INTERVAL=5
+            INITIAL_DELAY=10
+            if command -v gum &> /dev/null; then
+                USING_GUM=1 gum spin --spinner dot --title "Waiting for Copilot review..." -- \
+                    .just/lib/wait_for_copilot.sh \
+                    "$PR_REPO_OWNER" "$PR_REPO_NAME" "$PR_NUMBER" "$PR_HEAD_SHA" \
+                    "$MAX_WAIT" "$POLL_INTERVAL" "$INITIAL_DELAY" "1" "nonfatal" \
+                    || true
+            else
+                echo "{{BLUE}}Waiting for Copilot review...{{NORMAL}}"
+                .just/lib/wait_for_copilot.sh \
+                    "$PR_REPO_OWNER" "$PR_REPO_NAME" "$PR_NUMBER" "$PR_HEAD_SHA" \
+                    "$MAX_WAIT" "$POLL_INTERVAL" "$INITIAL_DELAY" "0" "nonfatal" \
+                    || true
+            fi
+        else
+            echo "{{YELLOW}}Warning: .just/lib/wait_for_copilot.sh not found - skipping Copilot wait{{NORMAL}}"
+        fi
 
         # Capture GraphQL output
         # Note: reviewThreads(first: 100) limits to 100 threads; see copilot_pick for comment.
@@ -323,6 +356,30 @@ claude_review: _on_a_pull_request
     LATEST_COMMIT_SHA=$(gh pr view --json commits --jq '.commits[-1].oid')
     LATEST_COMMIT_DATE=$(gh pr view --json commits --jq '.commits[-1].committedDate')
 
+    # Display Copilot count summary if available (moved above the Claude
+    # comment early-exit so the end-of-run summary always prints and the
+    # temp file is always cleaned up - issue #299 bug 2. Previously the
+    # early exit at "No Claude Code review found yet" skipped this block,
+    # so the summary never mentioned Copilot and the temp file leaked
+    # (6 stale /tmp/copilot_count_* files spanning 3 days observed).
+    if [[ "${FLAG_COPILOT_REVIEW:-false}" == "true" ]]; then
+        PR_META=$(gh pr view --json number,headRepository,headRepositoryOwner)
+        PR_REPO_NAME=$(echo "$PR_META" | jq -r '.headRepository.name')
+        PR_REPO_OWNER=$(echo "$PR_META" | jq -r '.headRepositoryOwner.login')
+        PR_NUMBER=$(echo "$PR_META" | jq '.number')
+        COPILOT_COUNT_FILE="/tmp/copilot_count_${PR_REPO_OWNER}_${PR_REPO_NAME}_${PR_NUMBER}"
+        if [[ -f "$COPILOT_COUNT_FILE" ]]; then
+            COPILOT_COUNT=$(cat "$COPILOT_COUNT_FILE")
+            echo ""
+            if [[ "$COPILOT_COUNT" -eq 0 ]]; then
+                echo "🐈‍⬛ No unresolved Copilot suggestions - looks good!"
+            else
+                echo "🐈‍⬛ Unresolved Copilot suggestions: $COPILOT_COUNT"
+            fi
+            rm -f "$COPILOT_COUNT_FILE"
+        fi
+    fi
+
     # Get Claude's latest comment
     CLAUDE_COMMENT_JSON=$(gh pr view --json comments --jq '[.comments[] | select(.author.login == "claude")] | last')
 
@@ -371,24 +428,6 @@ claude_review: _on_a_pull_request
     fi
 
     echo "$COMMENT_BODY"
-
-    # Display Copilot count summary if available
-    # Get PR metadata to construct the same temp filename
-    PR_META=$(gh pr view --json number,headRepository,headRepositoryOwner)
-    PR_REPO_NAME=$(echo "$PR_META" | jq -r '.headRepository.name')
-    PR_REPO_OWNER=$(echo "$PR_META" | jq -r '.headRepositoryOwner.login')
-    PR_NUMBER=$(echo "$PR_META" | jq '.number')
-    COPILOT_COUNT_FILE="/tmp/copilot_count_${PR_REPO_OWNER}_${PR_REPO_NAME}_${PR_NUMBER}"
-    if [[ -f "$COPILOT_COUNT_FILE" ]]; then
-        COPILOT_COUNT=$(cat "$COPILOT_COUNT_FILE")
-        echo ""
-        if [[ "$COPILOT_COUNT" -eq 0 ]]; then
-            echo "🐈‍⬛ No unresolved Copilot suggestions - looks good!"
-        else
-            echo "🐈‍⬛ Unresolved Copilot suggestions: $COPILOT_COUNT"
-        fi
-        rm -f "$COPILOT_COUNT_FILE"
-    fi
 
     # Always exit 0 - this is informational, not an error
     exit 0
