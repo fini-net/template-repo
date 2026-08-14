@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-08-04T21:14:00Z",
+  "generated_at": "2026-08-14T22:43:49Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -112,25 +112,17 @@
 ]},
     ".just/copilot.just": {"versions": [
         {
-          "checksum": "75358c6bdb0819bdc94e3699f26afe1a204da7f4eef1c9e32360127a332d1fa8",
-          "commit": "db87b09e763b3ae080017b17a9aad7b7e07cddb9",
-          "date": "2026-08-04T17:13:58-04:00",
-          "version": "",
+          "checksum": "99834f9a582950ab43099a82f888e9b87fc24d4b8beb1fa5f42b2a6ad4f04ca3",
+          "commit": "b0c2b3b59bada7f8bdd99e3621127a47c40a7298",
+          "date": "2026-08-14T15:43:43-07:00",
+          "version": "v8.4",
           "is_latest": true
         }
 ,
         {
-          "checksum": "8c98ebe55e49186e075c03d0ac40e85ec5ecdf3c87b9fb11eecb34c2ac0d7a4f",
-          "commit": "6a49f35069fd6e404eb85bc75a6bfdae4b71a4c7",
-          "date": "2026-08-04T17:03:20-04:00",
-          "version": "",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "491c0563872346115e3a8e36b8ef7d4d3ecb7087afb8084444e3c6e059b18eaf",
-          "commit": "e1331ae0d227083d41764eaff24084a92f1e0bec",
-          "date": "2026-08-04T16:24:23-04:00",
+          "checksum": "75358c6bdb0819bdc94e3699f26afe1a204da7f4eef1c9e32360127a332d1fa8",
+          "commit": "093eecd722784f09b759393a48adc0b9d90b2ffe",
+          "date": "2026-08-04T14:45:06-07:00",
           "version": "v8.3",
           "is_latest": false
         }
@@ -258,11 +250,19 @@
 ]},
     ".just/gh-process.just": {"versions": [
         {
-          "checksum": "d23f1ebc6b2d9cf6849c4e37d11d94fce485d9bceaf77274d76b6fa05f5f22df",
-          "commit": "e1331ae0d227083d41764eaff24084a92f1e0bec",
-          "date": "2026-08-04T16:24:23-04:00",
-          "version": "v8.3",
+          "checksum": "ba1a8fe44dcf9beb3b4dd34cc170ded887d2201a22a56e92c91d3070f9800ce5",
+          "commit": "b0c2b3b59bada7f8bdd99e3621127a47c40a7298",
+          "date": "2026-08-14T15:43:43-07:00",
+          "version": "v8.4",
           "is_latest": true
+        }
+,
+        {
+          "checksum": "d23f1ebc6b2d9cf6849c4e37d11d94fce485d9bceaf77274d76b6fa05f5f22df",
+          "commit": "093eecd722784f09b759393a48adc0b9d90b2ffe",
+          "date": "2026-08-04T14:45:06-07:00",
+          "version": "v8.3",
+          "is_latest": false
         }
 ,
         {
@@ -1189,6 +1189,15 @@
           "date": "2026-01-26T18:47:31-08:00",
           "version": "v5.0",
           "is_latest": false
+        }
+]},
+    ".just/lib/wait_for_copilot.sh": {"versions": [
+        {
+          "checksum": "c3ca3140c0ae7dc8764dd6d26fafb87b1e8a81e988ce6a9fe024b6c614d3204d",
+          "commit": "b0c2b3b59bada7f8bdd99e3621127a47c40a7298",
+          "date": "2026-08-14T15:43:43-07:00",
+          "version": "v8.4",
+          "is_latest": true
         }
 ]}
   },
