@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-08-14T22:43:49Z",
+  "generated_at": "2026-08-14T23:03:42Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -112,11 +112,19 @@
 ]},
     ".just/copilot.just": {"versions": [
         {
+          "checksum": "9f8be5829a5451800ef75dacedfca7d18c69efe68d81ca4358afe20bf8d51142",
+          "commit": "3673248abf75494553e8be21f27eb0e16a84ec04",
+          "date": "2026-08-14T16:03:37-07:00",
+          "version": "v8.4",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "99834f9a582950ab43099a82f888e9b87fc24d4b8beb1fa5f42b2a6ad4f04ca3",
           "commit": "b0c2b3b59bada7f8bdd99e3621127a47c40a7298",
           "date": "2026-08-14T15:43:43-07:00",
           "version": "v8.4",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -250,11 +258,19 @@
 ]},
     ".just/gh-process.just": {"versions": [
         {
+          "checksum": "cf05a6dbd77409c03ebaf02419c062f807385d0f72562992922e3940f5ceceb5",
+          "commit": "3673248abf75494553e8be21f27eb0e16a84ec04",
+          "date": "2026-08-14T16:03:37-07:00",
+          "version": "v8.4",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "ba1a8fe44dcf9beb3b4dd34cc170ded887d2201a22a56e92c91d3070f9800ce5",
           "commit": "b0c2b3b59bada7f8bdd99e3621127a47c40a7298",
           "date": "2026-08-14T15:43:43-07:00",
           "version": "v8.4",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -1193,11 +1209,19 @@
 ]},
     ".just/lib/wait_for_copilot.sh": {"versions": [
         {
+          "checksum": "61103efc60bbfb0c2e63e240bb0cbeb7bf9c873c2ff94db33dd5d02dab30ac30",
+          "commit": "3673248abf75494553e8be21f27eb0e16a84ec04",
+          "date": "2026-08-14T16:03:37-07:00",
+          "version": "v8.4",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "c3ca3140c0ae7dc8764dd6d26fafb87b1e8a81e988ce6a9fe024b6c614d3204d",
           "commit": "b0c2b3b59bada7f8bdd99e3621127a47c40a7298",
           "date": "2026-08-14T15:43:43-07:00",
           "version": "v8.4",
-          "is_latest": true
+          "is_latest": false
         }
 ]}
   },
