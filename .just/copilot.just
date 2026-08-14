@@ -371,11 +371,18 @@ copilot_refresh: _on_a_pull_request
     # returns copilot-pull-request-reviewer), so it is not a usable
     # fallback. See issue #299 bug 3.
     if command -v gum &> /dev/null; then
-        gum spin --spinner dot --title "Waiting for Copilot review..." -- \
+        # review_ready=0 then || capture: gum spin is a bare simple command,
+        # so under `set -e` an exit 1 from wait_for_copilot.sh (timeout or
+        # the fatal-mode "not requested" fast-fail) would abort the recipe
+        # before the friendly fallback block below could run. The non-gum
+        # branch is fine because it sits inside an `if` condition. See
+        # Claude review of PR #300 (Potential bug 1).
+        review_ready=0
+        gum spin --spinner dot --show-output --title "Waiting for Copilot review..." -- \
             .just/lib/wait_for_copilot.sh \
             "$PR_REPO_OWNER" "$PR_REPO_NAME" "$PR_NUMBER" "$PR_HEAD_SHA" \
-            "$MAX_WAIT" "$POLL_INTERVAL" "$INITIAL_DELAY" "1" "fatal"
-        review_ready=$?
+            "$MAX_WAIT" "$POLL_INTERVAL" "$INITIAL_DELAY" "1" "fatal" \
+            || review_ready=$?
     else
         echo "{{BLUE}}Waiting for Copilot review...{{NORMAL}}"
         if .just/lib/wait_for_copilot.sh \

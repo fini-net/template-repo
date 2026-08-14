@@ -267,7 +267,7 @@ pr_checks: _on_a_pull_request && claude_review
             POLL_INTERVAL=5
             INITIAL_DELAY=10
             if command -v gum &> /dev/null; then
-                gum spin --spinner dot --title "Waiting for Copilot review..." -- \
+                gum spin --spinner dot --show-output --title "Waiting for Copilot review..." -- \
                     .just/lib/wait_for_copilot.sh \
                     "$PR_REPO_OWNER" "$PR_REPO_NAME" "$PR_NUMBER" "$PR_HEAD_SHA" \
                     "$MAX_WAIT" "$POLL_INTERVAL" "$INITIAL_DELAY" "1" "nonfatal" \
@@ -368,15 +368,25 @@ claude_review: _on_a_pull_request
         PR_REPO_OWNER=$(echo "$PR_META" | jq -r '.headRepositoryOwner.login')
         PR_NUMBER=$(echo "$PR_META" | jq '.number')
         COPILOT_COUNT_FILE="/tmp/copilot_count_${PR_REPO_OWNER}_${PR_REPO_NAME}_${PR_NUMBER}"
+        # Sentinel written by wait_for_copilot.sh when it exited having seen
+        # a stale Copilot review (older commit) but no HEAD-matching one.
+        # Annotates the "looks good!" summary so a stale review is not
+        # mistaken for a current one. See Claude review of PR #300
+        # (Potential bug 2).
+        COPILOT_STALE_FILE="/tmp/copilot_stale_${PR_REPO_OWNER}_${PR_REPO_NAME}_${PR_NUMBER}"
         if [[ -f "$COPILOT_COUNT_FILE" ]]; then
             COPILOT_COUNT=$(cat "$COPILOT_COUNT_FILE")
             echo ""
             if [[ "$COPILOT_COUNT" -eq 0 ]]; then
-                echo "🐈‍⬛ No unresolved Copilot suggestions - looks good!"
+                if [[ -f "$COPILOT_STALE_FILE" ]]; then
+                    echo "🐈‍⬛ No unresolved Copilot suggestions - looks good! {{YELLOW}}(review may be stale - run just copilot_refresh){{NORMAL}}"
+                else
+                    echo "🐈‍⬛ No unresolved Copilot suggestions - looks good!"
+                fi
             else
                 echo "🐈‍⬛ Unresolved Copilot suggestions: $COPILOT_COUNT"
             fi
-            rm -f "$COPILOT_COUNT_FILE"
+            rm -f "$COPILOT_COUNT_FILE" "$COPILOT_STALE_FILE"
         fi
     fi
 

@@ -58,6 +58,17 @@ MODE="${9:-fatal}"
 
 COPILOT_LOGIN="copilot-pull-request-reviewer"
 
+# Sentinel file written when the poll exits having seen a stale Copilot
+# review (against an older commit) but no HEAD-matching review. Callers
+# that summarize the Copilot state after the wait (pr_checks ->
+# claude_review) read this to annotate "looks good!" with "(review may be
+# stale)" so users skimming the bottom of `just pr` don't mistake a stale
+# review for a current one. Removed on the clean exit-0 path so a prior
+# run's stale signal does not leak into a later successful run. See Claude
+# review of PR #300 (Potential bug 2).
+STALE_SENTINEL="/tmp/copilot_stale_${PR_REPO_OWNER}_${PR_REPO_NAME}_${PR_NUMBER}"
+rm -f "$STALE_SENTINEL"
+
 echo "Waiting ${INITIAL_DELAY}s for Copilot to start processing..."
 sleep "$INITIAL_DELAY"
 
@@ -136,6 +147,7 @@ while (( elapsed < MAX_WAIT )); do
 			else
 				echo "Review complete after ${elapsed}s (state: $review_state, no suggestions)"
 			fi
+			rm -f "$STALE_SENTINEL"
 			exit 0
 		fi
 	fi
@@ -171,6 +183,7 @@ while (( elapsed < MAX_WAIT )); do
 					echo "Copilot's latest review is for an older commit (HEAD is ${HEAD_SHA:0:7})."
 					echo "The review is stale - it may not apply to the current code."
 					echo "Consider: just copilot_refresh (to request a fresh review)"
+					touch "$STALE_SENTINEL"
 				else
 					echo "Copilot was not found in reviewRequests and has no review on PR #${PR_NUMBER}."
 					echo "This may mean Copilot was never requested, finished and was unassigned,"
@@ -199,6 +212,7 @@ if [[ "$saw_stale_review" -eq 1 ]]; then
 	echo "Copilot's latest review is for an older commit (HEAD is ${HEAD_SHA:0:7})."
 	echo "The review is stale - it may not apply to the current code."
 	echo "Consider: just copilot_refresh (to request a fresh review)"
+	touch "$STALE_SENTINEL"
 else
 	echo "Review not completed after ${MAX_WAIT}s - it may still be processing"
 fi
