@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-08-04T21:14:00Z",
+  "generated_at": "2026-08-14T23:52:22Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -112,25 +112,41 @@
 ]},
     ".just/copilot.just": {"versions": [
         {
-          "checksum": "75358c6bdb0819bdc94e3699f26afe1a204da7f4eef1c9e32360127a332d1fa8",
-          "commit": "db87b09e763b3ae080017b17a9aad7b7e07cddb9",
-          "date": "2026-08-04T17:13:58-04:00",
-          "version": "",
+          "checksum": "c7c63160b51387b044ce5139bb52cd5bda3573f49071707dbabdceab3e1cfcc5",
+          "commit": "5bd0950578fff3d771fb5e3765b99185dab29099",
+          "date": "2026-08-14T16:52:19-07:00",
+          "version": "v8.4",
           "is_latest": true
         }
 ,
         {
-          "checksum": "8c98ebe55e49186e075c03d0ac40e85ec5ecdf3c87b9fb11eecb34c2ac0d7a4f",
-          "commit": "6a49f35069fd6e404eb85bc75a6bfdae4b71a4c7",
-          "date": "2026-08-04T17:03:20-04:00",
-          "version": "",
+          "checksum": "d26b74380a077517c00900c75a3dce64cde24ee8c628c14c529b327c3696ebcf",
+          "commit": "02988227f5a87c9768f2b853ffb30ba2de90bde0",
+          "date": "2026-08-14T16:43:01-07:00",
+          "version": "v8.4",
           "is_latest": false
         }
 ,
         {
-          "checksum": "491c0563872346115e3a8e36b8ef7d4d3ecb7087afb8084444e3c6e059b18eaf",
-          "commit": "e1331ae0d227083d41764eaff24084a92f1e0bec",
-          "date": "2026-08-04T16:24:23-04:00",
+          "checksum": "9f8be5829a5451800ef75dacedfca7d18c69efe68d81ca4358afe20bf8d51142",
+          "commit": "3673248abf75494553e8be21f27eb0e16a84ec04",
+          "date": "2026-08-14T16:03:37-07:00",
+          "version": "v8.4",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "99834f9a582950ab43099a82f888e9b87fc24d4b8beb1fa5f42b2a6ad4f04ca3",
+          "commit": "b0c2b3b59bada7f8bdd99e3621127a47c40a7298",
+          "date": "2026-08-14T15:43:43-07:00",
+          "version": "v8.4",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "75358c6bdb0819bdc94e3699f26afe1a204da7f4eef1c9e32360127a332d1fa8",
+          "commit": "093eecd722784f09b759393a48adc0b9d90b2ffe",
+          "date": "2026-08-04T14:45:06-07:00",
           "version": "v8.3",
           "is_latest": false
         }
@@ -258,11 +274,43 @@
 ]},
     ".just/gh-process.just": {"versions": [
         {
-          "checksum": "d23f1ebc6b2d9cf6849c4e37d11d94fce485d9bceaf77274d76b6fa05f5f22df",
-          "commit": "e1331ae0d227083d41764eaff24084a92f1e0bec",
-          "date": "2026-08-04T16:24:23-04:00",
-          "version": "v8.3",
+          "checksum": "20a8854b5b8595878867f15e65f5dc5c179012b391e5d96772fcf52b0910b0ad",
+          "commit": "5bd0950578fff3d771fb5e3765b99185dab29099",
+          "date": "2026-08-14T16:52:19-07:00",
+          "version": "v8.4",
           "is_latest": true
+        }
+,
+        {
+          "checksum": "5d3cec92b77cdb63d1cd433e04341fa84f547ea9fb3cc80c8679f6db5ce1bf83",
+          "commit": "02988227f5a87c9768f2b853ffb30ba2de90bde0",
+          "date": "2026-08-14T16:43:01-07:00",
+          "version": "v8.4",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "cf05a6dbd77409c03ebaf02419c062f807385d0f72562992922e3940f5ceceb5",
+          "commit": "3673248abf75494553e8be21f27eb0e16a84ec04",
+          "date": "2026-08-14T16:03:37-07:00",
+          "version": "v8.4",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "ba1a8fe44dcf9beb3b4dd34cc170ded887d2201a22a56e92c91d3070f9800ce5",
+          "commit": "b0c2b3b59bada7f8bdd99e3621127a47c40a7298",
+          "date": "2026-08-14T15:43:43-07:00",
+          "version": "v8.4",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "d23f1ebc6b2d9cf6849c4e37d11d94fce485d9bceaf77274d76b6fa05f5f22df",
+          "commit": "093eecd722784f09b759393a48adc0b9d90b2ffe",
+          "date": "2026-08-04T14:45:06-07:00",
+          "version": "v8.3",
+          "is_latest": false
         }
 ,
         {
@@ -1188,6 +1236,39 @@
           "commit": "25acc859d3836346cf47bef3f29442cfc26dcf37",
           "date": "2026-01-26T18:47:31-08:00",
           "version": "v5.0",
+          "is_latest": false
+        }
+]},
+    ".just/lib/wait_for_copilot.sh": {"versions": [
+        {
+          "checksum": "cf0861e4b378734f9e9096c8fe9c7fb26e6ba5aeb29fdf772f336f5357eb2b9b",
+          "commit": "5bd0950578fff3d771fb5e3765b99185dab29099",
+          "date": "2026-08-14T16:52:19-07:00",
+          "version": "v8.4",
+          "is_latest": true
+        }
+,
+        {
+          "checksum": "f6107ea480b5ad95f3fd7d3adec2f2f032f409cca1b8a27e5810ca20e2d0cc5a",
+          "commit": "02988227f5a87c9768f2b853ffb30ba2de90bde0",
+          "date": "2026-08-14T16:43:01-07:00",
+          "version": "v8.4",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "61103efc60bbfb0c2e63e240bb0cbeb7bf9c873c2ff94db33dd5d02dab30ac30",
+          "commit": "3673248abf75494553e8be21f27eb0e16a84ec04",
+          "date": "2026-08-14T16:03:37-07:00",
+          "version": "v8.4",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "c3ca3140c0ae7dc8764dd6d26fafb87b1e8a81e988ce6a9fe024b6c614d3204d",
+          "commit": "b0c2b3b59bada7f8bdd99e3621127a47c40a7298",
+          "date": "2026-08-14T15:43:43-07:00",
+          "version": "v8.4",
           "is_latest": false
         }
 ]}
