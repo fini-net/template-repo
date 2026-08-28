@@ -53,6 +53,30 @@ SAST/CI-Tests/Code-Review/Token-Permissions pass, and the three REDs
 signed release assets) are true findings. All 33 recipe scripts pass
 `just shellcheck`.
 
+Three fixes from the Claude code review of PR #317 were folded into
+this entry before merge (one bump per PR - the version token marks
+what the PR ships):
+
+1. **Code-Review check was always GREEN.** The jq expression tested
+  `.parameters.required_reviewers > 0`, but `required_reviewers` is an
+  *array* of required reviewer teams/users, and in jq's type ordering
+  any array sorts greater than any number - so `[] > 0` is `true`,
+  short-circuiting the `or` for any `pull_request` rule regardless of
+  its actual requirements. (Verified live: this repo's second ruleset
+  has no meaningful review requirement yet would have reported GREEN.)
+  The field is now `required_approving_review_count`, the numeric
+  approval threshold Scorecard actually cares about.
+2. **Unbound-variable crash on workflow-less repos.** The `dangerous`
+  variable was only assigned inside the `[[ -d .github/workflows ]]`
+  guard while its consumer ran unconditionally; under `set -u`, a
+  fresh/derivative repo without workflows would abort the recipe and
+  silently skip the seven checks after it. Now pre-initialized beside
+  its siblings.
+3. **Pinned-Dependencies local-action false positive.** `uses:
+  ./path/to/action` lines have no `@ref` at all, but repo-local
+  composite actions are already repo-controlled and need no pin; the
+  check now excludes them, matching upstream Scorecard's behavior.
+
 ### v8.4 - pr_checks waits for Copilot; shared poll script; claude_review cleanup (2026-08-14)
 
 - Fixes issue [#299](https://github.com/fini-net/template-repo/issues/299)

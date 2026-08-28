@@ -124,7 +124,7 @@ compliance_check:
     rulesets=$(gh api 'repos/{owner}/{repo}/rulesets' --jq '.[] | select(.enforcement == "active" and .target == "branch") | .id' 2>/dev/null || true)
     code_review_ok=false
     for id in $rulesets; do
-        if gh api "repos/{owner}/{repo}/rulesets/$id" --jq '.rules[] | select(.type == "pull_request") | .parameters.required_reviewers > 0 or .parameters.dismiss_stale_reviews_on_push or .parameters.require_code_owner_review' 2>/dev/null | grep -q true; then
+        if gh api "repos/{owner}/{repo}/rulesets/$id" --jq '.rules[] | select(.type == "pull_request") | .parameters.required_approving_review_count > 0 or .parameters.dismiss_stale_reviews_on_push or .parameters.require_code_owner_review' 2>/dev/null | grep -q true; then
             code_review_ok=true
             break
         fi
@@ -138,6 +138,7 @@ compliance_check:
     # Dangerous-Workflow: pull_request_target with secrets, or sudo in workflows
     prt_wfs=""
     sudo_wfs=""
+    dangerous=""
     if [[ -d .github/workflows ]]; then
         prt_wfs=$(grep -l 'pull_request_target' .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null || true)
         if [[ -n "$prt_wfs" ]]; then
@@ -171,7 +172,8 @@ compliance_check:
     # Pinned-Dependencies: workflow 'uses:' lines pinned to a full SHA (or container digest)
     unpinned=""
     if [[ -d .github/workflows ]]; then
-        unpinned=$(grep -hE '^\s*uses:' .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null | grep -vE '@([0-9a-fA-F]{40}|sha256:[0-9a-f]{64})' || true)
+        # repo-local actions (uses: ./path) need no pin - exclude them
+        unpinned=$(grep -hE '^\s*uses:' .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null | grep -v 'uses:\s*\.\/' | grep -vE '@([0-9a-fA-F]{40}|sha256:[0-9a-f]{64})' || true)
     fi
     if [[ -z "$unpinned" ]]; then
         echo "{{GREEN}}[openssf] All workflow actions are SHA-pinned, no tag-surfing for supply-chain pirates.{{NORMAL}}"
