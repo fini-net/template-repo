@@ -4,6 +4,55 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## August 2026
 
+### v8.5 - compliance_check gains OpenSSF Scorecard-aligned checks (2026-08-28)
+
+- Fixes issue [#314](https://github.com/fini-net/template-repo/issues/314)
+
+`compliance_check` (`.just/compliance.just`) previously verified a handful
+of GitHub community-standards files plus branch protection and stopped
+there. OpenSSF Scorecard defines a broader set of security-health checks,
+many of which are detectable with plain `git`, `gh api`, and `grep` - no
+new dependencies.
+
+Eleven new heuristics were appended to the recipe, each report-only
+(reddening is possible, non-zero exit is not), prefixed `[openssf]` or
+`[gh,openssf]` when the check overlaps GitHub community standards
+(Code-Review, which extends the existing branch-protection lookup into
+ruleset parameters):
+
+Binary-Artifacts (`file` on tracked files + blobs over 1MB via
+`wc -c`), CI-Tests (workflow greps for common test-runner invocations,
+including `just <anything>test` recipes), Code-Review (active branch
+rulesets requiring reviews), Dangerous-Workflow (`pull_request_target`
+paired with `secrets.` usage, `sudo` in workflows), Dependency-Update-Tool
+(dependabot/renovate config presence), Maintained (commit within 90
+days), Pinned-Dependencies (`uses:` lines without a 40-hex SHA or
+`sha256:` digest), Packaging (publish/release workflow commands), SAST
+(CodeQL/SonarCloud/Semgrep presence), Signed-Releases (release assets
+with `.sig`/`.asc`/`.pem`/`.intoto.jsonl`, BLUE skip when the repo has
+no releases), and Token-Permissions (workflows missing a top-level
+`permissions:` block).
+
+Two portability pitfalls bit during development and are worth recording:
+
+1. **Unmatched globs break grep-driven checks.** Bash leaves
+   `.github/workflows/*.yaml` literal when no `.yaml` files exist, and
+   grep then exits 2 (file not found) even when it matched `.yml` files -
+   an `if grep` treats any non-zero exit as failure, silently inverting
+   the check. Affected checks either recurse the directory
+   (`grep -r .github/workflows`, guarded by a `[[ -d ]]` test) or guard
+   the glob expansion themselves.
+2. **`stat` flags are platform-dependent.** The binary-size heuristic
+   originally used `stat -f%z` (BSD/macOS only); it now pipes
+   `xargs -0 wc -c` output through awk and skips `total` lines, which
+   works on both BSD and GNU.
+
+Verified live on the template repo itself: six `[openssf]` checks pass,
+SAST/CI-Tests/Code-Review/Token-Permissions pass, and the three REDs
+(docs images flagged as Binary-Artifacts, no Packaging workflow, no
+signed release assets) are true findings. All 33 recipe scripts pass
+`just shellcheck`.
+
 ### v8.4 - pr_checks waits for Copilot; shared poll script; claude_review cleanup (2026-08-14)
 
 - Fixes issue [#299](https://github.com/fini-net/template-repo/issues/299)
