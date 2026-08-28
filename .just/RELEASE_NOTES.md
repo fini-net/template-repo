@@ -36,16 +36,16 @@ no releases), and Token-Permissions (workflows missing a top-level
 Two portability pitfalls bit during development and are worth recording:
 
 1. **Unmatched globs break grep-driven checks.** Bash leaves
-   `.github/workflows/*.yaml` literal when no `.yaml` files exist, and
-   grep then exits 2 (file not found) even when it matched `.yml` files -
-   an `if grep` treats any non-zero exit as failure, silently inverting
-   the check. Affected checks either recurse the directory
-   (`grep -r .github/workflows`, guarded by a `[[ -d ]]` test) or guard
-   the glob expansion themselves.
+    `.github/workflows/*.yaml` literal when no `.yaml` files exist, and
+    grep then exits 2 (file not found) even when it matched `.yml` files -
+    an `if grep` treats any non-zero exit as failure, silently inverting
+    the check. Affected checks either recurse the directory
+    (`grep -r .github/workflows`, guarded by a `[[ -d ]]` test) or guard
+    the glob expansion themselves.
 2. **`stat` flags are platform-dependent.** The binary-size heuristic
-   originally used `stat -f%z` (BSD/macOS only); it now pipes
-   `xargs -0 wc -c` output through awk and skips `total` lines, which
-   works on both BSD and GNU.
+    originally used `stat -f%z` (BSD/macOS only); it now pipes
+    `xargs -0 wc -c` output through awk and skips `total` lines, which
+    works on both BSD and GNU.
 
 Verified live on the template repo itself: six `[openssf]` checks pass,
 SAST/CI-Tests/Code-Review/Token-Permissions pass, and the three REDs
@@ -76,6 +76,38 @@ what the PR ships):
   ./path/to/action` lines have no `@ref` at all, but repo-local
   composite actions are already repo-controlled and need no pin; the
   check now excludes them, matching upstream Scorecard's behavior.
+
+Four refinements from the second Claude review of PR #317 were folded
+in the same way (still one bump per PR):
+
+1. **editorconfig indent.** The numbered-list continuation lines in
+  this entry used 3-space indentation (aligned under the numbered
+  marker), failing the repo's `indent_size = 2` rule for Markdown;
+  re-indented to 2-space multiples.
+2. **Redundant `gh api` round-trips.** The branch-protection check and
+  the Code-Review check each fetched `repos/{owner}/{repo}/rulesets`;
+  one fetch is now stored and shared. Signed-Releases similarly made
+  two calls to `releases?per_page=10` for count and asset names; a
+  single call now serves both.
+3. **Substring false positives.** Bare tokens in the CI-Tests
+  heuristic (`tox`, `jest`, `rspec`, `vitest`) and the Dangerous-
+  Workflow `sudo` grep are now word-bounded, so `majestic` no longer
+  counts as a test framework and `pseudorandom` no longer reads as
+  privilege escalation.
+4. **POSIX character classes and one pattern for glob handling.**
+  `\s` in grep patterns is a GNU extension with spotty BSD/macOS
+  support, so it became `[[:space:]]`; and the checks that still
+  globbed `.github/workflows/*.yml .github/workflows/*.yaml`
+  (Dangerous-Workflow, Pinned-Dependencies, Token-Permissions) now use
+  the same recursive-directory pattern with a `[[ -d ]]` guard the
+  release notes above recommend, instead of relying on grep's
+  error-and-continue behavior with unmatched globs.  Verification on
+  macOS also surfaced a bonus bug the review missed: Pinned-
+  Dependencies' `^[[:space:]]*uses:` matched *zero* lines in real
+  workflows because `uses:` sits behind a YAML list dash
+  (`- uses:`) in 11 of this repo's 62 occurrences - the check was
+  vacuously GREEN.  The pattern now allows an optional
+  `-[[:space:]]+` before `uses:`.
 
 ### v8.4 - pr_checks waits for Copilot; shared poll script; claude_review cleanup (2026-08-14)
 

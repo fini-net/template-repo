@@ -88,7 +88,10 @@ compliance_check:
     fi
 
     # Check for branch protection on main branch (repo-level or org-level rulesets)
-    if gh api 'repos/{owner}/{repo}/rulesets' --jq '.[] | select(.enforcement == "active" and .target == "branch")' | grep -q .; then
+    # Single fetch shared with the [gh,openssf] Code-Review check below.
+    rulesets=$(gh api 'repos/{owner}/{repo}/rulesets' 2>/dev/null || echo '[]')
+    active_ruleset_ids=$(echo "$rulesets" | jq -r '.[] | select(.enforcement == "active" and .target == "branch") | .id')
+    if echo "$active_ruleset_ids" | grep -q .; then
         echo "{{GREEN}}[gh] You have branch protection enabled, keeping the main branch safe from accidents.{{NORMAL}}"
     else
         echo "{{RED}}[gh] You do NOT have branch protection enabled.  Living dangerously, are we?{{NORMAL}}"
@@ -112,7 +115,8 @@ compliance_check:
     fi
 
     # CI-Tests: workflows that actually run tests
-    test_cmds='npm test|npm run test|pytest|go test|cargo test|make test|bazel test|mvn test|gradle test|tox|rspec|jest|vitest|deno test|just [a-z0-9_-]*test'
+    # bare-word tokens get \b boundaries so 'jest' can't match 'majestic' etc.
+    test_cmds='npm test|npm run test|pytest|go test|cargo test|make test|bazel test|mvn test|gradle test|deno test|\b(tox|jest|rspec|vitest)\b|just [a-z0-9_-]*test'
     if [[ -d .github/workflows ]] && grep -lrE "$test_cmds" .github/workflows >/dev/null 2>&1; then
         echo "{{GREEN}}[openssf] CI runs tests on every push, machines grinding so humans can look away.{{NORMAL}}"
     else
@@ -120,10 +124,10 @@ compliance_check:
     fi
 
     # Code-Review: ruleset on the default branch requiring pull request reviews
-    # (overlaps the [gh] community-standards branch protection check above)
-    rulesets=$(gh api 'repos/{owner}/{repo}/rulesets' --jq '.[] | select(.enforcement == "active" and .target == "branch") | .id' 2>/dev/null || true)
+    # (overlaps the [gh] community-standards branch protection check above,
+    # reusing the same rulesets fetch instead of re-hitting the API)
     code_review_ok=false
-    for id in $rulesets; do
+    for id in $active_ruleset_ids; do
         if gh api "repos/{owner}/{repo}/rulesets/$id" --jq '.rules[] | select(.type == "pull_request") | .parameters.required_approving_review_count > 0 or .parameters.dismiss_stale_reviews_on_push or .parameters.require_code_owner_review' 2>/dev/null | grep -q true; then
             code_review_ok=true
             break
@@ -140,13 +144,12 @@ compliance_check:
     sudo_wfs=""
     dangerous=""
     if [[ -d .github/workflows ]]; then
-        prt_wfs=$(grep -l 'pull_request_target' .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null || true)
+        prt_wfs=$(grep -rl 'pull_request_target' .github/workflows 2>/dev/null || true)
         if [[ -n "$prt_wfs" ]]; then
-            dangerous=$(echo "$prt_wfs" | xargs grep -l 'secrets\.' 2>/dev/null || true)
-        else
-            dangerous=""
+            dangerous=$(echo "$prt_wfs" | xargs grep -lw 'secrets\.' 2>/dev/null || true)
         fi
-        sudo_wfs=$(grep -l 'sudo' .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null || true)
+        # -w so 'sudo' can't match inside 'pseudorandom' or 'sudoers'
+        sudo_wfs=$(grep -rlw 'sudo' .github/workflows 2>/dev/null || true)
     fi
     if [[ -z "$dangerous" && -z "$sudo_wfs" ]]; then
         echo "{{GREEN}}[openssf] No dangerous workflow patterns, your automations mind their manners.{{NORMAL}}"
@@ -172,8 +175,11 @@ compliance_check:
     # Pinned-Dependencies: workflow 'uses:' lines pinned to a full SHA (or container digest)
     unpinned=""
     if [[ -d .github/workflows ]]; then
-        # repo-local actions (uses: ./path) need no pin - exclude them
-        unpinned=$(grep -hE '^\s*uses:' .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null | grep -v 'uses:\s*\.\/' | grep -vE '@([0-9a-fA-F]{40}|sha256:[0-9a-f]{64})' || true)
+        # repo-local actions (uses: ./path) need no pin - exclude them;
+        # [[:space:]] instead of \s for BSD/GNU grep portability;
+        # dash optional in the pattern since 'uses:' appears as a YAML
+        # list item ('- uses:') in some styles and bare in others
+        unpinned=$(grep -rhE '^[[:space:]]*(-[[:space:]]+)?uses:' .github/workflows 2>/dev/null | grep -v 'uses:[[:space:]]*\.\/' | grep -vE '@([0-9a-fA-F]{40}|sha256:[0-9a-f]{64})' || true)
     fi
     if [[ -z "$unpinned" ]]; then
         echo "{{GREEN}}[openssf] All workflow actions are SHA-pinned, no tag-surfing for supply-chain pirates.{{NORMAL}}"
@@ -196,8 +202,10 @@ compliance_check:
     fi
 
     # Signed-Releases: release assets with cryptographic signatures
-    signed_assets=$(gh api 'repos/{owner}/{repo}/releases?per_page=10' --jq '.[].assets[].name' 2>/dev/null | grep -Ei '\.(sig|asc|pem|intoto\.jsonl)$' || true)
-    release_count=$(gh api 'repos/{owner}/{repo}/releases?per_page=10' --jq 'length' 2>/dev/null || echo 0)
+    # One API call yields both the release count and the asset names.
+    releases_json=$(gh api 'repos/{owner}/{repo}/releases?per_page=10' 2>/dev/null || echo '[]')
+    release_count=$(echo "$releases_json" | jq 'length')
+    signed_assets=$(echo "$releases_json" | jq -r '.[].assets[].name' 2>/dev/null | grep -Ei '\.(sig|asc|pem|intoto\.jsonl)$' || true)
     if [[ -n "$signed_assets" ]]; then
         echo "{{GREEN}}[openssf] Latest releases include signed assets, tamper-proofing for the paranoid and prudent.{{NORMAL}}"
     elif [[ "${release_count:-0}" -eq 0 ]]; then
@@ -209,7 +217,7 @@ compliance_check:
     # Token-Permissions: workflows declaring a top-level permissions block
     missing_perms=""
     if [[ -d .github/workflows ]]; then
-        missing_perms=$(grep -LE '^\s*permissions:' .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null || true)
+        missing_perms=$(grep -rLE '^[[:space:]]*permissions:' .github/workflows 2>/dev/null || true)
     fi
     if [[ -z "$missing_perms" ]]; then
         echo "{{GREEN}}[openssf] All workflows declare a top-level permissions block, least privilege is the best privilege.{{NORMAL}}"
