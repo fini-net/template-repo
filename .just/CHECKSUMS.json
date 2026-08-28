@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-08-14T23:52:22Z",
+  "generated_at": "2026-08-28T23:43:07Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -71,11 +71,43 @@
 ]},
     ".just/compliance.just": {"versions": [
         {
+          "checksum": "eee991fabf5be3163034945440eb805a60f6e44a9b54b54dd9b57131efd0b829",
+          "commit": "e6c1c9910f9c377cfba2f275b055edc06ab36add",
+          "date": "2026-08-28T16:43:05-07:00",
+          "version": "",
+          "is_latest": true
+        }
+,
+        {
+          "checksum": "16da1e719a08045e8f6632c2f6d8695b8c236dd12c8e1edce7af2b414298968b",
+          "commit": "2d07b0094409e1baf0c8752be9772e01a7eefeab",
+          "date": "2026-08-28T16:34:41-07:00",
+          "version": "v8.5",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "4f8254357e62ecd73401844c97afb34279b8ad7d5000fe27c3357be7526c9b66",
+          "commit": "af3056e1639765bb5fdf04ae16547f69f1ea77da",
+          "date": "2026-08-28T16:20:53-07:00",
+          "version": "v8.5",
+          "is_latest": false
+        }
+,
+        {
+          "checksum": "3ad99973617c9aae34cbe36056c58432981d39641cbe513587e338256a6786ab",
+          "commit": "ea5d80a411021a838b3839e1d51cfd6e01080d5e",
+          "date": "2026-08-28T16:05:19-07:00",
+          "version": "v8.5",
+          "is_latest": false
+        }
+,
+        {
           "checksum": "242aade552dc4490f224887c6462272f382fca3ed9d8d5571abbb08cd9bf7937",
           "commit": "a870c52ef980d203028cdfda3e2697ce92b1543c",
           "date": "2026-01-27T22:00:40-08:00",
           "version": "",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -113,34 +145,10 @@
     ".just/copilot.just": {"versions": [
         {
           "checksum": "c7c63160b51387b044ce5139bb52cd5bda3573f49071707dbabdceab3e1cfcc5",
-          "commit": "5bd0950578fff3d771fb5e3765b99185dab29099",
-          "date": "2026-08-14T16:52:19-07:00",
+          "commit": "54418b66b70b98329631e981517344b02cb3d75f",
+          "date": "2026-08-14T17:35:59-07:00",
           "version": "v8.4",
           "is_latest": true
-        }
-,
-        {
-          "checksum": "d26b74380a077517c00900c75a3dce64cde24ee8c628c14c529b327c3696ebcf",
-          "commit": "02988227f5a87c9768f2b853ffb30ba2de90bde0",
-          "date": "2026-08-14T16:43:01-07:00",
-          "version": "v8.4",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "9f8be5829a5451800ef75dacedfca7d18c69efe68d81ca4358afe20bf8d51142",
-          "commit": "3673248abf75494553e8be21f27eb0e16a84ec04",
-          "date": "2026-08-14T16:03:37-07:00",
-          "version": "v8.4",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "99834f9a582950ab43099a82f888e9b87fc24d4b8beb1fa5f42b2a6ad4f04ca3",
-          "commit": "b0c2b3b59bada7f8bdd99e3621127a47c40a7298",
-          "date": "2026-08-14T15:43:43-07:00",
-          "version": "v8.4",
-          "is_latest": false
         }
 ,
         {
@@ -274,33 +282,17 @@
 ]},
     ".just/gh-process.just": {"versions": [
         {
-          "checksum": "20a8854b5b8595878867f15e65f5dc5c179012b391e5d96772fcf52b0910b0ad",
-          "commit": "5bd0950578fff3d771fb5e3765b99185dab29099",
-          "date": "2026-08-14T16:52:19-07:00",
-          "version": "v8.4",
+          "checksum": "f21c2f271f5190bb9cc7940605fc792b9f6568542ce03b7e0e385437bd5c52fa",
+          "commit": "ea5d80a411021a838b3839e1d51cfd6e01080d5e",
+          "date": "2026-08-28T16:05:19-07:00",
+          "version": "v8.5",
           "is_latest": true
         }
 ,
         {
-          "checksum": "5d3cec92b77cdb63d1cd433e04341fa84f547ea9fb3cc80c8679f6db5ce1bf83",
-          "commit": "02988227f5a87c9768f2b853ffb30ba2de90bde0",
-          "date": "2026-08-14T16:43:01-07:00",
-          "version": "v8.4",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "cf05a6dbd77409c03ebaf02419c062f807385d0f72562992922e3940f5ceceb5",
-          "commit": "3673248abf75494553e8be21f27eb0e16a84ec04",
-          "date": "2026-08-14T16:03:37-07:00",
-          "version": "v8.4",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "ba1a8fe44dcf9beb3b4dd34cc170ded887d2201a22a56e92c91d3070f9800ce5",
-          "commit": "b0c2b3b59bada7f8bdd99e3621127a47c40a7298",
-          "date": "2026-08-14T15:43:43-07:00",
+          "checksum": "20a8854b5b8595878867f15e65f5dc5c179012b391e5d96772fcf52b0910b0ad",
+          "commit": "54418b66b70b98329631e981517344b02cb3d75f",
+          "date": "2026-08-14T17:35:59-07:00",
           "version": "v8.4",
           "is_latest": false
         }
@@ -1242,34 +1234,10 @@
     ".just/lib/wait_for_copilot.sh": {"versions": [
         {
           "checksum": "cf0861e4b378734f9e9096c8fe9c7fb26e6ba5aeb29fdf772f336f5357eb2b9b",
-          "commit": "5bd0950578fff3d771fb5e3765b99185dab29099",
-          "date": "2026-08-14T16:52:19-07:00",
+          "commit": "54418b66b70b98329631e981517344b02cb3d75f",
+          "date": "2026-08-14T17:35:59-07:00",
           "version": "v8.4",
           "is_latest": true
-        }
-,
-        {
-          "checksum": "f6107ea480b5ad95f3fd7d3adec2f2f032f409cca1b8a27e5810ca20e2d0cc5a",
-          "commit": "02988227f5a87c9768f2b853ffb30ba2de90bde0",
-          "date": "2026-08-14T16:43:01-07:00",
-          "version": "v8.4",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "61103efc60bbfb0c2e63e240bb0cbeb7bf9c873c2ff94db33dd5d02dab30ac30",
-          "commit": "3673248abf75494553e8be21f27eb0e16a84ec04",
-          "date": "2026-08-14T16:03:37-07:00",
-          "version": "v8.4",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "c3ca3140c0ae7dc8764dd6d26fafb87b1e8a81e988ce6a9fe024b6c614d3204d",
-          "commit": "b0c2b3b59bada7f8bdd99e3621127a47c40a7298",
-          "date": "2026-08-14T15:43:43-07:00",
-          "version": "v8.4",
-          "is_latest": false
         }
 ]}
   },

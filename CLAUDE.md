@@ -243,6 +243,8 @@ A CHECKSUMS-tracked change requires **three** coupled actions on the same branch
 
 These three actions always go together and apply equally to every CHECKSUMS-tracked file. A change to `compliance.just` (for example) still bumps the version in `gh-process.just` and still adds a `RELEASE_NOTES.md` entry — there is a single rolling version across all `.just/*` modules, not per-module versions.
 
+**One bump per PR.** The `vX.Y` token identifies what a PR ships, so a branch bumps the version at most once. Review-driven fixes folded into an open PR keep the same version: extend the existing `RELEASE_NOTES.md` entry in place rather than adding a new one, and re-run `just checksums_generate` in a fresh distinct commit (keeping the `regenerate CHECKSUMS for vX.Y` form — the version digits do not change). Start a new bump only on a later branch, after the previous version has merged.
+
 ## Dependencies
 
 ### Required tools

@@ -4,6 +4,128 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## August 2026
 
+### v8.5 - compliance_check gains OpenSSF Scorecard-aligned checks (2026-08-28)
+
+- Fixes issue [#314](https://github.com/fini-net/template-repo/issues/314)
+
+`compliance_check` (`.just/compliance.just`) previously verified a handful
+of GitHub community-standards files plus branch protection and stopped
+there. OpenSSF Scorecard defines a broader set of security-health checks,
+many of which are detectable with plain `git`, `gh api`, and `grep` - no
+new dependencies.
+
+Eleven new heuristics were appended to the recipe, each report-only
+(reddening is possible, non-zero exit is not), prefixed `[openssf]` or
+`[gh,openssf]` when the check overlaps GitHub community standards
+(Code-Review, which extends the existing branch-protection lookup into
+ruleset parameters):
+
+Binary-Artifacts (`file` on tracked files + blobs over 1MB via
+`wc -c`), CI-Tests (workflow greps for common test-runner invocations,
+including `just <anything>test` recipes), Code-Review (active branch
+rulesets requiring reviews), Dangerous-Workflow (`pull_request_target`
+paired with `secrets.` usage, `sudo` in workflows), Dependency-Update-Tool
+(dependabot/renovate config presence), Maintained (commit within 90
+days), Pinned-Dependencies (`uses:` lines without a 40-hex SHA or
+`sha256:` digest), Packaging (publish/release workflow commands), SAST
+(CodeQL/SonarCloud/Semgrep presence), Signed-Releases (release assets
+with `.sig`/`.asc`/`.pem`/`.intoto.jsonl`, BLUE skip when the repo has
+no releases), and Token-Permissions (workflows missing a top-level
+`permissions:` block).
+
+Two portability pitfalls bit during development and are worth recording:
+
+1. **Unmatched globs break grep-driven checks.** Bash leaves
+    `.github/workflows/*.yaml` literal when no `.yaml` files exist, and
+    grep then exits 2 (file not found) even when it matched `.yml` files -
+    an `if grep` treats any non-zero exit as failure, silently inverting
+    the check. Affected checks either recurse the directory
+    (`grep -r .github/workflows`, guarded by a `[[ -d ]]` test) or guard
+    the glob expansion themselves.
+2. **`stat` flags are platform-dependent.** The binary-size heuristic
+    originally used `stat -f%z` (BSD/macOS only); it now pipes
+    `xargs -0 wc -c` output through awk and skips `total` lines, which
+    works on both BSD and GNU.
+
+Verified live on the template repo itself: six `[openssf]` checks pass,
+SAST/CI-Tests/Code-Review/Token-Permissions pass, and the three REDs
+(docs images flagged as Binary-Artifacts, no Packaging workflow, no
+signed release assets) are true findings. All 33 recipe scripts pass
+`just shellcheck`.
+
+Three fixes from the Claude code review of PR #317 were folded into
+this entry before merge (one bump per PR - the version token marks
+what the PR ships):
+
+1. **Code-Review check was always GREEN.** The jq expression tested
+  `.parameters.required_reviewers > 0`, but `required_reviewers` is an
+  *array* of required reviewer teams/users, and in jq's type ordering
+  any array sorts greater than any number - so `[] > 0` is `true`,
+  short-circuiting the `or` for any `pull_request` rule regardless of
+  its actual requirements. (Verified live: this repo's second ruleset
+  has no meaningful review requirement yet would have reported GREEN.)
+  The field is now `required_approving_review_count`, the numeric
+  approval threshold Scorecard actually cares about.
+2. **Unbound-variable crash on workflow-less repos.** The `dangerous`
+  variable was only assigned inside the `[[ -d .github/workflows ]]`
+  guard while its consumer ran unconditionally; under `set -u`, a
+  fresh/derivative repo without workflows would abort the recipe and
+  silently skip the seven checks after it. Now pre-initialized beside
+  its siblings.
+3. **Pinned-Dependencies local-action false positive.** `uses:
+  ./path/to/action` lines have no `@ref` at all, but repo-local
+  composite actions are already repo-controlled and need no pin; the
+  check now excludes them, matching upstream Scorecard's behavior.
+
+Four refinements from the second Claude review of PR #317 were folded
+in the same way (still one bump per PR):
+
+1. **editorconfig indent.** The numbered-list continuation lines in
+  this entry used 3-space indentation (aligned under the numbered
+  marker), failing the repo's `indent_size = 2` rule for Markdown;
+  re-indented to 2-space multiples.
+2. **Redundant `gh api` round-trips.** The branch-protection check and
+  the Code-Review check each fetched `repos/{owner}/{repo}/rulesets`;
+  one fetch is now stored and shared. Signed-Releases similarly made
+  two calls to `releases?per_page=10` for count and asset names; a
+  single call now serves both.
+3. **Substring false positives.** Bare tokens in the CI-Tests
+  heuristic (`tox`, `jest`, `rspec`, `vitest`) and the Dangerous-
+  Workflow `sudo` grep are now word-bounded, so `majestic` no longer
+  counts as a test framework and `pseudorandom` no longer reads as
+  privilege escalation.
+4. **POSIX character classes and one pattern for glob handling.**
+  `\s` in grep patterns is a GNU extension with spotty BSD/macOS
+  support, so it became `[[:space:]]`; and the checks that still
+  globbed `.github/workflows/*.yml .github/workflows/*.yaml`
+  (Dangerous-Workflow, Pinned-Dependencies, Token-Permissions) now use
+  the same recursive-directory pattern with a `[[ -d ]]` guard the
+  release notes above recommend, instead of relying on grep's
+  error-and-continue behavior with unmatched globs.  Verification on
+  macOS also surfaced a bonus bug the review missed: Pinned-
+  Dependencies' `^[[:space:]]*uses:` matched *zero* lines in real
+  workflows because `uses:` sits behind a YAML list dash
+  (`- uses:`) in 11 of this repo's 62 occurrences - the check was
+  vacuously GREEN.  The pattern now allows an optional
+  `-[[:space:]]+` before `uses:`.
+
+One more fix from the third Claude review of PR #317, and it is the
+same failure class a third time (silently vacuous check): the round-2
+word-boundary fix added `-w` to the Dangerous-Workflow `secrets\.` grep
+alongside the `sudo` grep, but `-w` requires a non-word character after
+the match while real usage is always `secrets.NAME` - so the check
+could never fire on the exact scenario it exists to flag
+(`pull_request_target` + secrets access).  Invisible in dogfooding
+because this repo has no `pull_request_target` workflows.  It now uses
+`\bsecrets\.`: `\b` anchors only the left boundary, so the right side
+can be mid-word, and both `${{ secrets.X }}` and `${{secrets.X}}`
+match while `MY_secrets.FOO` does not.  The `sudo` grep keeps `-w` (a
+bare word, no trailing punctuation).  Portability note, in keeping
+with the `\s` -> `[[:space:]]` switch above: `\b` is likewise a GNU
+extension rather than POSIX ERE, but it works on modern BSD/macOS grep
+(verified on FreeBSD grep 2.6.0) and has no POSIX-class equivalent,
+so it is used here deliberately.
+
 ### v8.4 - pr_checks waits for Copilot; shared poll script; claude_review cleanup (2026-08-14)
 
 - Fixes issue [#299](https://github.com/fini-net/template-repo/issues/299)
