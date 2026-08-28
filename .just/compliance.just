@@ -146,7 +146,10 @@ compliance_check:
     if [[ -d .github/workflows ]]; then
         prt_wfs=$(grep -rl 'pull_request_target' .github/workflows 2>/dev/null || true)
         if [[ -n "$prt_wfs" ]]; then
-            dangerous=$(echo "$prt_wfs" | xargs grep -lw 'secrets\.' 2>/dev/null || true)
+            # \b (left boundary only, GNU/BSD extension) rather than -w:
+            # -w demands a non-word char AFTER the match, but real usage
+            # is secrets.NAME, so -w never matches
+            dangerous=$(echo "$prt_wfs" | xargs grep -lE '\bsecrets\.' 2>/dev/null || true)
         fi
         # -w so 'sudo' can't match inside 'pseudorandom' or 'sudoers'
         sudo_wfs=$(grep -rlw 'sudo' .github/workflows 2>/dev/null || true)

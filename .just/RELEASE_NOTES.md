@@ -109,6 +109,23 @@ in the same way (still one bump per PR):
   vacuously GREEN.  The pattern now allows an optional
   `-[[:space:]]+` before `uses:`.
 
+One more fix from the third Claude review of PR #317, and it is the
+same failure class a third time (silently vacuous check): the round-2
+word-boundary fix added `-w` to the Dangerous-Workflow `secrets\.` grep
+alongside the `sudo` grep, but `-w` requires a non-word character after
+the match while real usage is always `secrets.NAME` - so the check
+could never fire on the exact scenario it exists to flag
+(`pull_request_target` + secrets access).  Invisible in dogfooding
+because this repo has no `pull_request_target` workflows.  It now uses
+`\bsecrets\.`: `\b` anchors only the left boundary, so the right side
+can be mid-word, and both `${{ secrets.X }}` and `${{secrets.X}}`
+match while `MY_secrets.FOO` does not.  The `sudo` grep keeps `-w` (a
+bare word, no trailing punctuation).  Portability note, in keeping
+with the `\s` -> `[[:space:]]` switch above: `\b` is likewise a GNU
+extension rather than POSIX ERE, but it works on modern BSD/macOS grep
+(verified on FreeBSD grep 2.6.0) and has no POSIX-class equivalent,
+so it is used here deliberately.
+
 ### v8.4 - pr_checks waits for Copilot; shared poll script; claude_review cleanup (2026-08-14)
 
 - Fixes issue [#299](https://github.com/fini-net/template-repo/issues/299)
