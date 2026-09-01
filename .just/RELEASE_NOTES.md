@@ -66,6 +66,26 @@ the PR ships):
   single fetches elsewhere - see the rulesets and releases_json
   reuse).
 
+2. **Inner `gh api graphql` call had the same guard gap as the outer.**
+  The fix above guarded the outer `gh repo view` fetch, but the inner
+  `gh api graphql` call (the one that actually queries
+  `usesCustomOpenGraphImage`) was still a bare command substitution
+  embedded in a `[[ "$(...)" == "true" ]]` test. Command substitutions
+  inside `[[ ]]` do not trip `errexit` (their exit status is discarded
+  once the string is captured), so a second `gh` failure - rate limit,
+  transient network blip between the two calls, insufficient scope -
+  was silently swallowed and fell through to the red "You do NOT have
+  a custom social preview image" message. That false negative was
+  indistinguishable from real non-compliance and undercut the
+  "distinguish gh failure from actual non-compliance" intent that
+  motivated the outer guard. The inner call now sits in its own
+  `if GQL=$(...)` with the same distinct "could not reach GitHub" red
+  message on its `else` branch, so both `gh` calls in the block fail
+  the same way. The `[[ "$GQL" == "true" ]]` comparison then runs
+  against a captured variable (no command substitution inside the
+  test), preserving the no-errexit-trip property while making the
+  failure path visible.
+
 ## August 2026
 
 ### v8.5 - compliance_check gains OpenSSF Scorecard-aligned checks (2026-08-28)

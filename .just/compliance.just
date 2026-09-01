@@ -66,10 +66,14 @@ compliance_check:
         REPO_OWNER=$(echo "$REPO_META" | jq -r '.owner.login')
         REPO_NAME=$(echo "$REPO_META" | jq -r '.name')
         # shellcheck disable=SC2016  # $owner/$name are GraphQL vars, not bash
-        if [[ "$(gh api graphql -f query='query($owner:String!,$name:String!){repository(owner:$owner,name:$name){usesCustomOpenGraphImage}}' -F owner="$REPO_OWNER" -F name="$REPO_NAME" --jq '.data.repository.usesCustomOpenGraphImage')" == "true" ]]; then
-            echo "{{GREEN}}[gh] You have a custom social preview image, looking sharp out there.{{NORMAL}}"
+        if GQL=$(gh api graphql -f query='query($owner:String!,$name:String!){repository(owner:$owner,name:$name){usesCustomOpenGraphImage}}' -F owner="$REPO_OWNER" -F name="$REPO_NAME" --jq '.data.repository.usesCustomOpenGraphImage' 2>/dev/null); then
+            if [[ "$GQL" == "true" ]]; then
+                echo "{{GREEN}}[gh] You have a custom social preview image, looking sharp out there.{{NORMAL}}"
+            else
+                echo "{{RED}}[gh] You do NOT have a custom social preview image.  Settings > General > Social preview, upload one.{{NORMAL}}"
+            fi
         else
-            echo "{{RED}}[gh] You do NOT have a custom social preview image.  Settings > General > Social preview, upload one.{{NORMAL}}"
+            echo "{{RED}}[gh] Could not reach GitHub to check social preview.  Is gh authed and online?{{NORMAL}}"
         fi
     else
         echo "{{RED}}[gh] Could not reach GitHub to check social preview.  Is gh authed and online?{{NORMAL}}"
