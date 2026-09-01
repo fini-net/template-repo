@@ -54,6 +54,18 @@ compliance_check:
         echo "{{RED}}[gh] You do NOT have a repo description, can you write a word or two please?{{NORMAL}}"
     fi
 
+    # Social preview image (Settings > General > Social preview).
+    # The REST `repos/{owner}/{repo}` endpoint does not expose this; GraphQL
+    # `usesCustomOpenGraphImage` is true only when an admin has uploaded one.
+    REPO_OWNER=$(gh repo view --json owner --jq '.owner.login')
+    REPO_NAME=$(gh repo view --json name --jq '.name')
+    # shellcheck disable=SC2016  # $owner/$name are GraphQL vars, not bash
+    if [[ "$(gh api graphql -f query='query($owner:String!,$name:String!){repository(owner:$owner,name:$name){usesCustomOpenGraphImage}}' -F owner="$REPO_OWNER" -F name="$REPO_NAME" --jq '.data.repository.usesCustomOpenGraphImage')" == "true" ]]; then
+        echo "{{GREEN}}[gh] You have a custom social preview image, looking sharp out there.{{NORMAL}}"
+    else
+        echo "{{RED}}[gh] You do NOT have a custom social preview image.  Settings > General > Social preview, upload one.{{NORMAL}}"
+    fi
+
     # github also checks for something about the repo admins
 
     if [[ -e .github/CODEOWNERS ]]; then

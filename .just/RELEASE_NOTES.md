@@ -2,6 +2,43 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
+## September 2026
+
+### v8.6 - compliance_check verifies a custom social preview image (2026-09-01)
+
+- Fixes issue [#242](https://github.com/fini-net/template-repo/issues/242)
+
+`compliance_check` (`.just/compliance.just`) verified nearly all of the
+GitHub community-standards surface (README, LICENSE, CODE_OF_CONDUCT,
+CONTRIBUTING, SECURITY, PR/issue templates, CODEOWNERS, `.gitignore`,
+`.gitattributes`, justfile, `.editorconfig`, repo description, and branch
+protection) but did not check whether a custom social preview image had
+been uploaded under Settings > General > Social preview. The social
+preview is the image GitHub renders in link unfurls, social-media cards,
+and the explore pages; a missing one is the cheapest way for an otherwise
+polished repo to look unfinished next to its peers.
+
+The REST `repos/{owner}/{repo}` endpoint does not expose social-preview
+state, so the new block queries the GraphQL `Repository` object's
+`usesCustomOpenGraphImage` field, which is `true` only when an admin has
+uploaded a custom image. Owner and name are resolved with two
+`gh repo view --json owner/name --jq` calls (hoisted into locals to keep
+the block readable) and passed as `-F` parameters to
+`gh api graphql`. The block sits adjacent to the existing repo-description
+check so the `[gh]`-prefixed GitHub-API checks stay grouped.
+
+A `# shellcheck disable=SC2016` precedes the GraphQL line: the query
+string contains `$owner` and `$name`, which are GraphQL variables (not
+bash variables), so shellcheck's "don't expand single-quoted variables"
+warning would otherwise fire on the literal text. The directive must
+sit directly above the offending line (shellcheck scopes `disable` to
+the next line only), matching the precedent at `.just/copilot.just:43`.
+
+Report-only, like every other check in the recipe — reddening is
+possible, non-zero exit is not. Dogfooding note: this very repo would
+fail the check today (`usesCustomOpenGraphImage: false`), which is a
+good signal the check does what it says on the tin.
+
 ## August 2026
 
 ### v8.5 - compliance_check gains OpenSSF Scorecard-aligned checks (2026-08-28)
