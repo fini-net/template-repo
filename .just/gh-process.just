@@ -13,7 +13,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v8.6
+# PR create v8.7
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -216,8 +216,14 @@ pr_checks: _on_a_pull_request && claude_review
 
     # Skip workflow watcher when repo has no GitHub Actions workflows
     if [[ -d ".github/workflows" ]]; then
-        # Use gh observer if installed, otherwise fall back to gh pr checks --watch
+        # Use gh observer if installed, otherwise fall back to gh pr checks --watch.
+        # gh observer gates exit on Copilot review completion itself
+        # (gh-observer #409), so the separate wait_for_copilot.sh call below is
+        # only needed on the fallback path. Track which watcher ran so the
+        # Copilot wait block can skip itself when gh observer already waited.
+        used_gh_observer=false
         if gh observer --help >/dev/null 2>&1; then
+            used_gh_observer=true
             echo ""
             gh observer
         else
@@ -227,6 +233,7 @@ pr_checks: _on_a_pull_request && claude_review
         echo "" # blank line for visual space
     else
         echo "{{BLUE}}no workflows in this repo - skipping workflow watcher{{NORMAL}}"
+        used_gh_observer=false
     fi
 
     # Load repo metadata for conditional display
@@ -262,7 +269,15 @@ pr_checks: _on_a_pull_request && claude_review
         # MODE=nonfatal: if Copilot was never requested (no auto-review on
         # this repo), exit 0 and fall through to the thread query instead of
         # failing the whole PR flow.
-        if [[ -x ".just/lib/wait_for_copilot.sh" ]]; then
+        #
+        # Skip the wait on the gh observer path: gh observer already gates its
+        # exit on Copilot review completion (gh-observer #409), so by the time
+        # we get here the review state is already settled and a second wait is
+        # dead time (issue #320). The fallback path (gh pr checks --watch)
+        # only watches CI check runs and still needs the explicit wait.
+        if [[ "$used_gh_observer" == "true" ]]; then
+            echo "{{BLUE}}Copilot wait already handled by gh observer{{NORMAL}}"
+        elif [[ -x ".just/lib/wait_for_copilot.sh" ]]; then
             MAX_WAIT=180
             POLL_INTERVAL=5
             INITIAL_DELAY=10
