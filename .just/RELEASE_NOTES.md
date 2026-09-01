@@ -2,6 +2,90 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
+## September 2026
+
+### v8.6 - compliance_check verifies a custom social preview image (2026-09-01)
+
+- Fixes issue [#242](https://github.com/fini-net/template-repo/issues/242)
+
+`compliance_check` (`.just/compliance.just`) verified nearly all of the
+GitHub community-standards surface (README, LICENSE, CODE_OF_CONDUCT,
+CONTRIBUTING, SECURITY, PR/issue templates, CODEOWNERS, `.gitignore`,
+`.gitattributes`, justfile, `.editorconfig`, repo description, and branch
+protection) but did not check whether a custom social preview image had
+been uploaded under Settings > General > Social preview. The social
+preview is the image GitHub renders in link unfurls, social-media cards,
+and the explore pages; a missing one is the cheapest way for an otherwise
+polished repo to look unfinished next to its peers.
+
+The REST `repos/{owner}/{repo}` endpoint does not expose social-preview
+state, so the new block queries the GraphQL `Repository` object's
+`usesCustomOpenGraphImage` field, which is `true` only when an admin has
+uploaded a custom image. Owner and name are resolved with two
+`gh repo view --json owner/name --jq` calls (hoisted into locals to keep
+the block readable) and passed as `-F` parameters to
+`gh api graphql`. The block sits adjacent to the existing repo-description
+check so the `[gh]`-prefixed GitHub-API checks stay grouped.
+
+A `# shellcheck disable=SC2016` precedes the GraphQL line: the query
+string contains `$owner` and `$name`, which are GraphQL variables (not
+bash variables), so shellcheck's "don't expand single-quoted variables"
+warning would otherwise fire on the literal text. The directive must
+sit directly above the offending line (shellcheck scopes `disable` to
+the next line only), matching the precedent at `.just/copilot.just:43`.
+
+Report-only, like every other check in the recipe — reddening is
+possible, non-zero exit is not. Dogfooding note: this very repo would
+fail the check today (`usesCustomOpenGraphImage: false`), which is a
+good signal the check does what it says on the tin.
+
+A fix from the Claude code review of PR #321 was folded into this
+entry before merge (one bump per PR - the version token marks what
+the PR ships):
+
+1. **Unguarded `gh repo view` would abort the recipe on gh failure.**
+  The initial implementation assigned `REPO_OWNER` and `REPO_NAME`
+  from two bare `gh repo view --json ...` calls outside any `if` or
+  `||` fallback. Under the recipe's `set -euo pipefail`, a failing
+  command substitution in a plain assignment triggers `errexit`
+  (verified: `bash -c 'set -euo pipefail; FOO=$(false); echo ok'`
+  exits 1 before the echo), so any `gh` failure (rate limit, network
+  blip, auth hiccup, non-standard remote) would abort
+  `compliance_check` right at the social-preview block and silently
+  skip every remaining check below it - CODEOWNERS, `.gitignore`,
+  `.gitattributes`, `.editorconfig`, branch protection, and the entire
+  OpenSSF-aligned block. That contradicted the recipe's report-only
+  contract and the defensive pattern established elsewhere in the
+  file (`rulesets=$(... 2>/dev/null || echo '[]')`,
+  `releases_json=$(... || echo '[]')`). The block now makes a single
+  `gh repo view --json owner,name` fetch inside an
+  `if REPO_META=$(...)` so a gh failure prints a distinct "could not
+  reach GitHub" red message and falls through to the remaining
+  checks instead of aborting. The single-fetch form also addresses
+  the review's efficiency nit (the file already optimizes for
+  single fetches elsewhere - see the rulesets and releases_json
+  reuse).
+
+2. **Inner `gh api graphql` call had the same guard gap as the outer.**
+  The fix above guarded the outer `gh repo view` fetch, but the inner
+  `gh api graphql` call (the one that actually queries
+  `usesCustomOpenGraphImage`) was still a bare command substitution
+  embedded in a `[[ "$(...)" == "true" ]]` test. Command substitutions
+  inside `[[ ]]` do not trip `errexit` (their exit status is discarded
+  once the string is captured), so a second `gh` failure - rate limit,
+  transient network blip between the two calls, insufficient scope -
+  was silently swallowed and fell through to the red "You do NOT have
+  a custom social preview image" message. That false negative was
+  indistinguishable from real non-compliance and undercut the
+  "distinguish gh failure from actual non-compliance" intent that
+  motivated the outer guard. The inner call now sits in its own
+  `if GQL=$(...)` with the same distinct "could not reach GitHub" red
+  message on its `else` branch, so both `gh` calls in the block fail
+  the same way. The `[[ "$GQL" == "true" ]]` comparison then runs
+  against a captured variable (no command substitution inside the
+  test), preserving the no-errexit-trip property while making the
+  failure path visible.
+
 ## August 2026
 
 ### v8.5 - compliance_check gains OpenSSF Scorecard-aligned checks (2026-08-28)
