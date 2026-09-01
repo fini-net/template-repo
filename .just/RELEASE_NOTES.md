@@ -4,6 +4,37 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## September 2026
 
+### v8.7 - pr_checks skips redundant Copilot wait on gh observer path (2026-09-01)
+
+- Fixes issue [#320](https://github.com/fini-net/template-repo/issues/320)
+
+`pr_checks` (`.just/gh-process.just`) ran `.just/lib/wait_for_copilot.sh`
+after the CI watcher exited to stop the one-shot `reviewThreads` GraphQL
+query from racing Copilot (the fix for #299 in v8.3). That wait is
+correct for the `gh pr checks --watch` fallback path, which only watches
+CI check runs and does not synchronize with Copilot. But on the
+`gh observer` path it is dead time: `gh observer` has gated its own exit
+on Copilot review completion since
+[gh-observer #409](https://github.com/fini-net/gh-observer/issues/409)
+(default `wait_for_copilot: true`, `copilot_max_wait: 180s`), so by the
+time control returns to `pr_checks` the review state is already settled.
+The second wait therefore spun through its initial delay and first poll
+before observing the already-finished review, adding up to ~180s on
+repos where Copilot is auto-requested but slow to land and a smaller but
+still pointless delay on every PR.
+
+The fix tracks which watcher ran in a new `used_gh_observer` flag set in
+the CI-watcher dispatch block. The Copilot wait block now branches on
+that flag: on the `gh observer` path it prints a one-line
+`Copilot wait already handled by gh observer` note and falls straight
+through to the GraphQL query; on the `gh pr checks --watch` path the
+existing `wait_for_copilot.sh` spinner runs unchanged. The downstream
+one-shot `reviewThreads` query is untouched — it runs against settled
+state on both paths, which was the whole point of #299.
+
+No correctness impact; purely wasted wall-clock removed. Filed as an
+enhancement (cleanup) for that reason.
+
 ### v8.6 - compliance_check verifies a custom social preview image (2026-09-01)
 
 - Fixes issue [#242](https://github.com/fini-net/template-repo/issues/242)
