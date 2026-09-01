@@ -57,13 +57,22 @@ compliance_check:
     # Social preview image (Settings > General > Social preview).
     # The REST `repos/{owner}/{repo}` endpoint does not expose this; GraphQL
     # `usesCustomOpenGraphImage` is true only when an admin has uploaded one.
-    REPO_OWNER=$(gh repo view --json owner --jq '.owner.login')
-    REPO_NAME=$(gh repo view --json name --jq '.name')
-    # shellcheck disable=SC2016  # $owner/$name are GraphQL vars, not bash
-    if [[ "$(gh api graphql -f query='query($owner:String!,$name:String!){repository(owner:$owner,name:$name){usesCustomOpenGraphImage}}' -F owner="$REPO_OWNER" -F name="$REPO_NAME" --jq '.data.repository.usesCustomOpenGraphImage')" == "true" ]]; then
-        echo "{{GREEN}}[gh] You have a custom social preview image, looking sharp out there.{{NORMAL}}"
+    # Single `gh repo view` for owner+name (matches the single-fetch pattern
+    # used by the rulesets and releases_json fetches below); the assignment
+    # sits in an `if` so a gh failure skips just this check rather than
+    # aborting the recipe under `set -euo pipefail` (cf. the rulesets/
+    # releases_json `|| echo` fallbacks).
+    if REPO_META=$(gh repo view --json owner,name 2>/dev/null); then
+        REPO_OWNER=$(echo "$REPO_META" | jq -r '.owner.login')
+        REPO_NAME=$(echo "$REPO_META" | jq -r '.name')
+        # shellcheck disable=SC2016  # $owner/$name are GraphQL vars, not bash
+        if [[ "$(gh api graphql -f query='query($owner:String!,$name:String!){repository(owner:$owner,name:$name){usesCustomOpenGraphImage}}' -F owner="$REPO_OWNER" -F name="$REPO_NAME" --jq '.data.repository.usesCustomOpenGraphImage')" == "true" ]]; then
+            echo "{{GREEN}}[gh] You have a custom social preview image, looking sharp out there.{{NORMAL}}"
+        else
+            echo "{{RED}}[gh] You do NOT have a custom social preview image.  Settings > General > Social preview, upload one.{{NORMAL}}"
+        fi
     else
-        echo "{{RED}}[gh] You do NOT have a custom social preview image.  Settings > General > Social preview, upload one.{{NORMAL}}"
+        echo "{{RED}}[gh] Could not reach GitHub to check social preview.  Is gh authed and online?{{NORMAL}}"
     fi
 
     # github also checks for something about the repo admins

@@ -39,6 +39,33 @@ possible, non-zero exit is not. Dogfooding note: this very repo would
 fail the check today (`usesCustomOpenGraphImage: false`), which is a
 good signal the check does what it says on the tin.
 
+A fix from the Claude code review of PR #321 was folded into this
+entry before merge (one bump per PR - the version token marks what
+the PR ships):
+
+1. **Unguarded `gh repo view` would abort the recipe on gh failure.**
+  The initial implementation assigned `REPO_OWNER` and `REPO_NAME`
+  from two bare `gh repo view --json ...` calls outside any `if` or
+  `||` fallback. Under the recipe's `set -euo pipefail`, a failing
+  command substitution in a plain assignment triggers `errexit`
+  (verified: `bash -c 'set -euo pipefail; FOO=$(false); echo ok'`
+  exits 1 before the echo), so any `gh` failure (rate limit, network
+  blip, auth hiccup, non-standard remote) would abort
+  `compliance_check` right at the social-preview block and silently
+  skip every remaining check below it - CODEOWNERS, `.gitignore`,
+  `.gitattributes`, `.editorconfig`, branch protection, and the entire
+  OpenSSF-aligned block. That contradicted the recipe's report-only
+  contract and the defensive pattern established elsewhere in the
+  file (`rulesets=$(... 2>/dev/null || echo '[]')`,
+  `releases_json=$(... || echo '[]')`). The block now makes a single
+  `gh repo view --json owner,name` fetch inside an
+  `if REPO_META=$(...)` so a gh failure prints a distinct "could not
+  reach GitHub" red message and falls through to the remaining
+  checks instead of aborting. The single-fetch form also addresses
+  the review's efficiency nit (the file already optimizes for
+  single fetches elsewhere - see the rulesets and releases_json
+  reuse).
+
 ## August 2026
 
 ### v8.5 - compliance_check gains OpenSSF Scorecard-aligned checks (2026-08-28)
