@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-09-01T20:52:03Z",
+  "generated_at": "2026-09-01T21:00:59Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -72,26 +72,10 @@
     ".just/compliance.just": {"versions": [
         {
           "checksum": "e25d5223f638db7833db516b57a53fe440410ae8646729df49852df8422dd704",
-          "commit": "42c7ce296000d11d1bbe51b651089cd246031dcc",
-          "date": "2026-09-01T13:51:59-07:00",
+          "commit": "33ca5a03d7c35dc94086c21de343c7400e7896a8",
+          "date": "2026-09-01T13:56:18-07:00",
           "version": "v8.6",
           "is_latest": true
-        }
-,
-        {
-          "checksum": "01fe0419e540834b6a683cf26a6b7050cd2e2ab0c6ad41f6806a1f587f17b3e3",
-          "commit": "e14334f6d302444304153c4edd34c884087a47f7",
-          "date": "2026-09-01T13:41:11-07:00",
-          "version": "v8.6",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "fa6e4e8f892c460be902b2465deddecc36480aad26d0dac0e137267e79546197",
-          "commit": "7f6cf3b0a9ccb3b4510319ca45be87db84fb15ec",
-          "date": "2026-09-01T13:19:51-07:00",
-          "version": "v8.6",
-          "is_latest": false
         }
 ,
         {
@@ -282,11 +266,19 @@
 ]},
     ".just/gh-process.just": {"versions": [
         {
-          "checksum": "5037a97ebfbf35f14ae3b1f47b1aee3e71f4bbdbe935d730d94b7cf9d733dcc4",
-          "commit": "7f6cf3b0a9ccb3b4510319ca45be87db84fb15ec",
-          "date": "2026-09-01T13:19:51-07:00",
-          "version": "v8.6",
+          "checksum": "89b42a3a1e309a42ec7dbf36e953c5d9290876f0695793b602c57740cf223232",
+          "commit": "e43d158377d6e0d349846c3c19f8e34ff64aeeda",
+          "date": "2026-09-01T14:00:52-07:00",
+          "version": "v8.7",
           "is_latest": true
+        }
+,
+        {
+          "checksum": "5037a97ebfbf35f14ae3b1f47b1aee3e71f4bbdbe935d730d94b7cf9d733dcc4",
+          "commit": "33ca5a03d7c35dc94086c21de343c7400e7896a8",
+          "date": "2026-09-01T13:56:18-07:00",
+          "version": "v8.6",
+          "is_latest": false
         }
 ,
         {
