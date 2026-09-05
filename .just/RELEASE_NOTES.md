@@ -4,6 +4,62 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## September 2026
 
+### v8.8 - guard `set -e` bare commands and jq-derived integer comparisons (2026-09-05)
+
+- Fixes issue [#326](https://github.com/fini-net/template-repo/issues/326)
+- Fixes issue [#327](https://github.com/fini-net/template-repo/issues/327)
+
+Two related classes of `set -euo pipefail` fragility that kept recurring
+across v8.\* PRs (Claude/Copilot caught instances of each in the reviews
+of #289, #299, and #300) are now fixed at every remaining call site and
+documented as a convention, instead of being patched one-off each time a
+review trips over a new instance.
+
+**Issue #326 - bare commands under `set -e`.** In `copilot_pick` and
+`copilot_refresh` (`.just/copilot.just`), bare `gh api graphql` calls
+that were not wrapped in `if`/`&&`/`||` aborted the recipe on any
+transient GraphQL failure before the friendly fallback messaging could
+print. Three sites are fixed:
+
+1. `copilot_pick`'s comment fetch now has a `|| { ... }` block that
+   prints a "transient API error - try again" message and exits 1
+   deliberately (its temp files are now cleaned by an EXIT trap set
+   before the first early exit).
+2. `copilot_refresh`'s `THREAD_IDS` fetch falls back to `[]` - a failed
+   fetch reads as "nothing to resolve" and the recipe continues.
+3. `copilot_refresh`'s post-review `COPILOT_COUNT` fetch falls back to
+   empty and is normalized to 0, so the Found/No-suggestions messaging
+   always prints.
+
+`_wait_for_checks` (`.just/gh-process.just`) also had a bare
+`gum spin`; it now uses the `spin_ok=0; ... || spin_ok=$?` idiom
+(established for the copilot spinner in v8.4) and falls back to plain
+`poll_for_checks` if gum itself fails.
+
+**Issue #327 - unguarded integers from jq/temp files.** Values derived
+from `jq` or read from temp files and fed into `[[ ... -eq/-gt ... ]]`
+crashed with bash "integer expression expected" when the upstream call
+failed or returned empty. The v8.3 follow-up added `${var:-0}` defaults
+in `wait_for_copilot.sh` but the pattern was not applied to new sites.
+All remaining sites are now normalized with `2>/dev/null || echo "0"`
+plus a `[[ "$var" =~ ^[0-9]+$ ]] || var=0` regex guard: `COMMENT_COUNT`
+(copilot_pick), `THREAD_COUNT` and `COPILOT_COUNT` (copilot_refresh),
+and the `COPILOT_COUNT` pair in `pr_checks` and `claude_review`
+(`.just/gh-process.just`) - the latter read from the `/tmp` count file,
+the exact site flagged in Claude's review of #300.
+
+Both idioms are now documented as a convention in the headers of
+`copilot.just` and `gh-process.just` so future call sites follow them
+without needing a fresh review to catch the gap.
+
+**Claude review follow-up (non-blocking).** Two minor observations from
+Claude's review of this PR were folded in without a version bump (same
+PR, per one-bump-per-PR): the now-redundant trailing `rm -f` in
+`copilot_pick` was dropped since the EXIT trap already covers both
+temp files, and the two header convention comments were aligned so
+both document the `|| var=<fallback>` variant as well as the
+`var=0; <cmd> || var=$?` form.
+
 ### v8.7 - pr_checks skips redundant Copilot wait on gh observer path (2026-09-01)
 
 - Fixes issue [#320](https://github.com/fini-net/template-repo/issues/320)

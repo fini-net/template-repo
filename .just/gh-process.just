@@ -3,6 +3,15 @@
 # check out the RELEASE_NOTES.md for the detailed history of this file
 # the README.md in this directory also might be useful to you
 
+# Convention (issues #326 / #327): recipes in this file that run under
+# `set -euo pipefail` must guard bare simple commands (gum spin, gh api)
+# whose non-zero exit is a handled case with `var=0; <cmd> || var=$?`
+# (or `|| var=<fallback>`) - bare calls abort the recipe before fallback
+# messaging can print. Any value flowing into
+# `[[ ... -eq/-gt/-lt ... ]]` from jq or a temp file
+# must be normalized first: `<cmd> 2>/dev/null || echo "0"` plus
+# `[[ "$var" =~ ^[0-9]+$ ]] || var=0`.
+
 # some useful variables
 release_branch := "main"
 
@@ -13,7 +22,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v8.7
+# PR create v8.8
 [group('Process')]
 pr: _has_commits && pr_checks
     #!/usr/bin/env bash
@@ -163,9 +172,19 @@ _wait_for_checks: _on_a_pull_request
         return 0
     }
 
-    # Use gum spin if available, otherwise fall back to simple progress
+    # Use gum spin if available, otherwise fall back to simple progress.
+    # gum spin is a bare simple command under `set -e` - the `spin_ok=0; ...`
+    # `|| spin_ok=$?` idiom keeps a gum crash (tty loss, SIGPIPE) from
+    # aborting the recipe before the fallback run of poll_for_checks below.
+    # See issue #326.
     if command -v gum &> /dev/null; then
-        USING_GUM=1 gum spin --spinner dot --title "Waiting for GitHub checks to start..." -- bash -c "MAX_WAIT=$MAX_WAIT; POLL_INTERVAL=$POLL_INTERVAL; $(declare -f poll_for_checks); poll_for_checks"
+        spin_ok=0
+        USING_GUM=1 gum spin --spinner dot --title "Waiting for GitHub checks to start..." -- bash -c "MAX_WAIT=$MAX_WAIT; POLL_INTERVAL=$POLL_INTERVAL; $(declare -f poll_for_checks); poll_for_checks" \
+            || spin_ok=$?
+        if [[ $spin_ok -ne 0 ]]; then
+            echo "{{YELLOW}}gum spin failed - falling back to plain polling{{NORMAL}}"
+            USING_GUM=0 poll_for_checks
+        fi
     else
         echo "{{BLUE}}Waiting for GitHub checks to start...{{NORMAL}}"
         USING_GUM=0 poll_for_checks
@@ -328,8 +347,13 @@ pr_checks: _on_a_pull_request && claude_review
             }
             ')
 
-        # Count and store suggestions for display after claude_review
-        COPILOT_COUNT=$(echo "$COPILOT_JSON" | jq 'length')
+        # Count and store suggestions for display after claude_review.
+        # The value flows into an integer comparison and a temp file read
+        # back by claude_review, so normalize empty/non-numeric jq output
+        # to 0 to avoid "integer expression expected" crashes downstream.
+        # See issue #327.
+        COPILOT_COUNT=$(echo "$COPILOT_JSON" | jq 'length' 2>/dev/null || echo "0")
+        [[ "$COPILOT_COUNT" =~ ^[0-9]+$ ]] || COPILOT_COUNT=0
         echo "$COPILOT_COUNT" > "$COPILOT_COUNT_FILE"
 
         # Display output to maintain current behavior
@@ -383,7 +407,12 @@ claude_review: _on_a_pull_request
         # (Potential bug 2).
         COPILOT_STALE_FILE="/tmp/copilot_stale_${PR_REPO_OWNER}_${PR_REPO_NAME}_${PR_NUMBER}"
         if [[ -f "$COPILOT_COUNT_FILE" ]]; then
-            COPILOT_COUNT=$(cat "$COPILOT_COUNT_FILE")
+            # COPILOT_COUNT is a raw temp-file read feeding an integer
+            # comparison - a partial write or empty file would crash `-eq`
+            # with "integer expression expected", so validate before use.
+            # See issue #327.
+            COPILOT_COUNT=$(cat "$COPILOT_COUNT_FILE" 2>/dev/null || echo "0")
+            [[ "$COPILOT_COUNT" =~ ^[0-9]+$ ]] || COPILOT_COUNT=0
             echo ""
             if [[ "$COPILOT_COUNT" -eq 0 ]]; then
                 if [[ -f "$COPILOT_STALE_FILE" ]]; then
