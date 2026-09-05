@@ -22,6 +22,7 @@ cue-verify:
     CLAUDE_REVIEW_FLAG=$(cue export .repo.toml | jq -r '.flags."claude-review" // false')
     COPILOT_REVIEW_FLAG=$(cue export .repo.toml | jq -r '.flags."copilot-review" // false')
     STANDARD_RELEASE_FLAG=$(cue export .repo.toml | jq -r 'if .flags."standard-release" == false then "false" else "true" end')
+    ASCIINEMA_RECORD_FLAG=$(cue export .repo.toml | jq -r 'if .flags."asciinema-record" == true then "true" else "false" end')
 
     # Error counter
     ERRORS=0
@@ -79,6 +80,19 @@ cue-verify:
     if [[ "$STANDARD_RELEASE_FLAG" == "false" ]]; then
         echo "{{YELLOW}}[flags.standard-release] Standard release workflow is disabled{{NORMAL}}"
         echo "{{YELLOW}}  Ensure custom release recipes exist in justfile or .just/ modules{{NORMAL}}"
+    fi
+
+    # Validate asciinema-record flag (soft warn - CI runners won't have
+    # asciinema installed and the recipes degrade gracefully to unrecorded
+    # runs, so a missing binary is not a hard error)
+    if [[ "$ASCIINEMA_RECORD_FLAG" == "true" ]]; then
+        if command -v asciinema >/dev/null 2>&1; then
+            echo "{{GREEN}}[flags.asciinema-record] asciinema found - pr/again recipes will record into .cache/{{NORMAL}}"
+        else
+            echo "{{YELLOW}}[flags.asciinema-record] asciinema not found on PATH{{NORMAL}}"
+            echo "{{YELLOW}}  pr/again recipes will warn and run unrecorded{{NORMAL}}"
+            echo "{{YELLOW}}  Install with: brew install asciinema{{NORMAL}}"
+        fi
     fi
 
     # Stage 3: Validate GitHub metadata sync
@@ -264,6 +278,7 @@ cue-sync-from-github:
             "claude-review = false" \
             "copilot-review = false" \
             "standard-release = true" \
+            "asciinema-record = false" \
             > .repo.toml
 
         # Validate the new TOML

@@ -4,6 +4,92 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## September 2026
 
+### v9.0 - asciinema recording of pr/again behind asciinema-record flag (2026-09-05)
+
+- Fixes issue [#324](https://github.com/fini-net/template-repo/issues/324)
+
+`just pr` and `just again` can now capture a replayable terminal
+recording of the whole flow via `asciinema rec`. Recordings are useful
+for debugging flaky recipes, reproducing past runs, and as lightweight
+"verify" artifacts. The feature is **opt-in**: a new
+`asciinema-record` flag in `.repo.toml` (default `false`) follows the
+existing flag pattern (`claude-review`, `copilot-review`,
+`standard-release`). With the flag off — the default — behavior is
+unchanged and no `.cast` files are ever written.
+
+**Recipe restructure.** The bodies of `pr` and `again` moved into
+hidden inner recipes (`_pr_inner`, `_again_inner`) and the public
+recipes became thin wrappers that dispatch based on the flag:
+
+- flag false (or `repo-toml.sh` missing) → `just _pr_inner` +
+  `just pr_checks`, byte-for-byte the same command sequence as before
+- flag true + `asciinema` on PATH → wrap the flow in
+  `asciinema rec ... -c "just _pr_inner && just pr_checks"`
+- flag true + binary missing → yellow warning, run unrecorded
+
+One structural change was unavoidable: `pr` previously ran
+`pr_checks` as a just post-dependency (`pr: _has_commits &&
+pr_checks`), which executes *after* the recipe body — outside any
+recording the body could start. To capture check watching inside the
+recording, `pr` now chains `pr_checks` in its body (`just _pr_inner
+&& just pr_checks`) and the dependency line is just
+`pr: _has_commits`. The flag-off path is equivalent: same guard run
+up front (`_has_commits` stays a pre-dependency), same command order,
+same short-circuit — `_pr_inner` failure still prevents
+`pr_checks` from running, and the wrapper propagates the failure exit
+code.
+
+**Naming.** Casts land in `.cache/` (already gitignored via `/.cache`)
+so they never dirty `git status`:
+
+- `pr` records to a pid-named temp file first
+  (`.cache/pr-<pid>.cast.tmp`) and renames to
+  `.cache/pr-<PRNUM>-<pid>.cast` once `gh pr create` returns a PR
+  number; if creation fails or is interrupted, the cast survives as
+  `.cache/pr-<pid>.cast` so failed-run debugging still works
+- `again` knows the PR number up front (via `gh pr view`) and records
+directly to `.cache/again-<PRNUM>-<pid>.cast` (pid-only fallback
+when no PR is found, e.g. run from a non-PR branch)
+
+**Exit status fidelity.** asciinema 2.x and 3.x disagree on `rec`
+exit semantics: 3.x exits 0 regardless of the recorded command's
+status unless `--return` is passed, while 2.x propagates the child's
+status by default and has no `--return` flag. The wrappers probe
+`asciinema rec --help` for `--return` support at runtime rather than
+hardcoding either behavior, so `pr`/`again` report the real child
+exit code (verified: a failing `git push` propagates 128 through
+the recording on 3.2.0).
+
+**Failure handling.** `asciinema rec` invocations follow the v8.8
+guard convention (`RC=0; asciinema rec ... || RC=$?`) since a non-zero
+child exit is a handled case, not a recipe bug. There is no
+retry-on-asciinema-failure: a non-zero `asciinema rec` exit means the
+child flow ran or was interrupted, and blindly re-running could issue
+a duplicate `gh pr create`. If `asciinema` produced no cast at all
+(no TTY, e.g. from CI), both wrappers say so and exit with the
+child's code.
+
+**Supporting changes.**
+
+- `.repo.toml` gains `asciinema-record = false`; `docs/repo-toml.cue`
+  documents the flag; `repo_toml_generate` extracts/emits
+  `FLAG_ASCIINEMA_RECORD`
+- `cue-verify` validates the flag: enabled + binary present →
+  green info; enabled + binary missing → soft yellow warning
+  (non-fatal — CI runners won't have asciinema installed and the
+  recipes degrade gracefully); disabled → silent, since that's the
+  default state for every repo
+- new-repo bootstrap (`cue-sync-from-github`) writes
+  `asciinema-record = false` by default
+
+**Caveats.** Under asciinema 3.x a missing TTY is auto-detected and
+the session records headless (verified); under 2.x `rec` requires an
+interactive terminal, and the wrappers handle a missing cast file by
+exiting with the child's code after reporting it. `.cast` files
+capture raw terminal input/output with no secrets filtering; if a
+secret leaks into a recording, delete the file. Default-off mitigates
+exposure for the vast majority of runs.
+
 ### v8.9 - fix copilot_rollback parsing for legacy backups (2026-09-05)
 
 - Fixes issue [#332](https://github.com/fini-net/template-repo/issues/332)
