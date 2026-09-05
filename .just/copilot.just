@@ -511,7 +511,12 @@ copilot_rollback:
         exit 0
     fi
 
-    # List available backups
+    # List available backups. The glob must handle dot-prefixed names:
+    # most backups in this repo are of .just/* files, whose URL-encoded
+    # safe paths start with a dot, and bash globs skip dotfiles by
+    # default. shopt -s dotglob makes *.bak match them; the [[ -f ]]
+    # guard in the loop below keeps directories out. See issue #332.
+    shopt -s dotglob
     if ! ls "$BACKUP_DIR"/*.bak &>/dev/null; then
         echo "{{YELLOW}}No backups found{{NORMAL}}"
         exit 0
@@ -525,9 +530,22 @@ copilot_rollback:
     for backup in "$BACKUP_DIR"/*.bak; do
         if [[ -f "$backup" ]]; then
             filename=$(basename "$backup")
-            safe_path=${filename%%_*}
-            timestamp=${filename#*_}
-            timestamp=${timestamp%.bak}
+            # Parse the timestamp from the END of the name by pattern
+            # (YYYYMMDD_HHMMSS_PID), not by underscore position. A
+            # first-underscore split truncates legacy backup names whose
+            # safe_path itself contains underscores (the old scheme
+            # encoded / as _), and the timestamp contains underscores of
+            # its own, so neither first- nor last-underscore splitting
+            # works. The greedy .* matches up to the LAST timestamp-like
+            # suffix, which is the real one. See issue #332.
+            if [[ "$filename" =~ ^(.*)_([0-9]{8}_[0-9]{6}_[0-9]+)\.bak$ ]]; then
+                safe_path="${BASH_REMATCH[1]}"
+                timestamp="${BASH_REMATCH[2]}"
+            else
+                # Unrecognized format: skip loudly rather than guess a path
+                echo "{{YELLOW}}Warning: skipping unparseable backup name: $filename{{NORMAL}}"
+                continue
+            fi
             # URL-decode the safe path back to original file path
             # (reversible unlike the old _ for / approach)
             if echo "$safe_path" | grep -qE '%2F|%5F|%25'; then
