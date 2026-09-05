@@ -3,6 +3,15 @@
 # check out the RELEASE_NOTES.md for the detailed history of this file
 # the README.md in this directory also might be useful to you
 
+# Convention (issues #326 / #327): these recipes run under
+# `set -euo pipefail`. Any bare simple command (gum spin, gh api) whose
+# non-zero exit is a handled case must use the `var=0; <cmd> || var=$?`
+# (or `|| var=<fallback>`) idiom - bare calls abort the recipe before
+# the fallback messaging can print. Likewise, any value flowing into
+# `[[ ... -eq/-gt/-lt ... ]]` from jq or a temp file must be normalized
+# first: `<cmd> 2>/dev/null || echo "0"` plus
+# `[[ "$var" =~ ^[0-9]+$ ]] || var=0`.
+
 # Interactive Copilot suggestion picker
 [group('Copilot')]
 copilot_pick: _on_a_pull_request
@@ -35,6 +44,10 @@ copilot_pick: _on_a_pull_request
 
     # Fetch Copilot comments
     copilot_comments=$(mktemp /tmp/justfile.XXXXXX)
+    suggestions_display=$(mktemp /tmp/justfile.XXXXXX)
+    # Trap is set before the first early exit below so a failed fetch does
+    # not leak the temp files.
+    trap 'rm -f "$copilot_comments" "$suggestions_display"' EXIT
 
     # Note: Uses reviewThreads instead of reviews so we can filter by isResolved.
     # Only unresolved threads are included so the picker shows actionable suggestions.
@@ -66,10 +79,21 @@ copilot_pick: _on_a_pull_request
                 }
             }
         }
-        ' > "$copilot_comments"
+        ' > "$copilot_comments" || {
+        # gh api is a bare simple command under `set -e` - without the
+        # `|| { ... }` fallback, a GraphQL hiccup would abort the recipe
+        # before the friendly guidance below could print. See issue #326.
+        echo "{{RED}}Failed to fetch Copilot suggestions from GitHub.{{NORMAL}}"
+        echo "{{YELLOW}}This is usually a transient API error - try again shortly.{{NORMAL}}"
+        exit 1
+    }
 
-    # Check if we have comments
-    COMMENT_COUNT=$(jq 'length' "$copilot_comments")
+    # Check if we have comments. jq 'length' on a truncated/partial write
+    # can emit empty or non-numeric output, which would crash the `-eq`
+    # below with "integer expression expected" - default to 0 and let the
+    # "No unresolved suggestions" branch handle it. See issue #327.
+    COMMENT_COUNT=$(jq 'length' "$copilot_comments" 2>/dev/null || echo "0")
+    [[ "$COMMENT_COUNT" =~ ^[0-9]+$ ]] || COMMENT_COUNT=0
 
     if [[ "$COMMENT_COUNT" -eq 0 ]]; then
         echo "{{BLUE}}No unresolved Copilot suggestions found{{NORMAL}}"
@@ -80,8 +104,7 @@ copilot_pick: _on_a_pull_request
     echo ""
 
     # Format suggestions for gum display
-    suggestions_display=$(mktemp /tmp/justfile.XXXXXX)
-    trap 'rm -f "$copilot_comments" "$suggestions_display"' EXIT
+    # (created above, before the fetch, so the trap covers it)
 
     # Create display format: "file:line - preview"
     jq -r '.[] | "\(.path):\(.originalLine) - \(.body | split("\n")[0] | .[0:80])"' \
@@ -299,9 +322,19 @@ copilot_refresh: _on_a_pull_request
                 }
             }
         }
-        ')
+        ') || THREAD_IDS="[]"
 
-    THREAD_COUNT=$(echo "$THREAD_IDS" | jq 'length')
+    # gh api is a bare simple command under `set -e` - the `|| THREAD_IDS="[]"`
+    # fallback keeps a transient GraphQL failure from aborting the recipe
+    # before the resolve/report messaging below (a failed fetch is treated
+    # as "nothing to resolve", the same zero-thread outcome as an empty
+    # response). See issue #326.
+    #
+    # THREAD_COUNT flows from jq into an integer comparison - guard against
+    # empty/non-numeric output so `-gt` sees a valid integer instead of
+    # crashing with "integer expression expected". See issue #327.
+    THREAD_COUNT=$(echo "$THREAD_IDS" | jq 'length' 2>/dev/null || echo "0")
+    [[ "$THREAD_COUNT" =~ ^[0-9]+$ ]] || THREAD_COUNT=0
 
     if [[ "$THREAD_COUNT" -gt 0 ]]; then
         RESOLVED=0
@@ -426,7 +459,15 @@ copilot_refresh: _on_a_pull_request
                     }
                 }
             }
-            ')
+            ') || COPILOT_COUNT=""
+
+        # Bare gh api under `set -e`: the `|| COPILOT_COUNT=""` fallback
+        # keeps a transient GraphQL failure from aborting the recipe before
+        # the Found/No-suggestions messaging below can print. See #326.
+        # The value feeds a `-gt` comparison, so normalize it to 0 when
+        # empty or non-numeric ("integer expression expected" guard).
+        # See issue #327.
+        [[ "$COPILOT_COUNT" =~ ^[0-9]+$ ]] || COPILOT_COUNT=0
 
         if [[ $COPILOT_COUNT -gt 0 ]]; then
             echo "🐈‍⬛ Found ${COPILOT_COUNT} unresolved Copilot suggestions"
