@@ -22,14 +22,14 @@ transient GraphQL failure before the friendly fallback messaging could
 print. Three sites are fixed:
 
 1. `copilot_pick`'s comment fetch now has a `|| { ... }` block that
-   prints a "transient API error - try again" message and exits 1
-   deliberately (its temp files are now cleaned by an EXIT trap set
-   before the first early exit).
+  prints a "transient API error - try again" message and exits 1
+  deliberately (its temp files are now cleaned by an EXIT trap set
+  before the first early exit).
 2. `copilot_refresh`'s `THREAD_IDS` fetch falls back to `[]` - a failed
-   fetch reads as "nothing to resolve" and the recipe continues.
+  fetch reads as "nothing to resolve" and the recipe continues.
 3. `copilot_refresh`'s post-review `COPILOT_COUNT` fetch falls back to
-   empty and is normalized to 0, so the Found/No-suggestions messaging
-   always prints.
+  empty and is normalized to 0, so the Found/No-suggestions messaging
+  always prints.
 
 `_wait_for_checks` (`.just/gh-process.just`) also had a bare
 `gum spin`; it now uses the `spin_ok=0; ... || spin_ok=$?` idiom
