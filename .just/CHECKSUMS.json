@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-09-05T04:40:56Z",
+  "generated_at": "2026-09-05T17:52:57Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -128,17 +128,17 @@
 ]},
     ".just/copilot.just": {"versions": [
         {
-          "checksum": "5653493e9f791ccbeb2713bab98bf46c9a5bad9655332888bd33bb84f4a9aa98",
-          "commit": "e55259404406c79cb94511498c578b6feb8eeb88",
-          "date": "2026-09-04T21:40:55-07:00",
-          "version": "v8.8",
+          "checksum": "0c5544dba31f871763f2f86e6089d2167a7f863bbe16c2726413e1181cb5527d",
+          "commit": "53becda60c0c51d259c5a6765e5363939e6c5500",
+          "date": "2026-09-05T10:52:56-07:00",
+          "version": "v8.9",
           "is_latest": true
         }
 ,
         {
-          "checksum": "e28a2f8a8f5a374d95f30161fb84a3726c59c0f18419ec8ec42276e02e57f0a2",
-          "commit": "7d20ef46843ecd91fa49d57122d413ad23a8185b",
-          "date": "2026-09-04T21:28:56-07:00",
+          "checksum": "5653493e9f791ccbeb2713bab98bf46c9a5bad9655332888bd33bb84f4a9aa98",
+          "commit": "f3d478e98ddc9d5bbd533464eaae8061c35ad1fb",
+          "date": "2026-09-04T21:58:27-07:00",
           "version": "v8.8",
           "is_latest": false
         }
@@ -282,17 +282,17 @@
 ]},
     ".just/gh-process.just": {"versions": [
         {
-          "checksum": "c83fabb4e4183bb45ed3a6b652f4e4c9344c247e285f9704c817ce351f81ddd1",
-          "commit": "e55259404406c79cb94511498c578b6feb8eeb88",
-          "date": "2026-09-04T21:40:55-07:00",
-          "version": "v8.8",
+          "checksum": "518c5cca877ad3570b59329387c781dd07146930bc74da1e65440b623d80fa3f",
+          "commit": "53becda60c0c51d259c5a6765e5363939e6c5500",
+          "date": "2026-09-05T10:52:56-07:00",
+          "version": "v8.9",
           "is_latest": true
         }
 ,
         {
-          "checksum": "9ba49e81363a6d69111fc887d87cace2f231cf460ccfd8544abd05e35bd44ffa",
-          "commit": "7d20ef46843ecd91fa49d57122d413ad23a8185b",
-          "date": "2026-09-04T21:28:56-07:00",
+          "checksum": "c83fabb4e4183bb45ed3a6b652f4e4c9344c247e285f9704c817ce351f81ddd1",
+          "commit": "f3d478e98ddc9d5bbd533464eaae8061c35ad1fb",
+          "date": "2026-09-04T21:58:27-07:00",
           "version": "v8.8",
           "is_latest": false
         }
