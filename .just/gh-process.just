@@ -5,9 +5,10 @@
 
 # Convention (issues #326 / #327): recipes in this file that run under
 # `set -euo pipefail` must guard bare simple commands (gum spin, gh api)
-# whose non-zero exit is a handled case with `var=0; <cmd> || var=$?` -
-# bare calls abort the recipe before fallback messaging can print. Any
-# value flowing into `[[ ... -eq/-gt/-lt ... ]]` from jq or a temp file
+# whose non-zero exit is a handled case with `var=0; <cmd> || var=$?`
+# (or `|| var=<fallback>`) - bare calls abort the recipe before fallback
+# messaging can print. Any value flowing into
+# `[[ ... -eq/-gt/-lt ... ]]` from jq or a temp file
 # must be normalized first: `<cmd> 2>/dev/null || echo "0"` plus
 # `[[ "$var" =~ ^[0-9]+$ ]] || var=0`.
 

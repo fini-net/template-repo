@@ -52,6 +52,14 @@ Both idioms are now documented as a convention in the headers of
 `copilot.just` and `gh-process.just` so future call sites follow them
 without needing a fresh review to catch the gap.
 
+**Claude review follow-up (non-blocking).** Two minor observations from
+Claude's review of this PR were folded in without a version bump (same
+PR, per one-bump-per-PR): the now-redundant trailing `rm -f` in
+`copilot_pick` was dropped since the EXIT trap already covers both
+temp files, and the two header convention comments were aligned so
+both document the `|| var=<fallback>` variant as well as the
+`var=0; <cmd> || var=$?` form.
+
 ### v8.7 - pr_checks skips redundant Copilot wait on gh observer path (2026-09-01)
 
 - Fixes issue [#320](https://github.com/fini-net/template-repo/issues/320)

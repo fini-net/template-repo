@@ -268,8 +268,7 @@ copilot_pick: _on_a_pull_request
             echo "{{YELLOW}}Could not extract code or file not found - manual application required{{NORMAL}}"
         fi
     fi
-
-    rm -f "$copilot_comments" "$suggestions_display"
+    # no trailing cleanup needed - the EXIT trap removes both temp files
 
 # Request a new Copilot review on current PR
 [group('Copilot')]
