@@ -4,6 +4,51 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## September 2026
 
+### v8.9 - fix copilot_rollback parsing for legacy backups (2026-09-05)
+
+- Fixes issue [#332](https://github.com/fini-net/template-repo/issues/332)
+
+`copilot_rollback` (`.just/copilot.just`) reconstructed backup
+filenames by splitting on the *first* underscore (`safe_path
+=${filename%%_*}`). That worked for current URL-encoded names
+(post-v6.3, where `/` is `%2F` and `_` is `%5F`, so the safe path
+contains no raw underscores) but broke every **legacy** backup - the
+old scheme encoded `/` as `_`, so legacy safe paths are full of
+underscores. The first-underscore split truncated the path at its
+first underscore and let the timestamp pick up path fragments, which
+meant the legacy fallback decode branch (`${safe_path//_/\/}`, added
+back in v5.4) could never see a full path - it was unreachable by
+design. Rollback listed wrong targets, restored to wrong paths, or
+silently skipped valid legacy backups. Copilot flagged this
+recurrence on 12 fini-net repos' v8.\* sync PRs; v7.9 (#216) fixed
+the timestamp-underscore collision for new-format backups only, so
+this closes the remaining half of #199.
+
+Backup names are now parsed by matching the timestamp **pattern** from
+the end of the filename (`^ (.*)_([0-9]{8}_[0-9]{6}_[0-9]+)\.bak$`)
+rather than by underscore position - neither a first- nor a
+last-underscore split works, since the timestamp itself contains two
+underscores. The greedy `.*` leaves the full prefix as the safe path,
+so both the URL-decode branch (new format) and the legacy `_` for `/`
+fallback decode correctly again. Names that match no known format are
+skipped with an explicit warning instead of restoring to a guessed
+path.
+
+Testing the fix surfaced a second, older bug in the same recipe: the
+`"$BACKUP_DIR"/*.bak` globs skipped dot-prefixed filenames entirely
+(bash globs exclude dotfiles by default), so backups of `.just/*`
+files - the primary thing this repo backs up - never appeared in the
+rollback listing at all. `shopt -s dotglob` before the globbing fixes
+that; the loop's `[[ -f "$backup" ]]` guard already keeps directories
+out of the dotglob-expanded results.
+
+One inherent ambiguity remains and is unchanged: a legacy backup of a
+top-level file whose *own name* contained an underscore (e.g.
+`my_file.md` -> `my_file_20260128_161000_12345.bak`) decodes to
+`my/file.md`, because the legacy scheme simply cannot encode that
+distinction. That limitation is baked into the old format and would
+need sidecar metadata to fix; it predates this change.
+
 ### v8.8 - guard `set -e` bare commands and jq-derived integer comparisons (2026-09-05)
 
 - Fixes issue [#326](https://github.com/fini-net/template-repo/issues/326)
