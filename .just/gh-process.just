@@ -22,9 +22,69 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v8.9
+# PR create v9.0
 [group('Process')]
-pr: _has_commits && pr_checks
+pr: _has_commits
+    #!/usr/bin/env bash
+    set -euo pipefail # strict mode
+
+    # Feature flag: record the whole pr flow (inner recipe + pr_checks)
+    # with asciinema into .cache/ - see .repo.toml flags.asciinema-record
+    if [[ -e ".just/repo-toml.sh" ]]; then
+        source .just/repo-toml.sh
+    else
+        FLAG_ASCIINEMA_RECORD="false"
+    fi
+
+    if [[ "${FLAG_ASCIINEMA_RECORD:-false}" != "true" ]]; then
+        just _pr_inner
+        just pr_checks
+        exit 0
+    fi
+
+    # Flag is on: record if the binary exists, else warn and run unrecorded
+    if ! command -v asciinema >/dev/null 2>&1; then
+        echo "{{YELLOW}}Warning: flags.asciinema-record is true but asciinema is not on PATH - running unrecorded{{NORMAL}}"
+        just _pr_inner
+        just pr_checks
+        exit 0
+    fi
+
+    mkdir -p .cache
+    TMP_CAST=".cache/pr-$$.cast.tmp"
+    echo "{{BLUE}}Recording pr flow to $TMP_CAST (asciinema)...{{NORMAL}}"
+    # asciinema 3.x exits 0 regardless of the recorded command's status
+    # unless --return is passed; 2.x propagates by default and has no
+    # --return flag, so detect support rather than hardcode either way
+    if asciinema rec --help 2>/dev/null | grep -q -- '--return'; then
+        RC=0
+        asciinema rec --return "$TMP_CAST" -c "just _pr_inner && just pr_checks" || RC=$?
+    else
+        RC=0
+        asciinema rec "$TMP_CAST" -c "just _pr_inner && just pr_checks" || RC=$?
+    fi
+
+    # rename to include the PR number once known; fall back to pid-only
+    # if pr create failed or was interrupted, so we still keep the cast
+    if [[ ! -f "$TMP_CAST" ]]; then
+        echo "{{YELLOW}}asciinema did not produce a recording (rec requires a TTY) - no cast saved{{NORMAL}}"
+        exit "$RC"
+    fi
+    PRNUM=$(gh pr view --json number -q .number 2>/dev/null || echo "0")
+    [[ "$PRNUM" =~ ^[0-9]+$ ]] || PRNUM=0
+    if [[ "$PRNUM" -gt 0 ]]; then
+        mv "$TMP_CAST" ".cache/pr-${PRNUM}-$$.cast"
+        echo "{{BLUE}}Recording saved: .cache/pr-${PRNUM}-$$.cast{{NORMAL}}"
+    else
+        mv "$TMP_CAST" ".cache/pr-$$.cast"
+        echo "{{YELLOW}}No PR number found - recording saved: .cache/pr-$$.cast{{NORMAL}}"
+    fi
+    exit "$RC"
+
+# inner body of pr - the pre-recording recipe body, now callable by
+# the pr wrapper above; pr_checks runs separately (chained by pr)
+[group('Process')]
+_pr_inner: _has_commits
     #!/usr/bin/env bash
     set -euo pipefail # strict mode
 
@@ -683,6 +743,67 @@ release_age:
 # push changes, update PR description, and watch GHAs
 [group('Process')]
 again:
+    #!/usr/bin/env bash
+    set -euo pipefail # strict mode
+
+    # Feature flag: record the whole again flow with asciinema into
+    # .cache/ - see .repo.toml flags.asciinema-record
+    if [[ -e ".just/repo-toml.sh" ]]; then
+        source .just/repo-toml.sh
+    else
+        FLAG_ASCIINEMA_RECORD="false"
+    fi
+
+    if [[ "${FLAG_ASCIINEMA_RECORD:-false}" != "true" ]]; then
+        just _again_inner
+        exit 0
+    fi
+
+    # Flag is on: record if the binary exists, else warn and run unrecorded
+    if ! command -v asciinema >/dev/null 2>&1; then
+        echo "{{YELLOW}}Warning: flags.asciinema-record is true but asciinema is not on PATH - running unrecorded{{NORMAL}}"
+        just _again_inner
+        exit 0
+    fi
+
+    # the PR number is already known here (unlike pr, where create may
+    # fail), so name the cast up front
+    PRNUM=$(gh pr view --json number -q .number 2>/dev/null || echo "0")
+    [[ "$PRNUM" =~ ^[0-9]+$ ]] || PRNUM=0
+    if [[ "$PRNUM" -eq 0 ]]; then
+        echo "{{YELLOW}}Warning: could not determine PR number - recording as .cache/again-$$.cast{{NORMAL}}"
+        CAST=".cache/again-$$.cast"
+    else
+        CAST=".cache/again-${PRNUM}-$$.cast"
+    fi
+
+    mkdir -p .cache
+    echo "{{BLUE}}Recording again flow to $CAST (asciinema)...{{NORMAL}}"
+    # asciinema 3.x exits 0 regardless of the recorded command's status
+    # unless --return is passed; 2.x propagates by default and has no
+    # --return flag, so detect support rather than hardcode either way
+    if asciinema rec --help 2>/dev/null | grep -q -- '--return'; then
+        RC=0
+        asciinema rec --return "$CAST" -c "just _again_inner" || RC=$?
+    else
+        RC=0
+        asciinema rec "$CAST" -c "just _again_inner" || RC=$?
+    fi
+    if [[ ! -f "$CAST" ]]; then
+        echo "{{YELLOW}}asciinema did not produce a recording (rec requires a TTY) - no cast saved{{NORMAL}}"
+        exit "$RC"
+    fi
+    if [[ "$RC" -eq 0 ]]; then
+        echo "{{BLUE}}Recording saved: $CAST{{NORMAL}}"
+    else
+        echo "{{YELLOW}}Recording finished with exit code $RC - saved: $CAST{{NORMAL}}"
+    fi
+    exit "$RC"
+
+# inner body of again - the pre-recording recipe body, callable by
+# the again wrapper above
+[group('Process')]
+_again_inner:
     git push
     just pr_update
     just pr_checks

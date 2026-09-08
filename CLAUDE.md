@@ -116,7 +116,7 @@ The `.repo.toml` file contains structured metadata:
 
 - **about section** - Description, topics, and license
 - **urls section** - Git SSH and web URLs
-- **flags section** - Boolean feature flags (claude, claude-review, copilot-review, standard-release)
+- **flags section** - Boolean feature flags (claude, claude-review, copilot-review, standard-release, asciinema-record)
 
 The `cue-verify` recipe validates `.repo.toml` in three stages:
 
@@ -258,3 +258,6 @@ These three actions always go together and apply equally to every CHECKSUMS-trac
 - **gum** - Interactive selection tool for `copilot_pick` recipe
   - Install: `brew install gum` (macOS) or see <https://github.com/charmbracelet/gum>
   - Usage: `just copilot_pick` (must be run from a branch with an open PR)
+- **asciinema** - Terminal recorder for `pr`/`again` recipes (only when `asciinema-record = true` in `.repo.toml`)
+  - Install: `brew install asciinema` (macOS) or see <https://asciinema.org>
+  - Usage: set `asciinema-record = true`, then `just pr` / `just again` record into `.cache/<recipe>-<PR#>-<pid>.cast`
