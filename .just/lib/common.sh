@@ -9,8 +9,10 @@ validate_filepath() {
 
 	# The sync system is chartered to manage only the .just/ tree
 	[[ "$filepath" == .just/* ]] || return 1
-	# Reject backslashes and embedded quotes (also break jq interpolation)
-	[[ ! "$filepath" =~ [\\\"] ]] || return 1
+	# Reject backslashes, embedded quotes, and control characters
+	# (control chars in a manifest key could spoof extra output lines;
+	# quotes and backslash also break jq interpolation)
+	[[ ! "$filepath" =~ [\\\"[:cntrl:]] ]] || return 1
 	# Reject any .. path segment (whole segments only; a filename
 	# like "..." is odd but legal, not a traversal)
 	local -a segments=()

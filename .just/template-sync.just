@@ -146,10 +146,21 @@ checksums_diff filepath:
     TEMPLATE_URL="https://raw.githubusercontent.com/fini-net/template-repo/main"
     temp_file=$(mktemp)
 
+    # shellcheck source=.just/lib/common.sh
+    source .just/lib/common.sh
+
     cleanup() {
         rm -f "$temp_file"
     }
     trap cleanup EXIT
+
+    # The sync system only manages the .just/ tree; keep user-supplied
+    # paths consistent with the manifest-path gate (#347)
+    if ! validate_filepath "{{filepath}}"; then
+        echo "{{RED}}Error: Invalid filepath: {{filepath}}{{NORMAL}}"
+        echo "Path must be inside .just/ with no traversal or odd characters"
+        exit 1
+    fi
 
     if [[ ! -f "{{filepath}}" ]]; then
         echo "{{RED}}Error: Local file not found: {{filepath}}{{NORMAL}}"

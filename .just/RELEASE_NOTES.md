@@ -87,7 +87,14 @@ updates normally. Wiring it up surfaced two dormant harness bugs in
   dropped.
 - The `04_path_traversal` fixture asserts an explicit skip line for
   each of the three guard rejections (traversal, embedded quote,
-  non-`.just/` prefix).
+  non-`.just/` prefix), plus a control-character key whose line-split
+  halves each get independently gated.
+- `validate_filepath()` also rejects control characters in keys —
+  an adversarial manifest can't spoof extra output lines with an
+  embedded newline or other cntrl byte — and `checksums_diff`
+  routes its user-supplied filepath through the same gate, so the
+  "sync system only manages `.just/`" rule holds on every entry
+  point.
 
 ### v9.0 - asciinema recording of pr/again behind asciinema-record flag (2026-09-05)
 
