@@ -103,9 +103,11 @@ download_file() {
 			if [[ -n "$expected_checksum" ]]; then
 				local downloaded_checksum
 				downloaded_checksum=$(compute_checksum "$temp_file")
-				if [[ "$downloaded_checksum" != "$expected_checksum" ]]; then
-					echo -e "      ${RED}Checksum mismatch${NORMAL}"
-					rm -f "$temp_file" "$err_file"
+			if [[ "$downloaded_checksum" != "$expected_checksum" ]]; then
+				echo -e "      ${RED}Checksum mismatch${NORMAL}"
+				echo -e "      expected: $expected_checksum"
+				echo -e "      actual:   $downloaded_checksum"
+				rm -f "$temp_file" "$err_file"
 					[[ -f "$backup_file" ]] && mv "$backup_file" "$filepath"
 					return 1
 				fi
@@ -142,15 +144,22 @@ download_file() {
 process_file() {
 	local filepath="$1"
 
+	# Reject unsafe manifest paths before any filesystem use (#347)
+	if ! validate_filepath "$filepath"; then
+		echo -e "  ${RED}✗${NORMAL} $filepath - invalid path in manifest, skipping"
+		((failed_count++)) || true
+		return
+	fi
+
 	# Check if this is a cleaned file (or under a cleaned directory)
 	local is_cleaned=false
-	if jq -e --arg fp "$filepath" '.cleaned_files // [] | any(. as $p | $fp | startswith($p + "/") or $fp == $p)' "$MANIFEST_FILE" >/dev/null 2>&1; then
+	if jq -e --arg fp "$filepath" '.cleaned_files // [] | any(. as $p | ($fp | startswith($p + "/")) or ($fp == $p))' "$MANIFEST_FILE" >/dev/null 2>&1; then
 		is_cleaned=true
 	fi
 
 	# Get versions array from manifest
 	local versions_json
-	versions_json=$(jq -r ".files[\"$filepath\"].versions // []" "$MANIFEST_FILE")
+	versions_json=$(jq -r --arg fp "$filepath" '.files[$fp].versions // []' "$MANIFEST_FILE")
 
 	if [[ "$versions_json" == "[]" ]]; then
 		echo -e "  ${YELLOW}⚠${NORMAL} $filepath - not in manifest, skipping"
@@ -242,7 +251,7 @@ main() {
 	fetch_manifest
 
 	echo
-	echo "Processing .just/*.just and .just/lib/*.sh files:"
+	echo "Processing .just/*.just and .just/lib/*.sh, .just/lib/*.awk files:"
 
 	# Get list of files from manifest
 	while IFS= read -r filepath; do

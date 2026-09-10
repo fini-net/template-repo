@@ -4,6 +4,70 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## September 2026
 
+### v9.1 - template-sync security and correctness (2026-09-10)
+
+- Fixes issues [#347](https://github.com/fini-net/template-repo/issues/347),
+  [#348](https://github.com/fini-net/template-repo/issues/348),
+  [#346](https://github.com/fini-net/template-repo/issues/346),
+  [#336](https://github.com/fini-net/template-repo/issues/336), and
+  [#338](https://github.com/fini-net/template-repo/issues/338)
+
+**Security.** Two defenses land in the template sync system:
+
+- `checksums_verify` and `checksums_diff` no longer build predictable
+  `/tmp/<name>-$$.<ext>` paths; both use `mktemp` like their sibling
+  `template_update.sh` always has. This closes the classic symlink
+  race on multi-user hosts where an attacker pre-creates the
+  enumerable PID-based filename. Existing `trap cleanup EXIT`
+  handlers are unchanged (#348).
+- `update_from_template` now validates every `filepath` key from the
+  remote manifest before any filesystem operation. A new
+  `validate_filepath()` in `.just/lib/common.sh` requires paths to
+  start with `.just/` and rejects `..` segments, backslashes, and
+  embedded quotes. A manifest entry like `../../../.bashrc` is
+  skipped with a red warning and counted under `Failed`, so the sync
+  exits 1 — defense in depth against a compromised or misconfigured
+  template repo, since manifest checksums come from the same remote
+  as the paths they verify. Filepath keys are also passed to jq via
+  `--arg` instead of string interpolation, which closes a jq
+  expression breakout for keys containing `"` (#347).
+
+**Correctness.**
+
+- `template_sync_test` no longer hard-fails in derived repos: its
+  harness (`.just/lib/template_sync_test.sh`, `.just/testing.just`,
+  fixtures) is stripped by `clean_template`, so the recipe previously
+  died with "No such file or directory" everywhere except
+  template-repo. It now exits early with a friendly yellow message
+  unless `.repo.toml` points at `fini-net/template-repo`, mirroring
+  the `checksums_generate` guard (#346).
+- The cleaned-file jq predicate in both `checksums_verify` and
+  `process_file()` carries explicit parentheses so the `|`/`or`
+  precedence doesn't have to be re-derived by every reviewer, and the
+  status messages now mention the tracked `.just/lib/*.awk` files
+  that `generate_checksums.sh` includes (#336).
+- Checksum mismatch errors from `download_file()` print expected vs
+  actual values, making CI failures actionable without manual
+  re-runs. Rollback (backup restore) behavior is unchanged (#338).
+
+**Testing.** A new `04_path_traversal` fixture feeds a manifest with
+one safe entry and one `../evil.txt` traversal entry and asserts the
+evil path is skipped while the safe file updates normally. Wiring it
+up surfaced two dormant harness bugs in
+`.just/lib/template_sync_test.sh`, now fixed:
+
+- `run_test` resolved fixture paths relative to the repo root, but
+  `cd`'d into a temp workspace before checking
+  `expected_output.txt` / `expected_state`, so neither check ever
+  ran — every fixture "passed" as long as the update script didn't
+  crash. Fixture paths are now absolutized up front, so the checks
+  execute.
+- The multi-line `grep -qF "$expected"` comparison OR-splits lines,
+  letting any single matching line pass the whole block; it now
+  requires every expected line to appear in order. Color-code
+  stripping also moved from `sed '\x1b'` (unsupported on BSD/macOS
+  sed) to `awk` so normalized output is actually colorless.
+
 ### v9.0 - asciinema recording of pr/again behind asciinema-record flag (2026-09-05)
 
 - Fixes issue [#324](https://github.com/fini-net/template-repo/issues/324)

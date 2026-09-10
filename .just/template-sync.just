@@ -57,7 +57,7 @@ checksums_verify:
     set -euo pipefail
 
     TEMPLATE_URL="https://raw.githubusercontent.com/fini-net/template-repo/main"
-    MANIFEST_FILE="/tmp/checksums-verify-$$.json"
+    MANIFEST_FILE=$(mktemp)
 
     # Platform-compatible checksum
     compute_checksum() {
@@ -85,14 +85,14 @@ checksums_verify:
     fi
 
     echo
-    echo "Checking local files (.just/*.just and .just/lib/*.sh):"
+    echo "Checking local files (.just/*.just and .just/lib/*.sh, .just/lib/*.awk):"
 
     all_match=true
 
     while IFS= read -r filepath; do
         if [[ ! -f "$filepath" ]]; then
             # Check if this is a cleaned file (or under a cleaned directory)
-            if jq -e --arg fp "$filepath" '.cleaned_files // [] | any(. as $p | $fp | startswith($p + "/") or $fp == $p)' "$MANIFEST_FILE" >/dev/null 2>&1; then
+            if jq -e --arg fp "$filepath" '.cleaned_files // [] | any(. as $p | ($fp | startswith($p + "/")) or ($fp == $p))' "$MANIFEST_FILE" >/dev/null 2>&1; then
                 echo "  {{BLUE}}⊘{{NORMAL}} $filepath - removed by clean_template"
             else
                 echo "  {{YELLOW}}⊘{{NORMAL}} $filepath - not present locally"
@@ -102,7 +102,7 @@ checksums_verify:
         fi
 
         local_sum=$(compute_checksum "$filepath")
-        versions_json=$(jq -r ".files[\"$filepath\"].versions // []" "$MANIFEST_FILE")
+        versions_json=$(jq -r --arg fp "$filepath" '.files[$fp].versions // []' "$MANIFEST_FILE")
 
         # Check if matches any known version
         match_found=false
@@ -147,7 +147,7 @@ checksums_diff filepath:
     set -euo pipefail
 
     TEMPLATE_URL="https://raw.githubusercontent.com/fini-net/template-repo/main"
-    temp_file="/tmp/template-version-$$"
+    temp_file=$(mktemp)
 
     cleanup() {
         rm -f "$temp_file"
@@ -173,6 +173,15 @@ checksums_diff filepath:
 template_sync_test:
     #!/usr/bin/env bash
     set -euo pipefail
+
+    # Test harness and fixtures are removed by clean_template from derived
+    # repos, so this recipe only works in template-repo itself (#346)
+    if ! grep -q "fini-net/template-repo" .repo.toml 2>/dev/null; then
+        echo "{{YELLOW}}template_sync_test is only available in template-repo{{NORMAL}}"
+        echo "The test harness (.just/lib/template_sync_test.sh and fixtures) is"
+        echo "removed by clean_template in derived repos."
+        exit 0
+    fi
 
     echo "{{BLUE}}Testing template sync logic...{{NORMAL}}"
 
