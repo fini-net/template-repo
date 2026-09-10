@@ -146,7 +146,9 @@ process_file() {
 
 	# Reject unsafe manifest paths before any filesystem use (#347)
 	if ! validate_filepath "$filepath"; then
-		echo -e "  ${RED}✗${NORMAL} $filepath - invalid path in manifest, skipping"
+		local safe_filepath
+		safe_filepath=$(sanitize_for_display "$filepath")
+		echo -e "  ${RED}✗${NORMAL} $safe_filepath - invalid path in manifest, skipping"
 		((failed_count++)) || true
 		return
 	fi

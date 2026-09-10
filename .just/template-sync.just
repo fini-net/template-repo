@@ -84,7 +84,8 @@ checksums_verify:
     while IFS= read -r -d '' filepath; do
         # Skip unsafe manifest paths before any filesystem use (#347)
         if ! validate_filepath "$filepath"; then
-            echo "  {{RED}}✗{{NORMAL}} $filepath - invalid path in manifest, skipping"
+            safe_filepath=$(sanitize_for_display "$filepath")
+            echo "  {{RED}}✗{{NORMAL}} $safe_filepath - invalid path in manifest, skipping"
             all_match=false
             continue
         fi
@@ -160,7 +161,8 @@ checksums_diff filepath:
     # The sync system only manages the .just/ tree; keep user-supplied
     # paths consistent with the manifest-path gate (#347)
     if ! validate_filepath "$filepath"; then
-        echo "{{RED}}Error: Invalid filepath: $filepath{{NORMAL}}"
+        safe_filepath=$(sanitize_for_display "$filepath")
+        echo "{{RED}}Error: Invalid filepath: $safe_filepath{{NORMAL}}"
         echo "Path must be inside .just/ with no traversal or odd characters"
         exit 1
     fi

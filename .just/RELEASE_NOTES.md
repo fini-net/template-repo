@@ -85,9 +85,13 @@ updates normally. Wiring it up surfaced two dormant harness bugs in
   `read -r ... || [[ -n "$line" ]]`, so a final line without a
   trailing newline is still validated instead of being silently
   dropped.
-- The `04_path_traversal` fixture asserts an explicit skip line for
-  each guard rejection (traversal, embedded newline, embedded quote,
-  backslash, non-`.just/` prefix).
+- Rejection diagnostics no longer trust the rejected input: manifest
+  paths and `checksums_diff` arguments print through a
+  `sanitize_for_display` helper that strips raw control bytes, so a
+  key carrying ESC/OSC sequences (decoded from unicode escapes by
+  jq, or re-interpreted by `echo -e`) can't spoof output lines or
+  inject terminal escape sequences into the very message reporting
+  its rejection.
 - `validate_filepath()` also rejects control characters in keys, and
   manifest-key iteration is NUL-delimited (`jq -j` + `read -d ''`)
   so a key containing an embedded newline stays intact for the
@@ -98,6 +102,10 @@ updates normally. Wiring it up surfaced two dormant harness bugs in
   (`set positional-arguments := true` in the root justfile) instead
   of `{{...}}` text templating, so bash quoting — not the templater —
   owns argument handling on that entry point.
+- The `04_path_traversal` fixture asserts an explicit skip line for
+  each guard rejection (traversal, embedded newline, embedded quote,
+  backslash, non-`.just/` prefix), with the control-byte keys
+  asserting their sanitized single-line rejection output.
 
 ### v9.0 - asciinema recording of pr/again behind asciinema-record flag (2026-09-05)
 

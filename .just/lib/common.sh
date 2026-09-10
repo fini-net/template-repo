@@ -25,6 +25,15 @@ validate_filepath() {
 	return 0
 }
 
+# Make an untrusted string safe to print to a terminal: strips raw
+# control bytes (ESC, newline, etc.) so a rejected manifest key can't
+# spoof output lines or inject terminal escape sequences. Call sites
+# must print the result with printf '%s' (not echo -e) so remaining
+# literal backslash text can't be re-interpreted into escapes.
+sanitize_for_display() {
+	printf '%s' "$1" | tr -d '[:cntrl:]'
+}
+
 # Platform-compatible checksum computation
 compute_checksum() {
 	local file="$1"
