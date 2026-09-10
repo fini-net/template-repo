@@ -4,6 +4,53 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## September 2026
 
+### v9.2 - check recipes fail gracefully and report accurately (2026-09-10)
+
+- Fixes issues [#340](https://github.com/fini-net/template-repo/issues/340),
+  [#328](https://github.com/fini-net/template-repo/issues/328), and
+  [#334](https://github.com/fini-net/template-repo/issues/334)
+
+**Graceful failure.** The lint/compliance recipes no longer die or lie
+when optional tooling misbehaves:
+
+- The repo description check in `compliance_check` no longer runs
+  `$(gh repo view ...)` inside `[[ ... ]]`. A failed `gh repo view`
+  (missing gh, expired auth, API error) could either abort the whole
+  recipe under `set -euo pipefail` or yield an empty substitution
+  that inverted the length test, reporting a healthy description as a
+  compliance problem. The substitution now sits in an `if` assignment
+  (matching the existing `REPO_META` pattern in the same file); on
+  failure the check prints a yellow "skipped" note — no false verdict
+  — and the recipe continues (#340).
+- `just shellcheck` no longer hard-fails when
+  `.just/repo-toml.sh` generation fails (no `cue`, no `jq`, API
+  hiccup). Since shellcheck itself could still run, a linting command
+  shouldn't be a dependency on optional tools. On failure it now
+  writes a stub with the expected variable declarations and continues
+  with a warning. The declarations matter: an empty stub silences
+  SC1091 for shellcheck but would leave `FLAG_*`/`REPO_*` unset and
+  crash recipes that source the file under `set -u`. Verified the
+  stub silences SC1091 for all 35 extracted scripts without needing
+  `--source-path`, since shellcheck resolves the repo-relative
+  `source .just/repo-toml.sh` from the repo root the recipe runs in
+  (#334).
+
+**Accurate reporting.** The OpenSSF Token-Permissions heuristic no
+longer reports a vacuous GREEN:
+
+- `compliance_check` grepped workflows for
+  `'^[[:space:]]*permissions:'`, which also matches job-level
+  indented `permissions:` blocks — a workflow with no top-level
+  block at all was silently reported as least-privilege compliant.
+  The pattern is now anchored to `'^permissions:'`, and the CI-Tests
+  heuristic gets a `\b` before its `just [a-z0-9_-]*test`
+  alternative so prose like "adjust testing" can't match mid-word.
+  The remaining word-boundary items from the original audit
+  (`\bsecrets\.` for Dangerous-Workflow, `\b(tox|jest|rspec|vitest)\b`
+  for CI-Tests, `-w sudo`) had already landed in v8.5/v8.8 rounds
+  (#328). A fixture-driven regression test for these checks is
+  planned with the #330 test-infrastructure work.
+
 ### v9.1 - template-sync security and correctness (2026-09-10)
 
 - Fixes issues [#347](https://github.com/fini-net/template-repo/issues/347),
