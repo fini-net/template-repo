@@ -4,6 +4,27 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## September 2026
 
+### v9.3 - install-prerequisites.sh cleanup (2026-09-10)
+
+- Fixes issues [#335](https://github.com/fini-net/template-repo/issues/335)
+  and [#333](https://github.com/fini-net/template-repo/issues/333)
+
+**npm fallback for markdownlint-cli2 on macOS.** The macOS branch
+already exits early when Homebrew is missing, which made the nested
+`command -v brew` guard inside the `markdownlint-cli2` case dead code
+— and when `brew install markdownlint-cli2` failed, the script gave
+up with no fallback even when npm was available. The unreachable arm
+is gone; a failed brew install now falls back to
+`npm install -g markdownlint-cli2` so the tool still gets installed
+(#335).
+
+**Cross-platform unsupported-OS hint.** The "Unsupported OS" fallback
+— reached precisely when the OS is neither macOS nor Linux — told
+users to `brew install markdownlint-cli2`, a macOS-first path that
+sends other platforms down a dead end. The hint now lists the
+cross-platform npm install first, with brew as a macOS/Linux
+alternative, matching the Linux branch's existing npm guidance (#333).
+
 ### v9.2 - check recipes fail gracefully and report accurately (2026-09-10)
 
 - Fixes issues [#340](https://github.com/fini-net/template-repo/issues/340),
