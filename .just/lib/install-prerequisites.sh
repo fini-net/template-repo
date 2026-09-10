@@ -144,18 +144,18 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 				echo -e "${RED}Failed to install shellcheck${NC}"
 			fi
 			;;
-	markdownlint-cli2)
-		echo -e "${CYAN}Installing markdownlint-cli2...${NC}"
-		if brew install markdownlint-cli2; then
-			INSTALL_SUCCESS+=("markdownlint-cli2")
-		elif command -v npm &>/dev/null && npm install -g markdownlint-cli2; then
-			INSTALL_SUCCESS+=("markdownlint-cli2")
-			echo -e "${YELLOW}Installed markdownlint-cli2 via npm (brew install failed)${NC}"
-		else
-			INSTALL_FAILED+=("markdownlint-cli2")
-			echo -e "${RED}Failed to install markdownlint-cli2 (tried brew, then npm)${NC}"
-		fi
-		;;
+		markdownlint-cli2)
+			echo -e "${CYAN}Installing markdownlint-cli2...${NC}"
+			if brew install markdownlint-cli2; then
+				INSTALL_SUCCESS+=("markdownlint-cli2")
+			elif command -v npm &>/dev/null && npm install -g markdownlint-cli2; then
+				INSTALL_SUCCESS+=("markdownlint-cli2")
+				echo -e "${YELLOW}Installed markdownlint-cli2 via npm (brew install failed)${NC}"
+			else
+				INSTALL_FAILED+=("markdownlint-cli2")
+				echo -e "${RED}Failed to install markdownlint-cli2 (tried brew, then npm)${NC}"
+			fi
+			;;
 		jq)
 			echo -e "${CYAN}Installing jq...${NC}"
 			if brew install jq; then
