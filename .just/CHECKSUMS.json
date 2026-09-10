@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-09-10T22:32:14Z",
+  "generated_at": "2026-09-10T22:39:38Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -1180,11 +1180,19 @@
 ]},
     ".just/lib/install-prerequisites.sh": {"versions": [
         {
+          "checksum": "59bf64698e7756b8e61fa76077b6a09dc768eaafcf38b10a7486cbfad35248c6",
+          "commit": "0d4180b689b551e7397aad4c9d46873041219877",
+          "date": "2026-09-10T15:39:37-07:00",
+          "version": "",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "5a6a9d3455eb19944b13250a18c58534f43407a4ddaed1c31a58d227bb3ce3ee",
           "commit": "b8a20676d45830a5d620030aa1e92553cb5fc9d6",
           "date": "2026-09-10T15:32:12-07:00",
           "version": "v9.3",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
