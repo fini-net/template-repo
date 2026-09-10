@@ -253,10 +253,11 @@ main() {
 	echo
 	echo "Processing .just/*.just and .just/lib/*.sh, .just/lib/*.awk files:"
 
-	# Get list of files from manifest
-	while IFS= read -r filepath; do
+	# Get list of files from manifest (NUL-delimited so keys with
+	# embedded newlines stay intact for validate_filepath to reject)
+	while IFS= read -r -d '' filepath; do
 		process_file "$filepath"
-	done < <(jq -r '.files | keys[]' "$MANIFEST_FILE")
+	done < <(jq -j '.files | keys[] | . + "\u0000"' "$MANIFEST_FILE")
 
 	# Print summary
 	echo

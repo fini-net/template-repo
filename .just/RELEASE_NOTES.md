@@ -86,15 +86,18 @@ updates normally. Wiring it up surfaced two dormant harness bugs in
   trailing newline is still validated instead of being silently
   dropped.
 - The `04_path_traversal` fixture asserts an explicit skip line for
-  each of the three guard rejections (traversal, embedded quote,
-  non-`.just/` prefix), plus a control-character key whose line-split
-  halves each get independently gated.
-- `validate_filepath()` also rejects control characters in keys —
-  an adversarial manifest can't spoof extra output lines with an
-  embedded newline or other cntrl byte — and `checksums_diff`
-  routes its user-supplied filepath through the same gate, so the
-  "sync system only manages `.just/`" rule holds on every entry
-  point.
+  each guard rejection (traversal, embedded newline, embedded quote,
+  backslash, non-`.just/` prefix).
+- `validate_filepath()` also rejects control characters in keys, and
+  manifest-key iteration is NUL-delimited (`jq -j` + `read -d ''`)
+  so a key containing an embedded newline stays intact for the
+  control-character guard to reject — an adversarial manifest can't
+  spoof extra output lines. `checksums_diff` routes its
+  user-supplied filepath through the same gate, and recipe
+  arguments now arrive as positional shell parameters
+  (`set positional-arguments := true` in the root justfile) instead
+  of `{{...}}` text templating, so bash quoting — not the templater —
+  owns argument handling on that entry point.
 
 ### v9.0 - asciinema recording of pr/again behind asciinema-record flag (2026-09-05)
 

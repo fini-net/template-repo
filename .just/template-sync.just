@@ -79,7 +79,9 @@ checksums_verify:
 
     all_match=true
 
-    while IFS= read -r filepath; do
+    # NUL-delimited so keys with embedded newlines stay intact for
+    # validate_filepath to reject
+    while IFS= read -r -d '' filepath; do
         # Skip unsafe manifest paths before any filesystem use (#347)
         if ! validate_filepath "$filepath"; then
             echo "  {{RED}}✗{{NORMAL}} $filepath - invalid path in manifest, skipping"
@@ -125,7 +127,7 @@ checksums_verify:
             echo "  {{BLUE}}⬆{{NORMAL}} $filepath - update available${matched_version:+ (current: $matched_version)}"
             all_match=false
         fi
-    done < <(jq -r '.files | keys[]' "$MANIFEST_FILE")
+    done < <(jq -j '.files | keys[] | . + "\u0000"' "$MANIFEST_FILE")
 
     echo
     if [[ "$all_match" == true ]]; then
@@ -145,6 +147,7 @@ checksums_diff filepath:
 
     TEMPLATE_URL="https://raw.githubusercontent.com/fini-net/template-repo/main"
     temp_file=$(mktemp)
+    filepath="$1"
 
     # shellcheck source=.just/lib/common.sh
     source .just/lib/common.sh
@@ -156,25 +159,25 @@ checksums_diff filepath:
 
     # The sync system only manages the .just/ tree; keep user-supplied
     # paths consistent with the manifest-path gate (#347)
-    if ! validate_filepath "{{filepath}}"; then
-        echo "{{RED}}Error: Invalid filepath: {{filepath}}{{NORMAL}}"
+    if ! validate_filepath "$filepath"; then
+        echo "{{RED}}Error: Invalid filepath: $filepath{{NORMAL}}"
         echo "Path must be inside .just/ with no traversal or odd characters"
         exit 1
     fi
 
-    if [[ ! -f "{{filepath}}" ]]; then
-        echo "{{RED}}Error: Local file not found: {{filepath}}{{NORMAL}}"
+    if [[ ! -f "$filepath" ]]; then
+        echo "{{RED}}Error: Local file not found: $filepath{{NORMAL}}"
         exit 1
     fi
 
     echo "{{BLUE}}Fetching latest template version...{{NORMAL}}"
-    if ! curl -sSL -f "$TEMPLATE_URL/{{filepath}}" -o "$temp_file" 2>/dev/null; then
+    if ! curl -sSL -f "$TEMPLATE_URL/$filepath" -o "$temp_file" 2>/dev/null; then
         echo "{{RED}}Error: Failed to fetch template version{{NORMAL}}"
         exit 1
     fi
 
     echo
-    diff -u "{{filepath}}" "$temp_file" || true
+    diff -u "$filepath" "$temp_file" || true
 
 # test template sync logic
 [group('Testing/Automation')]
