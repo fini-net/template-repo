@@ -48,10 +48,19 @@ compliance_check:
         echo "{{RED}}[gh] You do NOT have Issue Templates.  I must take issue with that.{{NORMAL}}"
     fi
 
-    if [[ $(gh repo view --json description | jq -r '.description' | wc -c) -gt 16 ]]; then
-        echo "{{GREEN}}[gh] You have a repo description, more evidence that you are undescribable.{{NORMAL}}"
+    # Assignment in an `if` so a gh failure (missing gh, expired auth, API
+    # error) skips just this check instead of aborting the recipe under
+    # `set -euo pipefail` or reporting a false verdict off an empty
+    # substitution (matches the REPO_META pattern below).
+    if desc_json=$(gh repo view --json description 2>/dev/null); then
+        desc_len=$(echo "$desc_json" | jq -r '.description' | wc -c)
+        if [[ "$desc_len" -gt 16 ]]; then
+            echo "{{GREEN}}[gh] You have a repo description, more evidence that you are undescribable.{{NORMAL}}"
+        else
+            echo "{{RED}}[gh] You do NOT have a repo description, can you write a word or two please?{{NORMAL}}"
+        fi
     else
-        echo "{{RED}}[gh] You do NOT have a repo description, can you write a word or two please?{{NORMAL}}"
+        echo "{{YELLOW}}[gh] Repo description check skipped: gh repo view failed (auth/network?){{NORMAL}}"
     fi
 
     # Social preview image (Settings > General > Social preview).
@@ -140,8 +149,9 @@ compliance_check:
     fi
 
     # CI-Tests: workflows that actually run tests
-    # bare-word tokens get \b boundaries so 'jest' can't match 'majestic' etc.
-    test_cmds='npm test|npm run test|pytest|go test|cargo test|make test|bazel test|mvn test|gradle test|deno test|\b(tox|jest|rspec|vitest)\b|just [a-z0-9_-]*test'
+    # bare-word tokens get \b boundaries so 'jest' can't match 'majestic' etc.;
+    # also \b before 'just' so 'adjust testing' can't match mid-word
+    test_cmds='npm test|npm run test|pytest|go test|cargo test|make test|bazel test|mvn test|gradle test|deno test|\b(tox|jest|rspec|vitest)\b|\bjust [a-z0-9_-]*test'
     if [[ -d .github/workflows ]] && grep -lrE "$test_cmds" .github/workflows >/dev/null 2>&1; then
         echo "{{GREEN}}[openssf] CI runs tests on every push, machines grinding so humans can look away.{{NORMAL}}"
     else
@@ -243,9 +253,12 @@ compliance_check:
     fi
 
     # Token-Permissions: workflows declaring a top-level permissions block
+    # Anchored to '^permissions:' because '^[[:space:]]*permissions:' also
+    # matched job-level indented blocks, silently reporting GREEN for
+    # workflows with no top-level block at all.
     missing_perms=""
     if [[ -d .github/workflows ]]; then
-        missing_perms=$(grep -rLE '^[[:space:]]*permissions:' .github/workflows 2>/dev/null || true)
+        missing_perms=$(grep -rLE '^permissions:' .github/workflows 2>/dev/null || true)
     fi
     if [[ -z "$missing_perms" ]]; then
         echo "{{GREEN}}[openssf] All workflows declare a top-level permissions block, least privilege is the best privilege.{{NORMAL}}"
