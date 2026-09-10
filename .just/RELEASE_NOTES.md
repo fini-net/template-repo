@@ -91,7 +91,11 @@ updates normally. Wiring it up surfaced two dormant harness bugs in
   key carrying ESC/OSC sequences (decoded from unicode escapes by
   jq, or re-interpreted by `echo -e`) can't spoof output lines or
   inject terminal escape sequences into the very message reporting
-  its rejection.
+  its rejection. The untrusted portion prints via `printf '%s'` —
+  not `echo -e` — so a key failing the `.just/` prefix check (which
+  short-circuits before the backslash rejection) can't smuggle a
+  literal `\n` through the diagnostic either; the fixture's
+  `outside/evil\nline.sh` key pins this case.
 - `validate_filepath()` also rejects control characters in keys, and
   manifest-key iteration is NUL-delimited (`jq -j` + `read -d ''`)
   so a key containing an embedded newline stays intact for the

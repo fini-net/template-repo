@@ -148,7 +148,10 @@ process_file() {
 	if ! validate_filepath "$filepath"; then
 		local safe_filepath
 		safe_filepath=$(sanitize_for_display "$filepath")
-		echo -e "  ${RED}✗${NORMAL} $safe_filepath - invalid path in manifest, skipping"
+		# printf '%s' honors sanitize_for_display's contract: literal
+		# backslash text in the key can't be re-interpreted into escapes
+		printf '  %b' "${RED}✗${NORMAL} "
+		printf '%s\n' "$safe_filepath - invalid path in manifest, skipping"
 		((failed_count++)) || true
 		return
 	fi

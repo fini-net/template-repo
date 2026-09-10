@@ -14,7 +14,29 @@
         }
       ]
     },
+    ".just/bad\nnewline.sh": {
+      "versions": [
+        {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "commit": "badbad",
+          "date": "2026-09-10T00:00:00Z",
+          "version": "v9.9",
+          "is_latest": true
+        }
+      ]
+    },
     ".just/bad\"quote.sh": {
+      "versions": [
+        {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "commit": "badbad",
+          "date": "2026-09-10T00:00:00Z",
+          "version": "v9.9",
+          "is_latest": true
+        }
+      ]
+    },
+    ".just/bad\\slash.sh": {
       "versions": [
         {
           "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
@@ -43,29 +65,18 @@
         }
       ]
     },
+    "outside/evil\\nline.sh": {
+      "versions": [
+        {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "commit": "badbad",
+          "date": "2026-09-10T00:00:00Z",
+          "version": "v9.9",
+          "is_latest": true
+        }
+      ]
+    },
     "outside/no-prefix.sh": {
-      "versions": [
-        {
-          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
-          "commit": "badbad",
-          "date": "2026-09-10T00:00:00Z",
-          "version": "v9.9",
-          "is_latest": true
-        }
-      ]
-    },
-    ".just/bad\nnewline.sh": {
-      "versions": [
-        {
-          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
-          "commit": "badbad",
-          "date": "2026-09-10T00:00:00Z",
-          "version": "v9.9",
-          "is_latest": true
-        }
-      ]
-    },
-    ".just/bad\\\\slash.sh": {
       "versions": [
         {
           "checksum": "0000000000000000000000000000000000000000000000000000000000000000",

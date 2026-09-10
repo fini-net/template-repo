@@ -4,6 +4,7 @@
 ✗ .just/bad\slash.sh - invalid path in manifest, skipping
 ⬆ .just/test.just - updating v1.0 → v2.0
 Updated successfully
+✗ outside/evil\nline.sh - invalid path in manifest, skipping
 ✗ outside/no-prefix.sh - invalid path in manifest, skipping
-Failed: 5 file(s)
+Failed: 6 file(s)
 Template sync completed with errors
