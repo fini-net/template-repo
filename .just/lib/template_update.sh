@@ -103,11 +103,11 @@ download_file() {
 			if [[ -n "$expected_checksum" ]]; then
 				local downloaded_checksum
 				downloaded_checksum=$(compute_checksum "$temp_file")
-			if [[ "$downloaded_checksum" != "$expected_checksum" ]]; then
-				echo -e "      ${RED}Checksum mismatch${NORMAL}"
-				echo -e "      expected: $expected_checksum"
-				echo -e "      actual:   $downloaded_checksum"
-				rm -f "$temp_file" "$err_file"
+				if [[ "$downloaded_checksum" != "$expected_checksum" ]]; then
+					echo -e "      ${RED}Checksum mismatch${NORMAL}"
+					echo -e "      expected: $expected_checksum"
+					echo -e "      actual:   $downloaded_checksum"
+					rm -f "$temp_file" "$err_file"
 					[[ -f "$backup_file" ]] && mv "$backup_file" "$filepath"
 					return 1
 				fi

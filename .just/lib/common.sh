@@ -13,8 +13,10 @@ validate_filepath() {
 	[[ ! "$filepath" =~ [\\\"] ]] || return 1
 	# Reject any .. path segment (whole segments only; a filename
 	# like "..." is odd but legal, not a traversal)
+	local -a segments=()
+	IFS='/' read -ra segments <<< "$filepath"
 	local segment
-	for segment in ${filepath//\// }; do
+	for segment in "${segments[@]}"; do
 		[[ "$segment" == ".." ]] && return 1
 	done
 

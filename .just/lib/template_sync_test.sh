@@ -133,7 +133,7 @@ MOCK_EOF
 		# Every non-empty expected line must appear in order in the output
 		local expected_lines=()
 		local line
-		while IFS= read -r line; do
+		while IFS= read -r line || [[ -n "$line" ]]; do
 			[[ -n "$line" ]] && expected_lines+=("$line")
 		done < "$test_dir/expected_output.txt"
 

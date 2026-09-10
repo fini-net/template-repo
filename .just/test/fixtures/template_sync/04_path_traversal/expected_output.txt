@@ -2,5 +2,6 @@
 ✗ .just/bad"quote.sh - invalid path in manifest, skipping
 ⬆ .just/test.just - updating v1.0 → v2.0
 Updated successfully
+✗ outside/no-prefix.sh - invalid path in manifest, skipping
 Failed: 3 file(s)
 Template sync completed with errors

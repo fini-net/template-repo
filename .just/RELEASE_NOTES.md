@@ -69,15 +69,25 @@ updates normally. Wiring it up surfaced two dormant harness bugs in
   stripping also moved from `sed '\x1b'` (unsupported on BSD/macOS
   sed) to `awk` so normalized output is actually colorless.
 
-**Review follow-ups** (from the Claude review of this PR):
+**Review follow-ups** (from the Claude reviews of this PR):
 
-- `validate_filepath()` splits paths with `read -ra` instead of an
-  unquoted substitution, so glob metacharacters in a manifest key
-  can't expand against the working directory.
+- `validate_filepath()` splits paths with `IFS='/' read -ra` instead
+  of an unquoted substitution, so glob metacharacters in a manifest
+  key can't expand against the working directory. (An earlier
+  follow-up commit claimed this fix but didn't actually include the
+  `common.sh` change — lost to a `git checkout` before committing;
+  it ships for real now.)
 - `checksums_verify` now routes every manifest key through the same
   `validate_filepath()` gate before reading it, and sources
   `.just/lib/common.sh` instead of carrying a duplicate inline
   `compute_checksum()`.
+- The fixture-suite expected-output reader uses
+  `read -r ... || [[ -n "$line" ]]`, so a final line without a
+  trailing newline is still validated instead of being silently
+  dropped.
+- The `04_path_traversal` fixture asserts an explicit skip line for
+  each of the three guard rejections (traversal, embedded quote,
+  non-`.just/` prefix).
 
 ### v9.0 - asciinema recording of pr/again behind asciinema-record flag (2026-09-05)
 
