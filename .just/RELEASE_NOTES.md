@@ -51,9 +51,10 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
   re-runs. Rollback (backup restore) behavior is unchanged (#338).
 
 **Testing.** A new `04_path_traversal` fixture feeds a manifest with
-one safe entry and one `../evil.txt` traversal entry and asserts the
-evil path is skipped while the safe file updates normally. Wiring it
-up surfaced two dormant harness bugs in
+traversal (`../evil.txt`), embedded-quote (`.just/bad"quote.sh`),
+and non-prefix (`outside/no-prefix.sh`) entries alongside one safe
+entry, and asserts every bad path is skipped while the safe file
+updates normally. Wiring it up surfaced two dormant harness bugs in
 `.just/lib/template_sync_test.sh`, now fixed:
 
 - `run_test` resolved fixture paths relative to the repo root, but
@@ -67,6 +68,16 @@ up surfaced two dormant harness bugs in
   requires every expected line to appear in order. Color-code
   stripping also moved from `sed '\x1b'` (unsupported on BSD/macOS
   sed) to `awk` so normalized output is actually colorless.
+
+**Review follow-ups** (from the Claude review of this PR):
+
+- `validate_filepath()` splits paths with `read -ra` instead of an
+  unquoted substitution, so glob metacharacters in a manifest key
+  can't expand against the working directory.
+- `checksums_verify` now routes every manifest key through the same
+  `validate_filepath()` gate before reading it, and sources
+  `.just/lib/common.sh` instead of carrying a duplicate inline
+  `compute_checksum()`.
 
 ### v9.0 - asciinema recording of pr/again behind asciinema-record flag (2026-09-05)
 

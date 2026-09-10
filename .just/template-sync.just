@@ -59,18 +59,8 @@ checksums_verify:
     TEMPLATE_URL="https://raw.githubusercontent.com/fini-net/template-repo/main"
     MANIFEST_FILE=$(mktemp)
 
-    # Platform-compatible checksum
-    compute_checksum() {
-        local file="$1"
-        if command -v sha256sum &>/dev/null; then
-            sha256sum "$file" | awk '{print $1}'
-        elif command -v shasum &>/dev/null; then
-            shasum -a 256 "$file" | awk '{print $1}'
-        else
-            echo "Error: Neither sha256sum nor shasum found" >&2
-            exit 1
-        fi
-    }
+    # shellcheck source=.just/lib/common.sh
+    source .just/lib/common.sh
 
     # shellcheck disable=SC2329  # cleanup is invoked via trap
     cleanup() {
@@ -90,6 +80,13 @@ checksums_verify:
     all_match=true
 
     while IFS= read -r filepath; do
+        # Skip unsafe manifest paths before any filesystem use (#347)
+        if ! validate_filepath "$filepath"; then
+            echo "  {{RED}}✗{{NORMAL}} $filepath - invalid path in manifest, skipping"
+            all_match=false
+            continue
+        fi
+
         if [[ ! -f "$filepath" ]]; then
             # Check if this is a cleaned file (or under a cleaned directory)
             if jq -e --arg fp "$filepath" '.cleaned_files // [] | any(. as $p | ($fp | startswith($p + "/")) or ($fp == $p))' "$MANIFEST_FILE" >/dev/null 2>&1; then

@@ -14,6 +14,17 @@
         }
       ]
     },
+    ".just/bad\"quote.sh": {
+      "versions": [
+        {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "commit": "badbad",
+          "date": "2026-09-10T00:00:00Z",
+          "version": "v9.9",
+          "is_latest": true
+        }
+      ]
+    },
     ".just/test.just": {
       "versions": [
         {
@@ -29,6 +40,17 @@
           "date": "2026-01-20T08:00:00Z",
           "version": "v1.0",
           "is_latest": false
+        }
+      ]
+    },
+    "outside/no-prefix.sh": {
+      "versions": [
+        {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "commit": "badbad",
+          "date": "2026-09-10T00:00:00Z",
+          "version": "v9.9",
+          "is_latest": true
         }
       ]
     }

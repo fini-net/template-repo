@@ -1,5 +1,6 @@
 ✗ ../evil.txt - invalid path in manifest, skipping
+✗ .just/bad"quote.sh - invalid path in manifest, skipping
 ⬆ .just/test.just - updating v1.0 → v2.0
 Updated successfully
-Failed: 1 file(s)
+Failed: 3 file(s)
 Template sync completed with errors
