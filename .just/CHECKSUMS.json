@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-09-10T18:52:02Z",
+  "generated_at": "2026-09-10T18:58:11Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -1032,11 +1032,19 @@
 ]},
     ".just/lib/common.sh": {"versions": [
         {
+          "checksum": "7139a310832bce9215a9ea509a4cf879d3fef565c0b0500f4ad27d60d62c9b33",
+          "commit": "2cc31340b12290edfabd2f6395e27501a3419fa4",
+          "date": "2026-09-10T11:57:35-07:00",
+          "version": "v9.1",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "9b37d597df303e656ce408bc521d89ef8a469539ffa18431e3f6b5bcd5eb0aae",
           "commit": "20eb067f3da64ff2ee33a9d1b393bb4d51e75ff5",
           "date": "2026-09-10T11:36:41-07:00",
           "version": "v9.1",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -1214,11 +1222,19 @@
 ]},
     ".just/lib/template_sync_test.sh": {"versions": [
         {
+          "checksum": "90f7a1c9142c86244257d0cc09be0e4586ef575c0d8e4ea0507e1d3220842a52",
+          "commit": "2cc31340b12290edfabd2f6395e27501a3419fa4",
+          "date": "2026-09-10T11:57:35-07:00",
+          "version": "v9.1",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "95da7f9a5611f426f800f2805390e8be6ed441fdc081bf76700b30fdae154615",
           "commit": "20eb067f3da64ff2ee33a9d1b393bb4d51e75ff5",
           "date": "2026-09-10T11:36:41-07:00",
           "version": "v9.1",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -1239,11 +1255,19 @@
 ]},
     ".just/lib/template_update.sh": {"versions": [
         {
+          "checksum": "b6761ee2817a7e87d2852553f73e91b1699d48270c6a4fbad7a91275b9f33582",
+          "commit": "2cc31340b12290edfabd2f6395e27501a3419fa4",
+          "date": "2026-09-10T11:57:35-07:00",
+          "version": "v9.1",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "1f4d5077270456f96466665534fb291c2b7593e99b44be615fbc0028c7233c9b",
           "commit": "20eb067f3da64ff2ee33a9d1b393bb4d51e75ff5",
           "date": "2026-09-10T11:36:41-07:00",
           "version": "v9.1",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
