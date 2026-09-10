@@ -30,6 +30,10 @@ run_test() {
 		return
 	fi
 
+	# Absolutize before we cd into the workspace, so fixture checks
+	# below still resolve after the working directory changes
+	test_dir="$(cd "$test_dir" && pwd)"
+
 	# Create temp workspace
 	local workspace
 	workspace=$(mktemp -d)
@@ -121,16 +125,33 @@ MOCK_EOF
 	if [[ -f "$test_dir/expected_output.txt" ]]; then
 		# Normalize output (remove color codes, timestamps, temp paths)
 		local normalized_output
-		normalized_output=$(echo "$output" | sed -E 's/\x1b\[[0-9;]*m//g' | \
+		# shellcheck disable=SC2016  # awk script is intentionally single-quoted
+		normalized_output=$(echo "$output" | LC_ALL=C awk '{ gsub(/\033\[[0-9;]*m/, ""); print }' | \
 			grep -v "^$" | \
 			sed 's|/tmp/[^[:space:]]*||g')
 
-		local expected
-		expected=$(cat "$test_dir/expected_output.txt" | grep -v "^$")
+		# Every non-empty expected line must appear in order in the output
+		local expected_lines=()
+		local line
+		while IFS= read -r line || [[ -n "$line" ]]; do
+			[[ -n "$line" ]] && expected_lines+=("$line")
+		done < "$test_dir/expected_output.txt"
 
-		if ! echo "$normalized_output" | grep -qF "$expected"; then
-			output_ok=false
+		if [[ ${#expected_lines[@]} -eq 0 ]]; then
+			echo -e "${YELLOW}!${NORMAL} $test_name - expected_output.txt is empty, output not checked"
 		fi
+		local search_start=1
+		for line in "${expected_lines[@]}"; do
+			local line_num
+			line_num=$(echo "$normalized_output" | grep -nF "$line" | awk -F: -v s="$search_start" '$1 >= s {print $1; exit}')
+			if [[ -z "$line_num" ]]; then
+				# Line missing entirely, or only appears before an
+				# earlier expected line (out of order)
+				output_ok=false
+				break
+			fi
+			search_start=$((line_num + 1))
+		done
 	fi
 
 	# Check expected state if provided

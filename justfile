@@ -1,5 +1,10 @@
 # project justfile
 
+# Pass recipe arguments as positional shell parameters ($1, $2, ...)
+# instead of {{...}} text substitution, so bash quoting — not just's
+# templater — owns argument handling (injection-safe; see #347)
+set positional-arguments := true
+
 import? '.just/compliance.just'
 import? '.just/gh-process.just'
 import? '.just/pr-hook.just'
