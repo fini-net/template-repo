@@ -28,6 +28,13 @@
 #                       fatal) and USING_GUM (default 0), in that order
 #   expected_exit     - required: expected exit code (0 or 1)
 #   expected_output.txt - optional: lines that must appear in order
+#   exact_output.txt  - optional: full output must match byte-for-byte
+#                       after SHA normalization; takes precedence over
+#                       expected_output.txt. Use when what should be
+#                       ABSENT is the point of the fixture - the
+#                       in-order line check cannot see extra output,
+#                       e.g. stray progress dots when USING_GUM=1
+#                       (Claude review of #360, finding 1)
 #   sentinel_expected - optional: "present" or "absent" (default absent);
 #                       whether the stale sentinel survives the run
 #
@@ -36,6 +43,14 @@
 # tokens so concurrent runs cannot clobber each other's sentinel state, and
 # pre-creates the sentinel before each test so the "cleared on clean exit"
 # behavior (Claude review of PR #300, Potential bug 2) is actually asserted.
+#
+# Timing: every fixture runs with MAX_WAIT=30 POLL_INTERVAL=5 INITIAL_DELAY=0
+# (the production defaults are 180/5/10, but the no-op sleep makes wall time
+# instant; only the arithmetic clock matters). The timing is hardcoded in
+# run_test below because all ten fixtures are built around it - a future
+# fixture needing different timing would add a per-fixture override file
+# rather than change the harness for everyone (noted in Claude review of
+# #360 as a keep-in-mind).
 
 set -uo pipefail
 
@@ -171,13 +186,24 @@ run_test() {
 		return
 	fi
 
-	# Expected-output lines (in order, like template_sync_test.sh)
-	if [[ -f "$fixture_dir/expected_output.txt" ]]; then
-		local normalized
-		# The script prints HEAD_SHA truncated to 7 chars in stale messages;
-		# normalize both the full and truncated forms so fixtures can state
-		# the expected line as "HEAD is HEAD_SHA".
-		normalized=$(echo "$output" | sed "s/${HEAD_SHA:0:7}/HEAD_SHA/g; s/$HEAD_SHA/HEAD_SHA/g; s/${OLD_SHA:0:7}/OLD_SHA/g; s/$OLD_SHA/OLD_SHA/g")
+	# Output assertion. exact_output.txt demands a byte-for-byte match
+	# (after SHA normalization) and takes precedence: the in-order line
+	# check below can't see EXTRA output, so fixtures whose point is
+	# absence (gum suppressing dots) need the strict form. Normalization
+	# handles both the truncated and full SHA forms so fixtures can
+	# state expected lines as "HEAD_SHA" / "OLD_SHA".
+	normalized=$(echo "$output" | sed "s/${HEAD_SHA:0:7}/HEAD_SHA/g; s/$HEAD_SHA/HEAD_SHA/g; s/${OLD_SHA:0:7}/OLD_SHA/g; s/$OLD_SHA/OLD_SHA/g")
+	if [[ -f "$fixture_dir/exact_output.txt" ]]; then
+		if [[ "$normalized" != "$(cat "$fixture_dir/exact_output.txt")" ]]; then
+			echo -e "${RED}✗${NORMAL} $name - output does not exactly match exact_output.txt"
+			echo "    --- expected ---"
+			sed 's/^/    /' "$fixture_dir/exact_output.txt"
+			echo "    --- actual (normalized) ---"
+			printf '%s\n' "$normalized" | sed 's/^/    /'
+			echo "    --- end ---"
+			ok=false
+		fi
+	elif [[ -f "$fixture_dir/expected_output.txt" ]]; then
 		local search_start=1 line line_num
 		while IFS= read -r line || [[ -n "$line" ]]; do
 			[[ -n "$line" ]] || continue

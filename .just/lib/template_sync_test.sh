@@ -65,46 +65,16 @@ run_test() {
 	run_update_test "$test_name" "$test_dir"
 }
 
-# Recipe mode: run the real `just <recipe> <args...>` inside a temp
-# workspace that mirrors a derived repo (minimal justfile importing a
-# copy of the real template-sync.just + common.sh), with mocked curl
-# serving the fixture manifest/template versions.
-run_recipe_test() {
-	local test_name="$1"
-	local test_dir="$2"
-
-	if ! command -v just &>/dev/null; then
-		echo -e "${YELLOW}!${NORMAL} $test_name - just not installed, recipe gate untested"
-		(( failed += 1 ))
-		return
-	fi
-
-	# Create temp workspace
-	local workspace
-	workspace=$(mktemp -d)
-
-	# Copy input files to workspace (including hidden files)
-	if [[ -d "$test_dir/input" ]]; then
-		shopt -s dotglob
-		cp -r "$test_dir/input/"* "$workspace/" 2>/dev/null || true
-		shopt -u dotglob
-	fi
-
-	# Scaffold a minimal derived-repo justfile importing the real module
-	mkdir -p "$workspace/.just/lib"
-	cp "$SCRIPT_DIR/../template-sync.just" "$workspace/.just/"
-	cp "$SCRIPT_DIR/common.sh" "$workspace/.just/lib/"
-	cat > "$workspace/justfile" <<'EOF'
-set positional-arguments := true
-import '.just/template-sync.just'
-EOF
-
-	# Mock curl serving fixture data. Contract (shared with the
-	# update-script mode mock below):
-	#   - any call with -o writes to the given output file
-	#   - a URL ending in .just/CHECKSUMS.json serves the fixture manifest
-	#   - any other URL serves template_versions/<basename> if present
-	local mock_curl="$workspace/curl"
+# Write the shared mock curl into a target directory. Contract:
+#   - any call with -o writes to the given output file
+#   - a URL ending in .just/CHECKSUMS.json serves the fixture manifest
+#   - any other URL serves template_versions/<basename> if present
+# Both the recipe-mode and update-script-mode mocks must honor this
+# exact contract, so it lives in one place (Claude review of #360,
+# finding 2 - it was two copy-pasted heredocs that could drift).
+write_mock_curl() {
+	local target_dir="$1"
+	local mock_curl="$target_dir/curl"
 	cat > "$mock_curl" <<'MOCK_EOF'
 #!/usr/bin/env bash
 # Mock curl for testing
@@ -153,6 +123,44 @@ fi
 exit 1
 MOCK_EOF
 	chmod +x "$mock_curl"
+}
+
+# Recipe mode: run the real `just <recipe> <args...>` inside a temp
+# workspace that mirrors a derived repo (minimal justfile importing a
+# copy of the real template-sync.just + common.sh), with mocked curl
+# serving the fixture manifest/template versions.
+run_recipe_test() {
+	local test_name="$1"
+	local test_dir="$2"
+
+	if ! command -v just &>/dev/null; then
+		echo -e "${YELLOW}!${NORMAL} $test_name - just not installed, recipe gate untested"
+		(( failed += 1 ))
+		return
+	fi
+
+	# Create temp workspace
+	local workspace
+	workspace=$(mktemp -d)
+
+	# Copy input files to workspace (including hidden files)
+	if [[ -d "$test_dir/input" ]]; then
+		shopt -s dotglob
+		cp -r "$test_dir/input/"* "$workspace/" 2>/dev/null || true
+		shopt -u dotglob
+	fi
+
+	# Scaffold a minimal derived-repo justfile importing the real module
+	mkdir -p "$workspace/.just/lib"
+	cp "$SCRIPT_DIR/../template-sync.just" "$workspace/.just/"
+	cp "$SCRIPT_DIR/common.sh" "$workspace/.just/lib/"
+	cat > "$workspace/justfile" <<'EOF'
+set positional-arguments := true
+import '.just/template-sync.just'
+EOF
+
+	# Mock curl serving fixture data (shared contract - see write_mock_curl)
+	write_mock_curl "$workspace"
 
 	# Copy manifest + template versions (curl mock resolves these)
 	[[ -f "$test_dir/manifest.json" ]] && cp "$test_dir/manifest.json" "$workspace/"
@@ -282,58 +290,8 @@ run_update_test() {
 		shopt -u dotglob
 	fi
 
-	# Mock curl to return fixture data (shared contract with the
-	# recipe-mode mock above: -o output file, CHECKSUMS.json -> manifest,
-	# other URLs -> template_versions/<basename>)
-	local mock_curl="$workspace/curl"
-	cat > "$mock_curl" <<'MOCK_EOF'
-#!/usr/bin/env bash
-# Mock curl for testing
-if [[ "$*" == *"-o"* ]]; then
-	# Extract output file: the argument after -o
-	output_file=""
-	next=0
-	for arg in "$@"; do
-		if [[ "$next" == 1 ]]; then
-			output_file="$arg"
-			break
-		fi
-		if [[ "$arg" == "-o" ]]; then
-			next=1
-		fi
-	done
-	# The URL is the last non-flag argument
-	source_path=""
-	for arg in "$@"; do
-		if [[ "$arg" != -* && "$arg" != "$output_file" ]]; then
-			source_path="$arg"
-		fi
-	done
-	if [[ "$source_path" == *".just/CHECKSUMS.json" ]]; then
-		manifest_path="${BASH_SOURCE[0]%/*}/manifest.json"
-		if [[ -f "$manifest_path" ]]; then
-			# The update-script mode points MANIFEST_FILE straight at
-			# this fixture-copied manifest (sed patch), so source and
-			# destination can be the same file - cat-ing a file onto
-			# itself would truncate it. No-op in that case.
-			if [[ ! "$manifest_path" -ef "$output_file" ]]; then
-				cat "$manifest_path" > "$output_file"
-			fi
-			exit 0
-		fi
-		exit 1
-	fi
-	filename="${source_path##*/}"
-	template_file="${BASH_SOURCE[0]%/*}/template_versions/$filename"
-	if [[ -f "$template_file" ]]; then
-		cat "$template_file" > "$output_file"
-		exit 0
-	fi
-	exit 1
-fi
-exit 1
-MOCK_EOF
-	chmod +x "$mock_curl"
+	# Mock curl to return fixture data (shared contract - see write_mock_curl)
+	write_mock_curl "$workspace"
 
 	# Copy manifest to workspace
 	if [[ -f "$test_dir/manifest.json" ]]; then

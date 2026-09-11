@@ -62,6 +62,22 @@ runner), the new test runner and workflow are added to the
 they appear in, so `just update_from_template` never resurrects them
 in a derived repo.
 
+**Review follow-up: the gum fixture now proves the negative.** The
+Claude review of #360 (finding 1) noted fixture 10 only asserted that
+expected lines appear *somewhere in order* - so it would still pass
+if the `USING_GUM` gate in `wait_for_copilot.sh` were deleted,
+because the extra progress dots don't break a substring check. The
+harness gained an `exact_output.txt` fixture mode: when present, the
+SHA-normalized output must match the file byte-for-byte, taking
+precedence over the in-order line check. Fixture 10 uses it, so any
+dot leakage (or any other extra output) now fails the suite - and a
+plain "no bare `.` characters" assertion would have been wrong, since
+the script's own "Waiting 0s..." line ends in an ellipsis. The same
+review's finding 2 deduplicated the mock curl: the recipe-mode and
+update-script-mode heredocs were copy-pasted (the review flagged they
+could drift), and both now call a single shared `write_mock_curl()`
+helper with the contract documented in one place.
+
 ### v9.4 - misleading comment fixes (2026-09-11)
 
 - Fixes issues [#339](https://github.com/fini-net/template-repo/issues/339)
