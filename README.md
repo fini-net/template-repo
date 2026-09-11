@@ -80,7 +80,8 @@ Thirteen workflows handle automation and quality, all hardened with [StepSecurit
 ### Automated Testing
 
 - ✅ [PR body update tests](.just/lib/pr_body_test.sh) - Validates PR description generation logic with fixture-based test cases
-- ✅ [Template sync tests](.just/lib/template_sync_test.sh) - Tests safe template update system with fixture scenarios
+- ✅ [Template sync tests](.just/lib/template_sync_test.sh) - Tests safe template update system with fixture scenarios (update script + recipe gates)
+- ✅ [Copilot-wait tests](.just/lib/wait_for_copilot_test.sh) - Tests the shared Copilot review poll/state machine with mocked `gh` fixtures
 - ✅ [Shared utility library](.just/lib/common.sh) - Cross-platform checksum computation used by template sync
 
 ### Additional Features

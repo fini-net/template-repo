@@ -4,6 +4,64 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## September 2026
 
+### v9.5 - test infrastructure: wait_for_copilot suite + recipe-gate coverage (2026-09-11)
+
+- Fixes issues [#330](https://github.com/fini-net/template-repo/issues/330)
+  and [#354](https://github.com/fini-net/template-repo/issues/354)
+
+**The Copilot-wait state machine finally has tests.** The shared
+`.just/lib/wait_for_copilot.sh` poll loop sits on the critical path of
+every `just pr` / `just again` / `just copilot_refresh` run and needed
+two rounds of GraphQL/state-machine bug fixes in v8.4 alone - yet unlike
+its siblings `pr_body_test.sh`, `template_sync_test.sh`, and
+`cue_sync_test.sh` it had no automated test. Claude reviews asked for
+one three releases in a row (#289, #300, #317). The new
+`.just/lib/wait_for_copilot_test.sh` runs the production script
+byte-for-byte unmodified, intercepting `gh` and `sleep` with a PATH
+shim directory (the same mocking precedent `template_sync_test.sh` set
+for curl). The mock `gh` plays fixture responses in order and applies
+the real `--jq` filter with real jq, so the exact response shaping the
+script relies on is exercised; the no-op `sleep` keeps tests instant
+since the script advances its clock arithmetically. Ten fixtures cover
+the full branch matrix: complete-on-first-poll, in-progress-then-
+complete, the null-response/not-found fast-fail (with nonfatal vs.
+fatal exit pairing), the stale-review fast-fail, timeout with and
+without a stale review, and the `USING_GUM` dot suppression. Sentinel
+behavior is asserted too: the harness pre-creates
+`/tmp/copilot_stale_*` before each run (unique owner/name/PR tokens so
+concurrent runs can't collide), proving the stale marker is written on
+stale exits and - the #300 review regression - cleared on clean ones.
+Wired into `.just/testing.just` as `just wait_for_copilot_test` and CI
+via `.github/workflows/wait-for-copilot-tests.yml` (#330).
+
+**Recipe gates are now tested, not just the update script.** The
+validate_filepath path-traversal gate added in #352 lives in three
+places - `template_update.sh`'s `process_file()` and the
+`checksums_verify` / `checksums_diff` recipe bodies - but the fixture
+harness only drove a patched copy of the update script, so the
+recipe-level gates were verified manually at best (flagged in the
+Claude review of #352). `template_sync_test.sh` grew a recipe mode:
+fixtures with a `recipe` file get a sandboxed workspace holding a copy
+of the real `.just/template-sync.just` plus a minimal justfile, and
+the harness runs the actual `just checksums_verify` /
+`checksums_diff` command with mocked curl, asserting exit codes,
+ordered output lines, and expected state like the existing fixtures
+do. Five new fixtures cover the invalid-manifest-key rejection, the
+cleaned/not-present/modified file states, the all-latest success path,
+the traversal-argument rejection in `checksums_diff`, and a happy-path
+diff against a mocked template version. The shared mock curl now
+writes `-o` output files properly (the old one printed the manifest to
+stdout and only worked because the patched update script read a
+separate copy) and no-ops when source and destination are the same
+file, so the legacy fixtures keep passing unchanged (#354).
+
+**Both runners ship clean.** Following the v7.2 lesson
+(`cue_sync_test.sh` initially shipped into derived repos as a dead
+runner), the new test runner and workflow are added to the
+`clean_template` removal lists and `CLEANED_FILES` in the same commit
+they appear in, so `just update_from_template` never resurrects them
+in a derived repo.
+
 ### v9.4 - misleading comment fixes (2026-09-11)
 
 - Fixes issues [#339](https://github.com/fini-net/template-repo/issues/339)

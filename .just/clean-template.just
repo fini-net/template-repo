@@ -94,6 +94,11 @@ _remove_template_files: _on_a_branch
         rm -f ".github/workflows/template-sync.yml"
     fi
 
+    if [[ -f ".github/workflows/wait-for-copilot-tests.yml" ]]; then
+        echo "Removing .github/workflows/wait-for-copilot-tests.yml"
+        rm -f ".github/workflows/wait-for-copilot-tests.yml"
+    fi
+
     # Remove test scripts
     if [[ -f ".just/lib/pr_body_test.sh" ]]; then
         echo "Removing .just/lib/pr_body_test.sh"
@@ -108,6 +113,11 @@ _remove_template_files: _on_a_branch
     if [[ -f ".just/lib/cue_sync_test.sh" ]]; then
         echo "Removing .just/lib/cue_sync_test.sh"
         rm -f ".just/lib/cue_sync_test.sh"
+    fi
+
+    if [[ -f ".just/lib/wait_for_copilot_test.sh" ]]; then
+        echo "Removing .just/lib/wait_for_copilot_test.sh"
+        rm -f ".just/lib/wait_for_copilot_test.sh"
     fi
 
     # Remove this cleanup script after use

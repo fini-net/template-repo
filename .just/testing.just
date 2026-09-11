@@ -31,3 +31,18 @@ cue_sync_test:
         echo "{{RED}}Some cue-sync tests failed{{NORMAL}}"
         exit 1
     fi
+
+# test the shared Copilot-wait state machine (mocked gh/sleep, fixtures)
+[group('Testing/Automation')]
+wait_for_copilot_test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "{{BLUE}}Testing wait_for_copilot state machine...{{NORMAL}}"
+
+    if .just/lib/wait_for_copilot_test.sh; then
+        echo "{{GREEN}}All wait_for_copilot tests passed!{{NORMAL}}"
+    else
+        echo "{{RED}}Some wait_for_copilot tests failed{{NORMAL}}"
+        exit 1
+    fi

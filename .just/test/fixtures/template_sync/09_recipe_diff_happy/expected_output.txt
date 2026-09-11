@@ -1,0 +1,3 @@
+--- .just/test.just
+-local line
++template line
