@@ -17,9 +17,14 @@ itself, noting "there is no separate 'calling shell'" — the framing
 invited exactly the wrong mental model. The comment now says what the
 code does in one accurate sentence: single-quoting lets `unset` itself
 evaluate the subscript arithmetic, so nothing is expanded by this
-line. Copilot custom instructions (`.github/instructions/`) now cover
-the idiom too, so reviews stop re-litigating it in derived repos
-(#339).
+line. Copilot custom instructions now cover the idiom too:
+`review-guidance.instructions.md` in `.github/instructions/` uses
+the `*.instructions.md` filename and `applyTo` frontmatter key that
+Copilot code review requires (the initial draft used a plain `.md`
+name with `apply-to`, which Copilot would have silently ignored —
+caught in #357 review). Note that template sync ships only the
+`.just/` tree, so derived repos wanting this review guidance must
+copy `.github/instructions/` themselves (#339).
 
 **No more phantom test runners.** `cue_sync.awk` and `cue-verify.just`
 comments referenced `.just/lib/cue_sync_test.sh` unconditionally —

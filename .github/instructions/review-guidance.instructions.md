@@ -1,5 +1,5 @@
 ---
-apply-to: ".just/**, .github/workflows/**"
+applyTo: ".just/**,.github/workflows/**"
 ---
 
 # Review guidance for this repo
