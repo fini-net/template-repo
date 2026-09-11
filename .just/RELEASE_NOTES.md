@@ -4,6 +4,31 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## September 2026
 
+### v9.4 - misleading comment fixes (2026-09-11)
+
+- Fixes issues [#339](https://github.com/fini-net/template-repo/issues/339)
+  and [#337](https://github.com/fini-net/template-repo/issues/337)
+
+**No more "calling shell" confusion.** The comment above
+`unset 'footer_content[...]'` in `update_pr_body.sh` was added by #203
+to stop recurring false-positive reviews of the single-quoted `unset`
+idiom. It failed: Copilot's review of gh-amp#18 flagged the *comment*
+itself, noting "there is no separate 'calling shell'" — the framing
+invited exactly the wrong mental model. The comment now says what the
+code does in one accurate sentence: single-quoting lets `unset` itself
+evaluate the subscript arithmetic, so nothing is expanded by this
+line. Copilot custom instructions (`.github/instructions/`) now cover
+the idiom too, so reviews stop re-litigating it in derived repos
+(#339).
+
+**No more phantom test runners.** `cue_sync.awk` and `cue-verify.just`
+comments referenced `.just/lib/cue_sync_test.sh` unconditionally —
+but `clean_template` strips that file from every derived repo, so
+downstream repos carried comments pointing at a missing file (flagged
+twice in fini-clock#18). Both comments now describe the actual
+derived-repo caller (`cue-sync-from-github`) and phrase the
+template-repo-only test coverage accordingly (#337).
+
 ### v9.3 - install-prerequisites.sh cleanup (2026-09-10)
 
 - Fixes issues [#335](https://github.com/fini-net/template-repo/issues/335)

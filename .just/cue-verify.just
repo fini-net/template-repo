@@ -202,9 +202,10 @@ cue-sync-from-github:
         cp .repo.toml .repo.toml.backup
         echo "{{YELLOW}}Created backup: .repo.toml.backup{{NORMAL}}"
 
-        # The state-aware awk program lives in .just/lib/cue_sync.awk so the
-        # test runner (.just/lib/cue_sync_test.sh) invokes the exact same
-        # logic. See issue #196 for why the program is no longer inlined.
+        # The state-aware awk program lives in .just/lib/cue_sync.awk so this
+        # recipe and its tests share one implementation. Test coverage exists
+        # in template-repo only; clean_template removes the test runner from
+        # derived repos. See issue #196 for why the program is no longer inlined.
         # Behavior: handles three cases for each key (description, topics):
         #   1. Active line (e.g. `topics = [...]`)        -> replace in place
         #   2. Commented line (e.g. `# topics = [...]`)   -> replace in place
