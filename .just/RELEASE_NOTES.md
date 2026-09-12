@@ -4,6 +4,55 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## September 2026
 
+### v9.6 - release-process hygiene: editorconfig pre-push guard (2026-09-12)
+
+- Fixes issue [#329](https://github.com/fini-net/template-repo/issues/329)
+
+**The 3-space indent regression finally has a local gate.** Numbered-list
+continuation lines in this very file kept landing with a 3-space indent
+(the visual alignment under the `1.` list marker) instead of a multiple of 2,
+which is what `.editorconfig` demands for `*.md` - and editorconfig CI
+failed for it three times across two consecutive versions: #289 (v8.3)
+flagged it, the fix landed, then a follow-up push to the same PR
+re-broke items 4-5, and #317 (v8.5) hit it again. Every failure was
+caught in CI *after* the push, which is exactly where you want it not
+to be. The new `editorconfig_check` recipe in `compliance.just` runs
+`editorconfig-checker` over all git-tracked files and now sits in
+`_pr-hook`, so `just pr` fails locally before the push instead of
+letting CI deliver the news. Since the binary is not yet in the
+required-tools list, the gate is deliberately best-effort: a missing
+`.editorconfig` or a missing `editorconfig-checker` binary warns and
+exits 0 (the asciinema/shellcheck-stub precedent), and CI
+(`.github/workflows/editorconfig.yml`) remains the hard enforcement
+(#329).
+
+**The `again` path is guarded too.** The second #289 regression arrived
+through `just again` - a follow-up push to an open PR - which never ran
+the pre-PR hook. `_again_inner` now invokes `_pr-hook` (when present)
+before its `git push`, same as `_pr_inner` does, so both push paths
+through the PR lifecycle get the same pre-flight checks (#329).
+
+**Tooling support and docs.** `install-prerequisites.sh` now knows
+about `editorconfig-checker`: it detects it, installs it via Homebrew
+on macOS, points pacman users at the official Arch package, and
+points everyone else at the installation docs (there is no apt/dnf
+package - the release binary, npm, and pip are the supported routes).
+CLAUDE.md's "Versioning `.just/*` changes" section gains an explicit
+RELEASE_NOTES.md indentation rule aimed at the actual culprit - AI
+agents appending list items mid-PR - and `.just/README.md` no longer
+calls `_pr-hook` a placeholder that "just prints a message", because
+it now runs three real checks (#329).
+
+**Review follow-up.** The first Claude review of this PR caught this
+very entry missing from the pushed branch (an `editorconfig_check`
+negative test during development had restored the file from the last
+commit instead of the working tree, wiping the then-uncommitted entry),
+and flagged that the README's PR-creation docs said nothing about
+`again` gaining the pre-PR hook. Both fixed in the follow-up commit:
+the entry you are reading is the backfill, and the README's
+"Iterative workflow" bullet now mentions that `just again` runs
+`_pr-hook` before pushing.
+
 ### v9.5 - test infrastructure: wait_for_copilot suite + recipe-gate coverage (2026-09-11)
 
 - Fixes issues [#330](https://github.com/fini-net/template-repo/issues/330)

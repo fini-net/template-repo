@@ -34,7 +34,7 @@ Core PR lifecycle management with these features:
 - **PR creation** - `just pr` creates PRs using first commit message as title, all commits in body
 - **PR description updates** - `just pr_update` regenerates the Done section with current commits while preserving other sections
 - **PR verification logs** - `just pr_verify` adds or appends timestamped content to a Verify section (reads from stdin)
-- **Iterative workflow** - `just again` chains push, PR update, and checks monitoring for rapid iteration
+- **Iterative workflow** - `just again` chains push, PR update, and checks monitoring for rapid iteration; since v9.6 it also runs `_pr-hook` (shellcheck, editorconfig check, permission sort) before pushing, so follow-up pushes get the same pre-flight checks as `just pr`
 - **Terminal recording** - With `asciinema-record = true` in `.repo.toml` and asciinema installed, `pr` and `again` record the full flow into `.cache/<recipe>-<PR#>-<pid>.cast` (opt-in; default off)
 - **Web viewing** - `just prweb` opens current PR in browser
 
@@ -72,6 +72,7 @@ Custom compliance validation for GitHub community standards:
 - **`.gitattributes`** file verification
 - **`justfile`** presence check
 - **`.editorconfig`** validation
+- **`editorconfig_check` recipe** - Runs editorconfig-checker over all git-tracked files (best-effort gate: warns and exits 0 when the tool or `.editorconfig` is missing; wired into the `_pr-hook` pre-PR checks)
 
 All checks include colorized output with helpful (and sometimes sarcastic) messages.
 
@@ -92,8 +93,8 @@ Automated shellcheck validation for bash scripts in just recipes:
 Optional pre-PR automation hook:
 
 - **Called automatically** - Invoked by `just pr` if this file exists
-- **Placeholder implementation** - Currently just prints a message
-- **Customizable** - Replace with project-specific tasks (e.g., Hugo rebuilds, asset compilation)
+- **Default checks** - Runs `just shellcheck`, `just editorconfig_check`, and `just claude_permissions_sort` before creating a PR
+- **Customizable** - Replace or extend with project-specific tasks (e.g., Hugo rebuilds, asset compilation)
 - **Hidden recipe** - Uses `_pr-hook` naming to indicate internal use only
 
 ### install-prerequisites.sh - Prerequisites Installation Helper

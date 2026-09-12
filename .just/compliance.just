@@ -265,3 +265,35 @@ compliance_check:
     else
         echo "{{RED}}[openssf] Workflow(s) missing top-level 'permissions:' block: $(echo "$missing_perms" | tr '\n' ' ').  Grant them a trust fall, why don't you.{{NORMAL}}"
     fi
+
+# validate that git-tracked files conform to .editorconfig
+# (editorconfig-checker exits non-zero on the first offending file set)
+# Best-effort gate: missing tool or missing .editorconfig warns and exits 0
+# so the check never blocks a push in repos that opted out.  CI
+# (.github/workflows/editorconfig.yml) remains the hard enforcement.
+# See: https://github.com/fini-net/template-repo/issues/329
+[group('Testing/Compliance')]
+editorconfig_check:
+    #!/usr/bin/env bash
+    set -euo pipefail # strict mode
+
+    if [[ ! -e .editorconfig ]]; then
+        echo "{{YELLOW}}No .editorconfig found - skipping editorconfig check.{{NORMAL}}"
+        exit 0
+    fi
+
+    if ! command -v editorconfig-checker >/dev/null 2>&1; then
+        echo "{{YELLOW}}editorconfig-checker is not installed - skipping editorconfig check.{{NORMAL}}"
+        echo "{{YELLOW}}Install with: brew install editorconfig-checker (or see https://editorconfig-checker.github.io){{NORMAL}}"
+        exit 0
+    fi
+
+    if editorconfig-checker; then
+        echo "{{GREEN}}All files conform to .editorconfig - your indentation is beyond reproach.{{NORMAL}}"
+    else
+        echo ""
+        echo "{{RED}}editorconfig check failed.{{NORMAL}}"
+        echo "{{RED}}Common culprit: RELEASE_NOTES.md numbered-list continuation lines with 3-space indent (aligning under '1. ').{{NORMAL}}"
+        echo "{{RED}}Continuation indents must be a multiple of 2 (2 or 4 spaces).  See CLAUDE.md 'Versioning .just/* changes'.{{NORMAL}}"
+        exit 1
+    fi
