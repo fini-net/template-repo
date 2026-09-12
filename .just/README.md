@@ -72,6 +72,7 @@ Custom compliance validation for GitHub community standards:
 - **`.gitattributes`** file verification
 - **`justfile`** presence check
 - **`.editorconfig`** validation
+- **`editorconfig_check` recipe** - Runs editorconfig-checker over all git-tracked files (best-effort gate: warns and exits 0 when the tool or `.editorconfig` is missing; wired into the `_pr-hook` pre-PR checks)
 
 All checks include colorized output with helpful (and sometimes sarcastic) messages.
 
@@ -92,8 +93,8 @@ Automated shellcheck validation for bash scripts in just recipes:
 Optional pre-PR automation hook:
 
 - **Called automatically** - Invoked by `just pr` if this file exists
-- **Placeholder implementation** - Currently just prints a message
-- **Customizable** - Replace with project-specific tasks (e.g., Hugo rebuilds, asset compilation)
+- **Default checks** - Runs `just shellcheck`, `just editorconfig_check`, and `just claude_permissions_sort` before creating a PR
+- **Customizable** - Replace or extend with project-specific tasks (e.g., Hugo rebuilds, asset compilation)
 - **Hidden recipe** - Uses `_pr-hook` naming to indicate internal use only
 
 ### install-prerequisites.sh - Prerequisites Installation Helper

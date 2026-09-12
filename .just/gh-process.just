@@ -22,7 +22,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v9.5
+# PR create v9.6
 [group('Process')]
 pr: _has_commits
     #!/usr/bin/env bash
@@ -804,6 +804,16 @@ again:
 # the again wrapper above
 [group('Process')]
 _again_inner:
+    #!/usr/bin/env bash
+    set -euo pipefail # strict mode
+
+    # The #329 regression path: the RELEASE_NOTES indent fix landed
+    # broken on a pr PR, was fixed, then re-broke on a follow-up push
+    # through 'again'. Run the same pre-PR hook before this push.
+    if [[ -e ".just/pr-hook.just" ]]; then
+        just _pr-hook
+    fi
+
     git push
     just pr_update
     just pr_checks

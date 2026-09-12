@@ -248,6 +248,8 @@ These three actions always go together and apply equally to every CHECKSUMS-trac
 
 **One bump per PR.** The `vX.Y` token identifies what a PR ships, so a branch bumps the version at most once. Review-driven fixes folded into an open PR keep the same version: extend the existing `RELEASE_NOTES.md` entry in place rather than adding a new one, and re-run `just checksums_generate` in a fresh distinct commit (keeping the `regenerate CHECKSUMS for vX.Y` form — the version digits do not change). Start a new bump only on a later branch, after the previous version has merged.
 
+**RELEASE_NOTES.md indentation.** Numbered-list continuation lines in `RELEASE_NOTES.md` entries must be indented by a multiple of 2 spaces (2 or 4). Never use the 3-space indent that visually aligns under the list marker — `.editorconfig` sets `indent_size = 2` for `*.md`, and editorconfig-checker fails CI on any indent that is not a multiple of 2. This has regressed three times (#289 twice, #317 once), usually when a follow-up commit appends list items. `just editorconfig_check` now guards this in `_pr-hook`, which runs before every `just pr` / `just again` push.
+
 ## Dependencies
 
 ### Required tools
