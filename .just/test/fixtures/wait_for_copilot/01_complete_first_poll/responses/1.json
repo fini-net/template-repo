@@ -1,0 +1,1 @@
+{"data":{"repository":{"pullRequest":{"reviewRequests":{"nodes":[]},"reviews":{"nodes":[{"author":{"login":"copilot-pull-request-reviewer"},"state":"APPROVED","comments":{"totalCount":2},"submittedAt":"2026-09-11T10:00:00Z","commit":{"oid":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}]}}}}}

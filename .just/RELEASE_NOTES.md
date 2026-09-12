@@ -4,6 +4,95 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## September 2026
 
+### v9.5 - test infrastructure: wait_for_copilot suite + recipe-gate coverage (2026-09-11)
+
+- Fixes issues [#330](https://github.com/fini-net/template-repo/issues/330)
+  and [#354](https://github.com/fini-net/template-repo/issues/354)
+
+**The Copilot-wait state machine finally has tests.** The shared
+`.just/lib/wait_for_copilot.sh` poll loop sits on the critical path of
+every `just pr` / `just again` / `just copilot_refresh` run and needed
+two rounds of GraphQL/state-machine bug fixes in v8.4 alone - yet unlike
+its siblings `pr_body_test.sh`, `template_sync_test.sh`, and
+`cue_sync_test.sh` it had no automated test. Claude reviews asked for
+one three releases in a row (#289, #300, #317). The new
+`.just/lib/wait_for_copilot_test.sh` runs the production script
+byte-for-byte unmodified, intercepting `gh` and `sleep` with a PATH
+shim directory (the same mocking precedent `template_sync_test.sh` set
+for curl). The mock `gh` plays fixture responses in order and applies
+the real `--jq` filter with real jq, so the exact response shaping the
+script relies on is exercised; the no-op `sleep` keeps tests instant
+since the script advances its clock arithmetically. Ten fixtures cover
+the full branch matrix: complete-on-first-poll, in-progress-then-
+complete, the null-response/not-found fast-fail (with nonfatal vs.
+fatal exit pairing), the stale-review fast-fail, timeout with and
+without a stale review, and the `USING_GUM` dot suppression. Sentinel
+behavior is asserted too: the harness pre-creates
+`/tmp/copilot_stale_*` before each run (unique owner/name/PR tokens so
+concurrent runs can't collide), proving the stale marker is written on
+stale exits and - the #300 review regression - cleared on clean ones.
+Wired into `.just/testing.just` as `just wait_for_copilot_test` and CI
+via `.github/workflows/wait-for-copilot-tests.yml` (#330).
+
+**Recipe gates are now tested, not just the update script.** The
+validate_filepath path-traversal gate added in #352 lives in three
+places - `template_update.sh`'s `process_file()` and the
+`checksums_verify` / `checksums_diff` recipe bodies - but the fixture
+harness only drove a patched copy of the update script, so the
+recipe-level gates were verified manually at best (flagged in the
+Claude review of #352). `template_sync_test.sh` grew a recipe mode:
+fixtures with a `recipe` file get a sandboxed workspace holding a copy
+of the real `.just/template-sync.just` plus a minimal justfile, and
+the harness runs the actual `just checksums_verify` /
+`checksums_diff` command with mocked curl, asserting exit codes,
+ordered output lines, and expected state like the existing fixtures
+do. Five new fixtures cover the invalid-manifest-key rejection, the
+cleaned/not-present/modified file states, the all-latest success path,
+the traversal-argument rejection in `checksums_diff`, and a happy-path
+diff against a mocked template version. The shared mock curl now
+writes `-o` output files properly (the old one printed the manifest to
+stdout and only worked because the patched update script read a
+separate copy) and no-ops when source and destination are the same
+file, so the legacy fixtures keep passing unchanged (#354).
+
+**Both runners ship clean.** Following the v7.2 lesson
+(`cue_sync_test.sh` initially shipped into derived repos as a dead
+runner), the new test runner and workflow are added to the
+`clean_template` removal lists and `CLEANED_FILES` in the same commit
+they appear in, so `just update_from_template` never resurrects them
+in a derived repo.
+
+**Review follow-up: the gum fixture now proves the negative.** The
+Claude review of #360 (finding 1) noted fixture 10 only asserted that
+expected lines appear *somewhere in order* - so it would still pass
+if the `USING_GUM` gate in `wait_for_copilot.sh` were deleted,
+because the extra progress dots don't break a substring check. The
+harness gained an `exact_output.txt` fixture mode: when present, the
+SHA-normalized output must match the file byte-for-byte, taking
+precedence over the in-order line check. Fixture 10 uses it, so any
+dot leakage (or any other extra output) now fails the suite - and a
+plain "no bare `.` characters" assertion would have been wrong, since
+the script's own "Waiting 0s..." line ends in an ellipsis. The same
+review's finding 2 deduplicated the mock curl: the recipe-mode and
+update-script-mode heredocs were copy-pasted (the review flagged they
+could drift), and both now call a single shared `write_mock_curl()`
+helper with the contract documented in one place.
+
+**Review follow-up 2: dormant SHA-normalization bug fixed before it
+could bite.** The second Claude review of #360 (finding 1) noted that
+the test harness normalized the 7-char short SHA *before* the full
+40-char SHA in its sed pipeline. Today that's harmless —
+`wait_for_copilot.sh` only ever prints the truncated form — but sed's
+left-to-right non-overlapping matching means a full SHA in any future
+output would collapse to a mangled run of `HEAD_SHA` tokens, silently
+corrupting a comparison instead of failing loudly. The substitutions
+now run full-SHA-first so a 40-char SHA collapses to one clean token
+either way, and the comment no longer claims both forms were exercised
+when only one was. The same review's nits dropped a leftover
+`shellcheck disable=SC2086` (the expansion it guarded was long gone)
+and a comment describing a `${arr[@]+...}` guard the code had already
+replaced with if/else branching.
+
 ### v9.4 - misleading comment fixes (2026-09-11)
 
 - Fixes issues [#339](https://github.com/fini-net/template-repo/issues/339)

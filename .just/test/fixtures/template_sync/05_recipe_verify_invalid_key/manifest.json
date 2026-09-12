@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-09-11T00:00:00Z",
+  "template_repo": "https://github.com/fini-net/template-repo",
+  "files": {
+    "../evil.txt": {
+      "versions": [
+        {
+          "checksum": "0000000000000000000000000000000000000000000000000000000000000000",
+          "commit": "badbad",
+          "date": "2026-09-11T00:00:00Z",
+          "version": "v9.9",
+          "is_latest": true
+        }
+      ]
+    }
+  }
+}

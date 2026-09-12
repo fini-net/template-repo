@@ -1,0 +1,5 @@
+⊘ .just/cleaned.just - removed by clean_template
+⊘ .just/gone.just - not present locally
+⚠ .just/test.just - local modifications detected
+Some files differ from template
+Run 'just update_from_template' to update

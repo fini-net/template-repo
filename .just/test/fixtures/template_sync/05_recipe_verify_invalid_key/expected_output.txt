@@ -1,0 +1,2 @@
+✗ ../evil.txt - invalid path in manifest, skipping
+Some files differ from template

@@ -52,6 +52,7 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 - `just claude_review` - View Claude's latest PR code review comments
 - `just pr_body_test` - Test PR body update logic
 - `just template_sync_test` - Test template sync logic
+- `just wait_for_copilot_test` - Test the shared Copilot-wait state machine
 - `just release <version>` - Create a GitHub release with auto-generated notes
 - `just release_age` - Check how long ago the last release was
 - `just clean_template` - Generate a clean README from template (strips template documentation) and removes other files not needed in new repos
@@ -182,6 +183,7 @@ Workflows in `.github/workflows/`:
 - **cue-verify.yml** - Validates `.repo.toml` format and flags
 - **pr-body-tests.yml** - Tests PR body update logic
 - **template-sync.yml** - Tests template synchronization system
+- **wait-for-copilot-tests.yml** - Tests the shared Copilot-wait state machine
 - **renovate-validate.yml** - Validates `.github/renovate.json` config
 
 ### Testing infrastructure
@@ -189,10 +191,11 @@ Workflows in `.github/workflows/`:
 The `.just/testing.just` module provides automated testing:
 
 - **pr_body_test** - Tests PR body update logic using `.just/lib/pr_body_test.sh`
-- **template_sync_test** - Tests template sync logic using `.just/lib/template_sync_test.sh`
-- **Test fixtures** - Located in `.just/test/fixtures/template_sync/`
+- **template_sync_test** - Tests template sync logic using `.just/lib/template_sync_test.sh` (update-script fixtures drive `template_update.sh`; recipe fixtures run the actual `just checksums_verify` / `checksums_diff` recipes)
+- **wait_for_copilot_test** - Tests the shared Copilot-wait state machine using `.just/lib/wait_for_copilot_test.sh` (mocked `gh`/`sleep` via PATH shims)
+- **Test fixtures** - Located in `.just/test/fixtures/` (`template_sync/`, `wait_for_copilot/`)
 
-Both test recipes run via GitHub Actions on every PR to ensure core functionality works.
+All test recipes run via GitHub Actions on every PR to ensure core functionality works.
 
 ### Markdown linting
 

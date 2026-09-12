@@ -1,0 +1,2 @@
+✓ .just/test.just - at latest (v2.0)
+All files are at latest template versions

@@ -94,6 +94,7 @@ Available recipes:
     repo_toml_check          # check if generated shell file is up-to-date
     repo_toml_generate       # generate shell variables from .repo.toml
     template_sync_test       # test template sync logic
+    wait_for_copilot_test    # test the shared Copilot-wait state machine
 
     [Testing/Compliance]
     compliance_check         # our own repo compliance check

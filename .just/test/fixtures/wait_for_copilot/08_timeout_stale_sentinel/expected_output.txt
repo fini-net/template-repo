@@ -1,0 +1,2 @@
+Copilot's latest review is for an older commit (HEAD is HEAD_SHA).
+The review is stale - it may not apply to the current code.
