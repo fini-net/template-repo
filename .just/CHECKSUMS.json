@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-09-12T01:04:29Z",
+  "generated_at": "2026-09-12T01:40:00Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -31,8 +31,8 @@
     ".just/clean-template.just": {"versions": [
         {
           "checksum": "d3a47a9446825c2844749be42329bb734505f509b38ae810b5ac08662b2d4b4e",
-          "commit": "5d4123e339a5add95d2121422215958d50849da4",
-          "date": "2026-09-11T14:53:31-07:00",
+          "commit": "636d048dcd018b31be6c3d88ef3b02999e76646b",
+          "date": "2026-09-11T18:12:13-07:00",
           "version": "v9.5",
           "is_latest": true
         }
@@ -79,11 +79,19 @@
 ]},
     ".just/compliance.just": {"versions": [
         {
+          "checksum": "4169a7da70d2521d9324f41b6daf2b00bad6ce165c0b1fa338e29354f2522123",
+          "commit": "40d90950cb3ca1dad7b5be9d910feda2be27b805",
+          "date": "2026-09-11T18:39:47-07:00",
+          "version": "v9.6",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "e771b050d297a45cbed197213f63e982defc740146567004b8ccd1e6b27f1c73",
           "commit": "67e095878a6bf464d8ad110ccc27c75c03db1056",
           "date": "2026-09-10T15:20:02-07:00",
           "version": "v9.2",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -314,11 +322,19 @@
 ]},
     ".just/gh-process.just": {"versions": [
         {
-          "checksum": "cb8e246c5d453108fb7a339696617e0f6d0d70023038ea685fcc342adceca9f9",
-          "commit": "5d4123e339a5add95d2121422215958d50849da4",
-          "date": "2026-09-11T14:53:31-07:00",
-          "version": "v9.5",
+          "checksum": "63241c8dd47d116d4703632c8a0d3971cb7da1f3e3c86a916cabc6ffaebea181",
+          "commit": "40d90950cb3ca1dad7b5be9d910feda2be27b805",
+          "date": "2026-09-11T18:39:47-07:00",
+          "version": "v9.6",
           "is_latest": true
+        }
+,
+        {
+          "checksum": "cb8e246c5d453108fb7a339696617e0f6d0d70023038ea685fcc342adceca9f9",
+          "commit": "636d048dcd018b31be6c3d88ef3b02999e76646b",
+          "date": "2026-09-11T18:12:13-07:00",
+          "version": "v9.5",
+          "is_latest": false
         }
 ,
         {
@@ -867,11 +883,19 @@
 ]},
     ".just/pr-hook.just": {"versions": [
         {
+          "checksum": "4f50c33724c9329365522ebf99ed72bf04ceeaf380802dc514e14895286ab844",
+          "commit": "40d90950cb3ca1dad7b5be9d910feda2be27b805",
+          "date": "2026-09-11T18:39:47-07:00",
+          "version": "v9.6",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "ae9a52b72583cce718d42f1ce0cf9c34c862777a9ef7a48a0e9aaf4f919af7ef",
           "commit": "6e469476ac980e0c2227f10e725479e494b2d42f",
           "date": "2026-01-25T22:58:07-08:00",
           "version": "",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -1048,8 +1072,8 @@
     ".just/testing.just": {"versions": [
         {
           "checksum": "e2e23fc6eabab41976050efe6278fce1b8be70d391a09b8238feb6a251f43290",
-          "commit": "5d4123e339a5add95d2121422215958d50849da4",
-          "date": "2026-09-11T14:53:31-07:00",
+          "commit": "636d048dcd018b31be6c3d88ef3b02999e76646b",
+          "date": "2026-09-11T18:12:13-07:00",
           "version": "v9.5",
           "is_latest": true
         }
@@ -1188,8 +1212,8 @@
     ".just/lib/generate_checksums.sh": {"versions": [
         {
           "checksum": "21381868249f3e4922191b20b9436ffeaa196507805eb2ccb6384328e297f6e6",
-          "commit": "5d4123e339a5add95d2121422215958d50849da4",
-          "date": "2026-09-11T14:53:31-07:00",
+          "commit": "636d048dcd018b31be6c3d88ef3b02999e76646b",
+          "date": "2026-09-11T18:12:13-07:00",
           "version": "v9.5",
           "is_latest": true
         }
@@ -1236,11 +1260,19 @@
 ]},
     ".just/lib/install-prerequisites.sh": {"versions": [
         {
+          "checksum": "465a0e290fb614724d8f736fe241edee538b5ff0838b274bf3c78124de046532",
+          "commit": "40d90950cb3ca1dad7b5be9d910feda2be27b805",
+          "date": "2026-09-11T18:39:47-07:00",
+          "version": "v9.6",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "59bf64698e7756b8e61fa76077b6a09dc768eaafcf38b10a7486cbfad35248c6",
           "commit": "0e4c15575bab004b0d9c9b621075067cfbc855d2",
           "date": "2026-09-10T15:44:56-07:00",
           "version": "v9.3",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -1303,26 +1335,10 @@
     ".just/lib/template_sync_test.sh": {"versions": [
         {
           "checksum": "9534e02883e207e01c7fe16fdacea2f6b26ccdeacfa3e5f13ebe2cde252fd620",
-          "commit": "fa5ee0b16610437b911dce3a919bdb7f63ddd02d",
-          "date": "2026-09-11T18:04:25-07:00",
+          "commit": "636d048dcd018b31be6c3d88ef3b02999e76646b",
+          "date": "2026-09-11T18:12:13-07:00",
           "version": "v9.5",
           "is_latest": true
-        }
-,
-        {
-          "checksum": "6037240cdf6de6827f7190551c5462b4ebf3e93b8b42b79b5edf270dc838475a",
-          "commit": "493f3bf1d226c867e55653efa6013ce10771764e",
-          "date": "2026-09-11T16:29:59-07:00",
-          "version": "v9.5",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "ba6cad5faf6a33c464966317635425133e439df631d2271a80ca15f1bd45226e",
-          "commit": "5d4123e339a5add95d2121422215958d50849da4",
-          "date": "2026-09-11T14:53:31-07:00",
-          "version": "v9.5",
-          "is_latest": false
         }
 ,
         {
@@ -1458,26 +1474,10 @@
     ".just/lib/wait_for_copilot_test.sh": {"versions": [
         {
           "checksum": "149e64c4003a46e464c8fbe9c166e2a3f3822aee7cfbdd9326a2fba170f285ce",
-          "commit": "fa5ee0b16610437b911dce3a919bdb7f63ddd02d",
-          "date": "2026-09-11T18:04:25-07:00",
+          "commit": "636d048dcd018b31be6c3d88ef3b02999e76646b",
+          "date": "2026-09-11T18:12:13-07:00",
           "version": "v9.5",
           "is_latest": true
-        }
-,
-        {
-          "checksum": "d31834ad5d82dcaa747f71d4422207226b59eb00326b9d56534da4fed9c7904d",
-          "commit": "493f3bf1d226c867e55653efa6013ce10771764e",
-          "date": "2026-09-11T16:29:59-07:00",
-          "version": "v9.5",
-          "is_latest": false
-        }
-,
-        {
-          "checksum": "74943cb22f9772186277dab6e6159da155bf43e5189ea7334cb0edd12fa52082",
-          "commit": "5d4123e339a5add95d2121422215958d50849da4",
-          "date": "2026-09-11T14:53:31-07:00",
-          "version": "v9.5",
-          "is_latest": false
         }
 ]},
     ".just/lib/wait_for_copilot.sh": {"versions": [
