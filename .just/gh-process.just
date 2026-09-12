@@ -22,7 +22,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v9.6
+# PR create v9.7
 [group('Process')]
 pr: _has_commits
     #!/usr/bin/env bash
@@ -135,7 +135,7 @@ merge: _on_a_branch && sync
 branch branchname: _main_branch
     #!/usr/bin/env bash
     NOW=$(just utcdate)
-    git checkout -b "$USER/$NOW-{{ branchname }}"
+    git checkout -b "$USER/$NOW-$1"
 
 # view PR in web browser
 [group('Process')]
@@ -261,6 +261,7 @@ _wait_for_checks: _on_a_pull_request
 release rel_version:
     #!/usr/bin/env bash
     set -euo pipefail
+    rel_version="$1"
 
     # Check if standard release workflow is enabled
     if [[ -e ".just/repo-toml.sh" ]]; then
@@ -276,15 +277,16 @@ release rel_version:
         exit 0
     fi
 
-    # Validate version format - must start with 'v' followed by a digit
-    # shellcheck disable=SC2050  # rel_version is a variable
-    if [[ ! "{{rel_version}}" =~ ^v[0-9] ]]; then
-        echo "{{RED}}Error: Release version must start with 'v' followed by a digit (e.g., v1.0.0, v2.3.4){{NORMAL}}"
+    # Validate version format - must be v, digits, with up to two
+    # .digits groups, nothing else (start-anchored-only regexes let
+    # quote-injection through, #359)
+    if [[ ! "$rel_version" =~ ^v[0-9]+(\.[0-9]+){0,2}$ ]]; then
+        echo "{{RED}}Error: Release version must be v followed by digits and up to two .digits groups (e.g., v1, v1.0, v1.0.0){{NORMAL}}"
         exit 1
     fi
 
     # Standard release workflow
-    gh release create "{{rel_version}}" --generate-notes
+    gh release create "$rel_version" --generate-notes
     sleep 1
     git pull
 

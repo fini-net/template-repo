@@ -4,6 +4,53 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## September 2026
 
+### v9.7 - injection hardening: positional args for branch/release/claude (2026-09-12)
+
+- Fixes issues [#353](https://github.com/fini-net/template-repo/issues/353)
+  and [#359](https://github.com/fini-net/template-repo/issues/359)
+
+**The last `{{...}}` argument templating is gone from user-facing recipes.**
+PR #352 (v9.1) proved empirically that interpolating a recipe argument
+into the body via `{{arg}}` is command-injectable at the templating
+layer - a branch name like `x"$(echo PWNED)"y` executes the
+substitution before bash parses the script - and fixed `checksums_diff`
+by switching to `set positional-arguments := true` + `"$1"`. #353 was
+the audit follow-up listing the three remaining sites with that same
+code shape, and all three now take the positional form: `branch` runs
+`git checkout -b "$USER/$NOW-$1"`, `release` reads `rel_version="$1"`
+up front and interpolates `"$rel_version"` throughout, and the variadic
+`claude *args` in `claude.just` becomes a shebang recipe running
+`claude "$@"`. The variadic case was the open empirical question from
+issue #353 - whether variadics text-substitute under
+positional-arguments even when named parameters don't - and testing
+confirmed they arrive as real positional shell parameters (the
+`x"$(echo PWNED)"y` payload stayed a literal string end to end), so
+`"$@"` is safe.
+
+**The release regex is now actually load-bearing (#359).** The old
+`^v[0-9]` start-anchored-only check let `v1"; touch /tmp/pwned #`
+pass validation and then break out of the quoting in `gh release
+create`. The positional-argument switch kills the injection vector
+on its own, but the guard is now tightened to
+`^v[0-9]+(\.[0-9]+){0,2}$` so it also does its real job: strict input
+validation with a clean error message (`v1`, `v1.0`, `v1.0.0` pass;
+anything with stray characters fails). This matches the pattern
+chicks-net/ctm already adopted in its derived copy of the template
+recipes. The strict form deliberately rejects prerelease suffixes
+(`v0.1-beta`); the repo's own tags have only ever been plain `vX.Y`
+forms, and the looser variant remains a one-line change if a
+prerelease workflow ever needs it.
+
+**Why one PR for both issues.** The fixes are the same three-line code
+shape applied in three places plus one regex, and both issues point at
+the same `release` recipe - #359's regex tightening only makes durable
+sense on top of #353's quoting fix. Splitting them would have meant
+two version bumps, two CHECKSUMS commits, and two release-notes
+entries for one substantive change. The now-unused SC2050 shellcheck
+disable comment (it existed because shellcheck couldn't see through
+just's `{{rel_version}}` templating) is removed along with the
+templating.
+
 ### v9.6 - release-process hygiene: editorconfig pre-push guard (2026-09-12)
 
 - Fixes issue [#329](https://github.com/fini-net/template-repo/issues/329)
