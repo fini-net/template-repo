@@ -182,12 +182,11 @@ EOF
 	recipe_name="${recipe_line[0]}"
 	local recipe_args=("${recipe_line[@]:1}")
 
-	# Run the recipe with the mock curl first on PATH. The ${arr[@]+...}
-	# guard keeps empty-argument recipes working under set -u on bash 3.2
+	# Run the recipe with the mock curl first on PATH. The if/else branch
+	# keeps empty-argument recipes working under set -u on bash 3.2
 	# (macOS), where "empty_array[@]" is an unbound-variable error.
 	cd "$workspace"
 	local output actual_exit=0
-	# shellcheck disable=SC2086  # word-splitting is the point here
 	if [[ ${#recipe_args[@]} -gt 0 ]]; then
 		output=$(PATH="$workspace:$PATH" just "$recipe_name" "${recipe_args[@]}" 2>&1) \
 			|| actual_exit=$?

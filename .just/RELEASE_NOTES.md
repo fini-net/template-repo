@@ -78,6 +78,21 @@ update-script-mode heredocs were copy-pasted (the review flagged they
 could drift), and both now call a single shared `write_mock_curl()`
 helper with the contract documented in one place.
 
+**Review follow-up 2: dormant SHA-normalization bug fixed before it
+could bite.** The second Claude review of #360 (finding 1) noted that
+the test harness normalized the 7-char short SHA *before* the full
+40-char SHA in its sed pipeline. Today that's harmless —
+`wait_for_copilot.sh` only ever prints the truncated form — but sed's
+left-to-right non-overlapping matching means a full SHA in any future
+output would collapse to a mangled run of `HEAD_SHA` tokens, silently
+corrupting a comparison instead of failing loudly. The substitutions
+now run full-SHA-first so a 40-char SHA collapses to one clean token
+either way, and the comment no longer claims both forms were exercised
+when only one was. The same review's nits dropped a leftover
+`shellcheck disable=SC2086` (the expansion it guarded was long gone)
+and a comment describing a `${arr[@]+...}` guard the code had already
+replaced with if/else branching.
+
 ### v9.4 - misleading comment fixes (2026-09-11)
 
 - Fixes issues [#339](https://github.com/fini-net/template-repo/issues/339)

@@ -189,10 +189,11 @@ run_test() {
 	# Output assertion. exact_output.txt demands a byte-for-byte match
 	# (after SHA normalization) and takes precedence: the in-order line
 	# check below can't see EXTRA output, so fixtures whose point is
-	# absence (gum suppressing dots) need the strict form. Normalization
-	# handles both the truncated and full SHA forms so fixtures can
-	# state expected lines as "HEAD_SHA" / "OLD_SHA".
-	normalized=$(echo "$output" | sed "s/${HEAD_SHA:0:7}/HEAD_SHA/g; s/$HEAD_SHA/HEAD_SHA/g; s/${OLD_SHA:0:7}/OLD_SHA/g; s/$OLD_SHA/OLD_SHA/g")
+	# absence (gum suppressing dots) need the strict form. Full SHAs are
+	# substituted before their 7-char prefixes so a 40-char SHA collapses
+	# to a single token instead of being chewed apart prefix-first;
+	# fixtures state expected lines as "HEAD_SHA" / "OLD_SHA".
+	normalized=$(echo "$output" | sed "s/$HEAD_SHA/HEAD_SHA/g; s/${HEAD_SHA:0:7}/HEAD_SHA/g; s/$OLD_SHA/OLD_SHA/g; s/${OLD_SHA:0:7}/OLD_SHA/g")
 	if [[ -f "$fixture_dir/exact_output.txt" ]]; then
 		if [[ "$normalized" != "$(cat "$fixture_dir/exact_output.txt")" ]]; then
 			echo -e "${RED}✗${NORMAL} $name - output does not exactly match exact_output.txt"
