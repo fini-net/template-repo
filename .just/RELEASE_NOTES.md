@@ -4,6 +4,26 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## September 2026
 
+### v9.8 - claude_review is the single print site for the Copilot summary line (2026-09-13)
+
+`pr_checks` (`.just/gh-process.just`) always chains into `claude_review`
+(`pr_checks: _on_a_pull_request && claude_review`). Both recipes read the
+same `COPILOT_COUNT_FILE` written by `pr_checks`'s GraphQL query, and both
+echoed the `🐈‍⬛ No unresolved Copilot suggestions - looks good!` /
+`🐈‍⬛ Unresolved Copilot suggestions: N` summary line from that count -
+`pr_checks` as immediate feedback right after the query, `claude_review`
+again as its end-of-run summary (a deliberate v8.4 change that moved the
+summary above `claude_review`'s early-exit gates so it always prints).
+Together they printed the identical line twice on every `just pr` /
+`just again` run with `copilot-review` enabled, on both the `gh observer`
+and `gh pr checks --watch` watcher paths.
+
+`pr_checks` no longer echoes the summary line. It still writes the count
+to `COPILOT_COUNT_FILE` for `claude_review` to read, and still prints the
+detailed `COPILOT_JSON` dump immediately when there are unresolved
+suggestions, but the "looks good!" / count summary now prints exactly
+once, from `claude_review`.
+
 ### v9.7 - injection hardening: positional args for branch/release/claude (2026-09-12)
 
 - Fixes issues [#353](https://github.com/fini-net/template-repo/issues/353)

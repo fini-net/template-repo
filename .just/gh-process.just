@@ -22,7 +22,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v9.7
+# PR create v9.8
 [group('Process')]
 pr: _has_commits
     #!/usr/bin/env bash
@@ -418,11 +418,14 @@ pr_checks: _on_a_pull_request && claude_review
         [[ "$COPILOT_COUNT" =~ ^[0-9]+$ ]] || COPILOT_COUNT=0
         echo "$COPILOT_COUNT" > "$COPILOT_COUNT_FILE"
 
-        # Display output to maintain current behavior
-        if [[ "$COPILOT_COUNT" -eq 0 ]]; then
-            echo "🐈‍⬛ No unresolved Copilot suggestions - looks good!"
-        else
-            echo "🐈‍⬛ Unresolved Copilot suggestions: $COPILOT_COUNT"
+        # Don't echo the "looks good!" / "Unresolved Copilot suggestions: N"
+        # summary line here - claude_review reads this same count file and
+        # is the single place that summary prints. Printing it in both
+        # recipes duplicated the line on every pr_checks->claude_review run
+        # (pr_checks always chains into claude_review). Only the detailed
+        # JSON dump belongs here, as immediate feedback right after the
+        # GraphQL query.
+        if [[ "$COPILOT_COUNT" -gt 0 ]]; then
             echo "$COPILOT_JSON" | jq '.'
         fi
     else
