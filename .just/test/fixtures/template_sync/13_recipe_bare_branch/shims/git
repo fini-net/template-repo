@@ -1,15 +1,23 @@
 #!/usr/bin/env bash
 # Shim git for the branch fixture: _main_branch runs
 # `git rev-parse --abbrev-ref HEAD` and the recipe runs
-# `git checkout -b <user>/<date>-<name>`. Echo the new branch so the
-# fixture can assert the feature name survived "$1"
-# (pre-#367: silently dropped - branch created with no name)
+# `git checkout -b <user>/<date>-<name>`. The name is built from the
+# live environment ($USER plus `just utcdate`), so the shim must not
+# echo it verbatim - that ties expected_output to whoever runs the
+# test and whenever (CI caught the first cut failing on Actions
+# runners, where $USER is `runner`). Assert the invariant instead:
+# the feature name survived "$1" as a -name suffix on the branch.
+# (pre-#367: name silently dropped - branch ends in a bare date)
 if [[ "$1" == "rev-parse" ]]; then
     echo "main"
     exit 0
 fi
 if [[ "$1 $2" == "checkout -b" ]]; then
-    echo "git-shim new branch: $3"
+    if [[ "$3" == *-my-feature ]]; then
+        echo "git-shim new branch: OK -my-feature suffix"
+    else
+        echo "git-shim new branch: MISSING -my-feature suffix"
+    fi
     exit 0
 fi
 exit 0

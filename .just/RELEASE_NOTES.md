@@ -58,15 +58,29 @@ aborts the whole suite under `set -euo pipefail` the first time an
 expected line is missing (grep exits 1), so no recipe fixture that
 *failed* could ever be reported - the suite just died silently after
 fixture 09. Both matcher copies (recipe mode and update-script mode)
-now guard the grep with the `grep_ok=0; ... || grep_ok=$?` idiom, so
-output mismatches are reported as failures instead of truncating the
-run.
+now guard the substitution with `|| true`, so output mismatches are
+reported as failures instead of truncating the run.
 
 **Why one PR for both issues.** The test pass is only meaningful on top
 of the fix it guards, and the issues explicitly ask for the same v9.9
 bump: the fixtures encode "no recipe may depend on root-justfile
 configuration that doesn't ship" as a standing invariant, and the
 attributes are what makes that invariant true.
+
+**Review round 1: fixture 13 goes environment-independent.** The first
+cut of the `branch` fixture echoed the created branch name verbatim
+into `expected_output.txt`, tying the assertion to the author's `$USER`
+and the wall-clock date - CI caught it on Actions runners (where
+`$USER` is `runner`) within a day. The git shim now asserts the
+invariant as a boolean verdict instead: the `-my-feature` suffix from
+`"$1"` either survived (an `OK` line, what expected_output requires) or
+was silently dropped pre-fix (a `MISSING` line, red). Red/green signal
+preserved, deterministic for any user, date, or runner; the red path
+was re-verified after the change by temporarily deleting the
+`branch` attribute. The two matcher copies also drifted in the first
+cut (`grep_ok` set-but-unread in one, read-in-a-dead-branch in the
+other); both are now byte-identical modulo indentation, so future
+edits diff cleanly against each other (the drift concern from #360).
 
 ### v9.8 - claude_review is the single print site for the Copilot summary line (2026-09-13)
 

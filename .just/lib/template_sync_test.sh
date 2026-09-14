@@ -284,10 +284,10 @@ run_recipe_test() {
 			# would abort the whole suite before the mismatch could be
 			# reported (a latent harness bug surfaced by the bare-justfile
 			# fixtures, #368, whose whole point is failing recipes). The
-			# `grep_ok=0; ... || grep_ok=$?` idiom keeps the loop alive.
-			local grep_ok=0
+			# `|| true` guard keeps the loop alive; the -z check below
+			# reports the mismatch.
 			line_num=$(echo "$normalized_output" | grep -nF -e "$line" | awk -F: -v s="$search_start" '$1 >= s {print $1; exit}') \
-				|| grep_ok=$?
+				|| true
 			if [[ -z "$line_num" ]]; then
 				output_ok=false
 				break
@@ -413,20 +413,13 @@ run_update_test() {
 			# grep exits 1 when the line is missing - a handled case here,
 			# not a crash - but under `set -euo pipefail` the substitution
 			# would abort the whole suite before the mismatch could be
-			# reported. The `grep_ok=0; ... || grep_ok=$?` idiom keeps
-			# the loop alive (same guard as recipe mode).
-			# shellcheck disable=SC2034  # only the exit status matters
-			local grep_ok=0
+			# reported (a latent harness bug surfaced by the bare-justfile
+			# fixtures, #368, whose whole point is failing recipes). The
+			# `|| true` guard keeps the loop alive; the -z check below
+			# reports the mismatch.
 			line_num=$(echo "$normalized_output" | grep -nF -e "$line" | awk -F: -v s="$search_start" '$1 >= s {print $1; exit}') \
-				|| grep_ok=$?
-			if [[ "$grep_ok" -ne 0 ]]; then
-				# Line missing entirely (grep found nothing)
-				output_ok=false
-				break
-			fi
+				|| true
 			if [[ -z "$line_num" ]]; then
-				# Line only appears before an earlier expected line
-				# (out of order)
 				output_ok=false
 				break
 			fi
