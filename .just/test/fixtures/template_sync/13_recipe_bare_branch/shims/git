@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Shim git for the branch fixture: _main_branch runs
+# `git rev-parse --abbrev-ref HEAD` and the recipe runs
+# `git checkout -b <user>/<date>-<name>`. Echo the new branch so the
+# fixture can assert the feature name survived "$1"
+# (pre-#367: silently dropped - branch created with no name)
+if [[ "$1" == "rev-parse" ]]; then
+    echo "main"
+    exit 0
+fi
+if [[ "$1 $2" == "checkout -b" ]]; then
+    echo "git-shim new branch: $3"
+    exit 0
+fi
+exit 0
