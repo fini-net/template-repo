@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Shim gh: record the release command so the fixture can assert the
+# version arrived intact (pre-#367: `$1: unbound variable`, exit 1)
+echo "gh-shim: $*"

@@ -20,6 +20,24 @@
 #                     "checksums_verify" or "checksums_diff ../evil.txt")
 #   expected_exit  - optional: expected exit code (default 0 for recipe
 #                     mode; update-script mode ignores failures as before)
+#   modules        - optional: space-separated .just module basenames to
+#                     copy into the workspace and import (default:
+#                     "template-sync"; e.g. "gh-process" or "claude
+#                     template-sync"). Each module's import line lands in
+#                     the scaffolded justfile.
+#   bare_justfile  - optional: any content; when present the scaffolded
+#                     workspace justfile omits `set positional-arguments
+#                     := true`, exactly mirroring a derived repo whose
+#                     root justfile never ships (#368). Pins the
+#                     invariant: tracked modules must be self-contained -
+#                     no recipe may depend on root-justfile configuration
+#                     that doesn't ship (#367).
+#   shims/         - optional: executable scripts copied into the
+#                     workspace and prepended to PATH, shadowing both the
+#                     harness's mock curl and real tools (the same PATH
+#                     shim precedent wait_for_copilot_test.sh uses for
+#                     gh/sleep). Fixture shims win over the harness mock
+#                     because the whole workspace dir sits first on PATH.
 set -euo pipefail
 
 # shellcheck source=.just/lib/common.sh
@@ -150,17 +168,54 @@ run_recipe_test() {
 		shopt -u dotglob
 	fi
 
-	# Scaffold a minimal derived-repo justfile importing the real module
+	# Scaffold a minimal derived-repo justfile importing the real modules.
+	# Fixture `modules` picks which (default: template-sync); fixture
+	# `bare_justfile` drops the `set positional-arguments` line so the
+	# workspace mirrors a derived repo's justfile exactly (#367/#368)
+	local module_list="template-sync"
+	if [[ -f "$test_dir/modules" ]]; then
+		if [[ ! -s "$test_dir/modules" ]]; then
+			echo -e "${RED}✗${NORMAL} $test_name - modules file is empty"
+			rm -rf "$workspace"
+			(( failed += 1 ))
+			return
+		fi
+		module_list=$(cat "$test_dir/modules")
+	fi
 	mkdir -p "$workspace/.just/lib"
-	cp "$SCRIPT_DIR/../template-sync.just" "$workspace/.just/"
+	local module
+	for module in $module_list; do
+		if [[ ! -f "$SCRIPT_DIR/../$module.just" ]]; then
+			echo -e "${RED}✗${NORMAL} $test_name - unknown module: $module"
+			rm -rf "$workspace"
+			(( failed += 1 ))
+			return
+		fi
+		cp "$SCRIPT_DIR/../$module.just" "$workspace/.just/"
+	done
 	cp "$SCRIPT_DIR/common.sh" "$workspace/.just/lib/"
-	cat > "$workspace/justfile" <<'EOF'
-set positional-arguments := true
-import '.just/template-sync.just'
-EOF
+	{
+		if [[ ! -f "$test_dir/bare_justfile" ]]; then
+			echo "set positional-arguments := true"
+		fi
+		for module in $module_list; do
+			echo "import '.just/$module.just'"
+		done
+	} > "$workspace/justfile"
 
 	# Mock curl serving fixture data (shared contract - see write_mock_curl)
 	write_mock_curl "$workspace"
+
+	# Fixture shims: copied in executable and prepended to PATH below,
+	# ahead of the harness mock curl (whole-workspace dir first on PATH)
+	if [[ -d "$test_dir/shims" ]]; then
+		local shim
+		for shim in "$test_dir"/shims/*; do
+			[[ -f "$shim" ]] || continue
+			cp "$shim" "$workspace/"
+			chmod +x "$workspace/$(basename "$shim")"
+		done
+	fi
 
 	# Copy manifest + template versions (curl mock resolves these)
 	[[ -f "$test_dir/manifest.json" ]] && cp "$test_dir/manifest.json" "$workspace/"
@@ -182,9 +237,10 @@ EOF
 	recipe_name="${recipe_line[0]}"
 	local recipe_args=("${recipe_line[@]:1}")
 
-	# Run the recipe with the mock curl first on PATH. The if/else branch
-	# keeps empty-argument recipes working under set -u on bash 3.2
-	# (macOS), where "empty_array[@]" is an unbound-variable error.
+	# Run the recipe with the workspace first on PATH (fixture shims
+	# shadow both the harness mock curl and real tools). The if/else
+	# branch keeps empty-argument recipes working under set -u on bash
+	# 3.2 (macOS), where "empty_array[@]" is an unbound-variable error.
 	cd "$workspace"
 	local output actual_exit=0
 	if [[ ${#recipe_args[@]} -gt 0 ]]; then
@@ -222,8 +278,16 @@ EOF
 		local search_start=1
 		for line in "${expected_lines[@]}"; do
 			local line_num
-			# -e: expected lines may start with dashes (e.g. diff output)
-			line_num=$(echo "$normalized_output" | grep -nF -e "$line" | awk -F: -v s="$search_start" '$1 >= s {print $1; exit}')
+			# -e: expected lines may start with dashes (e.g. diff output).
+			# grep exits 1 when the line is missing - a handled case here,
+			# not a crash - but under `set -euo pipefail` the substitution
+			# would abort the whole suite before the mismatch could be
+			# reported (a latent harness bug surfaced by the bare-justfile
+			# fixtures, #368, whose whole point is failing recipes). The
+			# `|| true` guard keeps the loop alive; the -z check below
+			# reports the mismatch.
+			line_num=$(echo "$normalized_output" | grep -nF -e "$line" | awk -F: -v s="$search_start" '$1 >= s {print $1; exit}') \
+				|| true
 			if [[ -z "$line_num" ]]; then
 				output_ok=false
 				break
@@ -345,11 +409,17 @@ run_update_test() {
 		local search_start=1
 		for line in "${expected_lines[@]}"; do
 			local line_num
-			# -e: expected lines may start with dashes (e.g. diff output)
-			line_num=$(echo "$normalized_output" | grep -nF -e "$line" | awk -F: -v s="$search_start" '$1 >= s {print $1; exit}')
+			# -e: expected lines may start with dashes (e.g. diff output).
+			# grep exits 1 when the line is missing - a handled case here,
+			# not a crash - but under `set -euo pipefail` the substitution
+			# would abort the whole suite before the mismatch could be
+			# reported (a latent harness bug surfaced by the bare-justfile
+			# fixtures, #368, whose whole point is failing recipes). The
+			# `|| true` guard keeps the loop alive; the -z check below
+			# reports the mismatch.
+			line_num=$(echo "$normalized_output" | grep -nF -e "$line" | awk -F: -v s="$search_start" '$1 >= s {print $1; exit}') \
+				|| true
 			if [[ -z "$line_num" ]]; then
-				# Line missing entirely, or only appears before an
-				# earlier expected line (out of order)
 				output_ok=false
 				break
 			fi

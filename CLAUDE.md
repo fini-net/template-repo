@@ -254,7 +254,7 @@ These three actions always go together and apply equally to every CHECKSUMS-trac
 
 ### Required tools
 
-- `just` - Command runner for all recipes
+- `just` - Command runner for all recipes (>= 1.29.0: the positional-argument recipes use the per-recipe `[positional-arguments]` attribute, #367)
 - `gh` - GitHub CLI for PR and release management
 - `git` - Version control
 

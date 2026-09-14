@@ -1,0 +1,1 @@
+gh-shim: release create v1.0 --generate-notes

@@ -140,8 +140,11 @@ checksums_verify:
         exit 1
     fi
 
+# [positional-arguments] keeps this recipe self-contained in derived
+# repos, whose root justfile lacks `set positional-arguments` (#367)
 # Show diff between local and latest template version
 [group('Template Maintenance')]
+[positional-arguments]
 checksums_diff filepath:
     #!/usr/bin/env bash
     set -euo pipefail

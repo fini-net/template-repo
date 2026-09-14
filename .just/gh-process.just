@@ -22,7 +22,7 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v9.8
+# PR create v9.9
 [group('Process')]
 pr: _has_commits
     #!/usr/bin/env bash
@@ -130,8 +130,11 @@ merge: _on_a_branch && sync
     gh pr merge -s -d
     # `&& sync` is mostly redundant, but just in case
 
+# [positional-arguments] keeps this recipe self-contained in derived
+# repos, whose root justfile lacks `set positional-arguments` (#367)
 # start a new branch
 [group('Process')]
+[positional-arguments]
 branch branchname: _main_branch
     #!/usr/bin/env bash
     NOW=$(just utcdate)
@@ -256,8 +259,11 @@ _wait_for_checks: _on_a_pull_request
 @utcdate:
     TZ=UTC date +"%Y-%m-%d"
 
+# [positional-arguments] keeps this recipe self-contained in derived
+# repos, whose root justfile lacks `set positional-arguments` (#367)
 # make a release
 [group('Process')]
+[positional-arguments]
 release rel_version:
     #!/usr/bin/env bash
     set -euo pipefail

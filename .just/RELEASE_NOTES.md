@@ -4,6 +4,84 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## September 2026
 
+### v9.9 - self-contained positional-argument recipes + bare-justfile test pass (2026-09-14)
+
+- Fixes issues [#367](https://github.com/fini-net/template-repo/issues/367)
+  and [#368](https://github.com/fini-net/template-repo/issues/368)
+
+**The four argument-taking recipes no longer depend on root-justfile
+configuration.** v9.7 moved `claude`, `branch`, `release`, and
+`checksums_diff` to positional shell parameters (`"$@"` / `"$1"`), but
+positional parameters only populate when `set positional-arguments :=
+true` is present somewhere in the justfile/import tree - and the root
+justfile, which holds the setting, is not CHECKSUMS-tracked, so
+`just update_from_template` shipped the v9.7 modules to derived repos
+without the setting they require. Every derived repo that pulled v9.7
+broke: `just claude <anything>` silently launched claude with no
+arguments, `just branch my-feature` created `user/2026-09-14-` with the
+name silently dropped, and `just release v1.0` / `just checksums_diff
+<path>` failed immediately with `$1: unbound variable`. A second `set`
+inside a shipped module is a hard redefinition error, so the fix is the
+per-recipe `[positional-arguments]` attribute (just >= 1.29.0), which
+now sits on all four recipes. The attribute lives inside
+CHECKSUMS-tracked modules, so it ships to derived repos, and it is
+inert next to template-repo's own root `set`. Verified against the
+injection payload end to end: under a bare justfile,
+`just claude 'x"$(echo PWNED)"y'` still passes the argument through as
+a literal string.
+
+**The recipe-mode harness no longer tests against a configuration real
+consumers never have.** `run_recipe_test()` baked
+`set positional-arguments := true` into every sandbox justfile, which is
+exactly why the v9.7 breakage sailed through CI green (#368). The
+harness now supports three fixture-driven options: `modules` (which
+.just modules to copy and import, default `template-sync`),
+`bare_justfile` (omit the `set` line, mirroring a derived-repo
+justfile), and `shims/` (executable scripts prepended to PATH,
+shadowing the harness's mock curl and real tools - the same shim
+precedent wait_for_copilot_test.sh uses for gh/sleep). Four new bare
+fixtures pin the invariant that tracked modules must be self-contained:
+
+- `10_recipe_bare_diff_happy` - `checksums_diff .just/test.just` in a
+  bare workspace (pre-fix: `unbound variable`)
+- `11_recipe_bare_claude` - `claude hello world` through a shim that
+  echoes its arguments (pre-fix: args silently vanished)
+- `12_recipe_bare_release` - `release v1.0` through gh/git shims
+  (pre-fix: `unbound variable`)
+- `13_recipe_bare_branch` - `branch my-feature` through a git shim that
+  echoes the created branch name (pre-fix: name silently dropped)
+
+All four were confirmed red against the pre-fix recipes before the
+attributes landed. Along the way the bare fixtures surfaced a latent
+harness bug: the expected-output matcher's `grep -nF | awk` pipeline
+aborts the whole suite under `set -euo pipefail` the first time an
+expected line is missing (grep exits 1), so no recipe fixture that
+*failed* could ever be reported - the suite just died silently after
+fixture 09. Both matcher copies (recipe mode and update-script mode)
+now guard the substitution with `|| true`, so output mismatches are
+reported as failures instead of truncating the run.
+
+**Why one PR for both issues.** The test pass is only meaningful on top
+of the fix it guards, and the issues explicitly ask for the same v9.9
+bump: the fixtures encode "no recipe may depend on root-justfile
+configuration that doesn't ship" as a standing invariant, and the
+attributes are what makes that invariant true.
+
+**Review round 1: fixture 13 goes environment-independent.** The first
+cut of the `branch` fixture echoed the created branch name verbatim
+into `expected_output.txt`, tying the assertion to the author's `$USER`
+and the wall-clock date - CI caught it on Actions runners (where
+`$USER` is `runner`) within a day. The git shim now asserts the
+invariant as a boolean verdict instead: the `-my-feature` suffix from
+`"$1"` either survived (an `OK` line, what expected_output requires) or
+was silently dropped pre-fix (a `MISSING` line, red). Red/green signal
+preserved, deterministic for any user, date, or runner; the red path
+was re-verified after the change by temporarily deleting the
+`branch` attribute. The two matcher copies also drifted in the first
+cut (`grep_ok` set-but-unread in one, read-in-a-dead-branch in the
+other); both are now byte-identical modulo indentation, so future
+edits diff cleanly against each other (the drift concern from #360).
+
 ### v9.8 - claude_review is the single print site for the Copilot summary line (2026-09-13)
 
 `pr_checks` (`.just/gh-process.just`) always chains into `claude_review`

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Shim claude: print arguments one per line, prefixed, so the fixture can
+# assert they survived the recipe's "$@" (pre-#367 they silently vanish)
+echo "claude-shim args:"
+for arg in "$@"; do
+    echo "$arg"
+done
