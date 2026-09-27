@@ -8,6 +8,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 - Fixes issues [#367](https://github.com/fini-net/template-repo/issues/367)
   and [#368](https://github.com/fini-net/template-repo/issues/368)
+- **Related PR:** [#369](https://github.com/fini-net/template-repo/pull/369)
 
 **The four argument-taking recipes no longer depend on root-justfile
 configuration.** v9.7 moved `claude`, `branch`, `release`, and
@@ -84,6 +85,8 @@ edits diff cleanly against each other (the drift concern from #360).
 
 ### v9.8 - claude_review is the single print site for the Copilot summary line (2026-09-13)
 
+- **Related PR:** [#363](https://github.com/fini-net/template-repo/pull/363)
+
 `pr_checks` (`.just/gh-process.just`) always chains into `claude_review`
 (`pr_checks: _on_a_pull_request && claude_review`). Both recipes read the
 same `COPILOT_COUNT_FILE` written by `pr_checks`'s GraphQL query, and both
@@ -106,6 +109,7 @@ once, from `claude_review`.
 
 - Fixes issues [#353](https://github.com/fini-net/template-repo/issues/353)
   and [#359](https://github.com/fini-net/template-repo/issues/359)
+- **Related PR:** [#362](https://github.com/fini-net/template-repo/pull/362)
 
 **The last `{{...}}` argument templating is gone from user-facing recipes.**
 PR #352 (v9.1) proved empirically that interpolating a recipe argument
@@ -152,6 +156,7 @@ templating.
 ### v9.6 - release-process hygiene: editorconfig pre-push guard (2026-09-12)
 
 - Fixes issue [#329](https://github.com/fini-net/template-repo/issues/329)
+- **Related PR:** [#361](https://github.com/fini-net/template-repo/pull/361)
 
 **The 3-space indent regression finally has a local gate.** Numbered-list
 continuation lines in this very file kept landing with a 3-space indent
@@ -202,6 +207,7 @@ the entry you are reading is the backfill, and the README's
 
 - Fixes issues [#330](https://github.com/fini-net/template-repo/issues/330)
   and [#354](https://github.com/fini-net/template-repo/issues/354)
+- **Related PR:** [#360](https://github.com/fini-net/template-repo/pull/360)
 
 **The Copilot-wait state machine finally has tests.** The shared
 `.just/lib/wait_for_copilot.sh` poll loop sits on the critical path of
@@ -291,6 +297,7 @@ replaced with if/else branching.
 
 - Fixes issues [#339](https://github.com/fini-net/template-repo/issues/339)
   and [#337](https://github.com/fini-net/template-repo/issues/337)
+- **Related PR:** [#357](https://github.com/fini-net/template-repo/pull/357)
 
 **No more "calling shell" confusion.** The comment above
 `unset 'footer_content[...]'` in `update_pr_body.sh` was added by #203
@@ -321,6 +328,7 @@ template-repo-only test coverage accordingly (#337).
 
 - Fixes issues [#335](https://github.com/fini-net/template-repo/issues/335)
   and [#333](https://github.com/fini-net/template-repo/issues/333)
+- **Related PR:** [#356](https://github.com/fini-net/template-repo/pull/356)
 
 **npm fallback for markdownlint-cli2 on macOS.** The macOS branch
 already exits early when Homebrew is missing, which made the nested
@@ -343,6 +351,7 @@ alternative, matching the Linux branch's existing npm guidance (#333).
 - Fixes issues [#340](https://github.com/fini-net/template-repo/issues/340),
   [#328](https://github.com/fini-net/template-repo/issues/328), and
   [#334](https://github.com/fini-net/template-repo/issues/334)
+- **Related PR:** [#355](https://github.com/fini-net/template-repo/pull/355)
 
 **Graceful failure.** The lint/compliance recipes no longer die or lie
 when optional tooling misbehaves:
@@ -392,6 +401,7 @@ longer reports a vacuous GREEN:
   [#346](https://github.com/fini-net/template-repo/issues/346),
   [#336](https://github.com/fini-net/template-repo/issues/336), and
   [#338](https://github.com/fini-net/template-repo/issues/338)
+- **Related PR:** [#352](https://github.com/fini-net/template-repo/pull/352)
 
 **Security.** Two defenses land in the template sync system:
 
@@ -495,6 +505,7 @@ updates normally. Wiring it up surfaced two dormant harness bugs in
 ### v9.0 - asciinema recording of pr/again behind asciinema-record flag (2026-09-05)
 
 - Fixes issue [#324](https://github.com/fini-net/template-repo/issues/324)
+- **Related PR:** [#345](https://github.com/fini-net/template-repo/pull/345)
 
 `just pr` and `just again` can now capture a replayable terminal
 recording of the whole flow via `asciinema rec`. Recordings are useful
@@ -581,6 +592,7 @@ exposure for the vast majority of runs.
 ### v8.9 - fix copilot_rollback parsing for legacy backups (2026-09-05)
 
 - Fixes issue [#332](https://github.com/fini-net/template-repo/issues/332)
+- **Related PR:** [#344](https://github.com/fini-net/template-repo/pull/344)
 
 `copilot_rollback` (`.just/copilot.just`) reconstructed backup
 filenames by splitting on the *first* underscore (`safe_path
@@ -627,6 +639,7 @@ need sidecar metadata to fix; it predates this change.
 
 - Fixes issue [#326](https://github.com/fini-net/template-repo/issues/326)
 - Fixes issue [#327](https://github.com/fini-net/template-repo/issues/327)
+- **Related PR:** [#341](https://github.com/fini-net/template-repo/pull/341)
 
 Two related classes of `set -euo pipefail` fragility that kept recurring
 across v8.\* PRs (Claude/Copilot caught instances of each in the reviews
@@ -682,6 +695,7 @@ both document the `|| var=<fallback>` variant as well as the
 ### v8.7 - pr_checks skips redundant Copilot wait on gh observer path (2026-09-01)
 
 - Fixes issue [#320](https://github.com/fini-net/template-repo/issues/320)
+- **Related PR:** [#322](https://github.com/fini-net/template-repo/pull/322)
 
 `pr_checks` (`.just/gh-process.just`) ran `.just/lib/wait_for_copilot.sh`
 after the CI watcher exited to stop the one-shot `reviewThreads` GraphQL
@@ -713,6 +727,7 @@ enhancement (cleanup) for that reason.
 ### v8.6 - compliance_check verifies a custom social preview image (2026-09-01)
 
 - Fixes issue [#242](https://github.com/fini-net/template-repo/issues/242)
+- **Related PR:** [#321](https://github.com/fini-net/template-repo/pull/321)
 
 `compliance_check` (`.just/compliance.just`) verified nearly all of the
 GitHub community-standards surface (README, LICENSE, CODE_OF_CONDUCT,
@@ -797,6 +812,7 @@ the PR ships):
 ### v8.5 - compliance_check gains OpenSSF Scorecard-aligned checks (2026-08-28)
 
 - Fixes issue [#314](https://github.com/fini-net/template-repo/issues/314)
+- **Related PR:** [#317](https://github.com/fini-net/template-repo/pull/317)
 
 `compliance_check` (`.just/compliance.just`) previously verified a handful
 of GitHub community-standards files plus branch protection and stopped
@@ -919,6 +935,7 @@ so it is used here deliberately.
 ### v8.4 - pr_checks waits for Copilot; shared poll script; claude_review cleanup (2026-08-14)
 
 - Fixes issue [#299](https://github.com/fini-net/template-repo/issues/299)
+- **Related PR:** [#300](https://github.com/fini-net/template-repo/pull/300)
 - Follow-up to v8.3 (#288), which only wired the in-progress / zero-comment
   detection into `copilot_refresh`
 
@@ -934,7 +951,7 @@ indistinguishable from a real clean review. Verified by live-monitoring
 adRise/tubi-observability PR #105.
 
 Five fixes ship in v8.4, plus three follow-ups from the Claude code
-review of PR #299:
+review of PR #300:
 
 1. **`pr_checks` races Copilot (main issue).** The poll/state-machine from
   v8.3 is extracted into a shared `.just/lib/wait_for_copilot.sh` and
@@ -998,7 +1015,7 @@ review of PR #299:
   insensitive, so tabs inside the single-quoted string are fine. Also
   fixed the 3-space continuation indent in this release-notes section
   to 2-space so editorconfig-checker passes on `RELEASE_NOTES.md`.
-9. **Three follow-ups from the Claude code review of PR #299 (round 2).**
+9. **Three follow-ups from the Claude code review of PR #300 (round 2).**
 
     - `claude_review`'s Copilot-summary block was moved above *both* early
       exits (the `FLAG_CLAUDE_REVIEW` disabled gate and the "No Claude
