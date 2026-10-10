@@ -13,6 +13,13 @@
       "depNameTemplate": "rhysd/actionlint",
       "extractVersionTemplate": "^v(?<version>.*)$",
       "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["^\\.github/workflows/actionlint\\.ya?ml$"],
+      "matchStrings": ["PYFLAKES_VERSION:\\s*(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "datasourceTemplate": "pypi",
+      "depNameTemplate": "pyflakes"
     }
   ],
   "packageRules": [
@@ -28,7 +35,7 @@
       "overridePackageName": "https://github.com/bridgecrewio/checkov-action"
     },
     {
-      "matchDepNames": ["rhysd/actionlint"],
+      "matchDepNames": ["rhysd/actionlint", "pyflakes"],
       "minimumReleaseAge": "3 days"
     }
   ],
