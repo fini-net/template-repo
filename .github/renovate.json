@@ -4,6 +4,24 @@
     "config:recommended"
   ],
   "schedule": ["after 5am on Monday", "after 5am on Tuesday", "after 5am on Wednesday", "after 5am on Thursday", "after 5am on Friday"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["^\\.github/workflows/actionlint\\.ya?ml$"],
+      "matchStrings": ["ACTIONLINT_VERSION:\\s*(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "rhysd/actionlint",
+      "extractVersionTemplate": "^v(?<version>.*)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["^\\.github/workflows/actionlint\\.ya?ml$"],
+      "matchStrings": ["PYFLAKES_VERSION:\\s*(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "datasourceTemplate": "pypi",
+      "depNameTemplate": "pyflakes"
+    }
+  ],
   "packageRules": [
     {
       "matchManagers": ["github-actions"],
@@ -15,6 +33,10 @@
       "matchDepNames": ["bridgecrewio/checkov-action"],
       "overrideDatasource": "git-refs",
       "overridePackageName": "https://github.com/bridgecrewio/checkov-action"
+    },
+    {
+      "matchDepNames": ["rhysd/actionlint", "pyflakes"],
+      "minimumReleaseAge": "3 days"
     }
   ],
   "prConcurrentLimit": 3,
