@@ -28,10 +28,23 @@ jobs:
       ACTIONLINT_VERSION: 1.7.12
       PYFLAKES_VERSION: 4.0.3
     steps:
-      - name: Harden the runner (Audit all outbound calls)
+      # Egress allowlist, by consuming step:
+      #   github.com:443                        - checkout git fetch; release download redirects
+      #   raw.githubusercontent.com:443         - actionlint download script (SHA-pinned)
+      #   release-assets.githubusercontent.com  - release tarballs + checksums.txt (GitHub's release CDN)
+      #   pypi.org:443, files.pythonhosted.org - pipx install pyflakes
+      # Note: GitHub/Azure runner infrastructure domains are auto-allowed by
+      # harden-runner; actionlint itself makes no network calls.
+      - name: Harden the runner (Block all outbound calls except the allowlist)
         uses: step-security/harden-runner@351661ca32ac09a36dc5ee2d536e3128f2a3c8ed # v2.22.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            raw.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
+            pypi.org:443
+            files.pythonhosted.org:443
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -83,4 +96,14 @@ jobs:
         run: |
           echo "::add-matcher::.github/actionlint-matcher.json"
           "${ACTIONLINT_EXECUTABLE}" -color
+        shell: bash
+
+      # TEMPORARY negative test - proves egress-policy: block actually blocks.
+      # This step MUST fail (connection blocked). Remove after verification.
+      - name: NEGATIVE TEST - non-allowed domain must be blocked
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 10 https://example.com > /dev/null
+          echo "ERROR: egress was NOT blocked"
+          exit 1
         shell: bash
