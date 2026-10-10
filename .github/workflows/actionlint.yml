@@ -97,13 +97,3 @@ jobs:
           echo "::add-matcher::.github/actionlint-matcher.json"
           "${ACTIONLINT_EXECUTABLE}" -color
         shell: bash
-
-      # TEMPORARY negative test - proves egress-policy: block actually blocks.
-      # This step MUST fail (connection blocked). Remove after verification.
-      - name: NEGATIVE TEST - non-allowed domain must be blocked
-        run: |
-          set -euo pipefail
-          curl -fsS --max-time 10 https://example.com > /dev/null
-          echo "ERROR: egress was NOT blocked"
-          exit 1
-        shell: bash
