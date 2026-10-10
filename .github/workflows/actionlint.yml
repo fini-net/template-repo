@@ -31,7 +31,31 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      # shellcheck is preinstalled on hosted runners and actionlint uses it
+      # automatically for `run:` scripts; verify it's actually there so the
+      # checks fail loudly instead of being silently skipped.
+      - name: Verify shellcheck is available
+        run: shellcheck --version
+
+      # pyflakes is bundled in the old Docker image but NOT on hosted runners.
+      # Install it to keep Python `run:` checks.
+      - name: Install pyflakes
+        run: pipx install pyflakes
+
+      # NOTE: the explicit version arg is required - the script baked into tag
+      # v1.7.12 defaults to 1.7.11 (its default always lags the tag).
+      - name: Download actionlint
+        id: get_actionlint
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+        run: bash <(curl -fsSL "https://raw.githubusercontent.com/rhysd/actionlint/v${ACTIONLINT_VERSION}/scripts/download-actionlint.bash") "${ACTIONLINT_VERSION}"
+        shell: bash
+
       - name: Check workflow files
-        uses: docker://rhysd/actionlint:1.7.12@sha256:9d36088643581e728c969f35141f88139fec77280b2be23c1f66f8e40e1025e7
-        with:
-          args: -color
+        env:
+          ACTIONLINT_EXECUTABLE: ${{ steps.get_actionlint.outputs.executable }}
+        run: |
+          echo "::add-matcher::.github/actionlint-matcher.json"
+          "${ACTIONLINT_EXECUTABLE}" -color
+        shell: bash
