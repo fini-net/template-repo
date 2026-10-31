@@ -1,0 +1,16 @@
+# .repo.toml
+
+[about]
+description = "fixture description"
+topics = ["fixture-topic"]
+
+[urls]
+git_ssh = "git@github.com:other-org/derived-repo.git"
+web_url = "https://github.com/other-org/derived-repo"
+
+[flags]
+claude = false
+claude-review = false
+copilot-review = false
+standard-release = true
+asciinema-record = false

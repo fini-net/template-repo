@@ -18,8 +18,7 @@ cue-verify:
     # that is not a github.com org/repo URL, which stage 3 below treats
     # as "cannot extract" (#420).
     if ORG_REPO_PAIR=$(repo_toml_org_repo); then
-        ORG_NAME=$(echo "$ORG_REPO_PAIR" | cut -d' ' -f1)
-        REPO_NAME=$(echo "$ORG_REPO_PAIR" | cut -d' ' -f2)
+        read -r ORG_NAME REPO_NAME <<<"$ORG_REPO_PAIR"
     else
         ORG_NAME=""
         REPO_NAME=""
@@ -128,6 +127,8 @@ cue-verify:
             echo "{{YELLOW}}[urls] org in .repo.toml ($ORG_NAME) differs from the origin remote ($ORIGIN_SLASH){{NORMAL}}"
             echo "{{YELLOW}}  Expected in a fork clone - verifying against the repo named in web_url{{NORMAL}}"
         fi
+    elif [[ -n "$ORG_NAME" && -n "$REPO_NAME" ]]; then
+        echo "{{YELLOW}}[urls] origin remote unavailable - skipping web_url cross-check{{NORMAL}}"
     fi
 
     # Extract description and topics from .repo.toml
@@ -191,8 +192,7 @@ cue-sync-from-github:
 
     # Extract org and repo name from .repo.toml (config source of truth)
     if $REPO_TOML_EXISTS && ORG_REPO_PAIR=$(repo_toml_org_repo); then
-        ORG_NAME=$(echo "$ORG_REPO_PAIR" | cut -d' ' -f1)
-        REPO_NAME=$(echo "$ORG_REPO_PAIR" | cut -d' ' -f2)
+        read -r ORG_NAME REPO_NAME <<<"$ORG_REPO_PAIR"
 
         # Refuse to sync the wrong repo: cross-check urls.web_url against
         # the git origin remote. A derived repo whose .repo.toml still
@@ -219,8 +219,7 @@ cue-sync-from-github:
     # Fall back to git remote if .repo.toml is missing or parsing failed
     if [[ -z "${ORG_NAME:-}" || -z "${REPO_NAME:-}" ]]; then
         if ORG_REPO_PAIR=$(origin_org_repo); then
-            ORG_NAME=$(echo "$ORG_REPO_PAIR" | cut -d' ' -f1)
-            REPO_NAME=$(echo "$ORG_REPO_PAIR" | cut -d' ' -f2)
+            read -r ORG_NAME REPO_NAME <<<"$ORG_REPO_PAIR"
         fi
     fi
 

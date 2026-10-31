@@ -1,0 +1,11 @@
+# .repo.toml
+
+[about]
+description = "web_url without git_ssh gets its partner inserted"
+topics = ["alpha"]
+
+[urls]
+web_url = "https://github.com/fini-net/template-repo"
+
+[flags]
+claude = false

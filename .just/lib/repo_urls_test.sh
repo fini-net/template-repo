@@ -2,14 +2,22 @@
 # Test suite for repo_urls.sh - org/repo extraction, URL agreement
 # classification, and the clean_template [urls] repoint transform.
 #
-# Also drives the real `just cue-sync-from-github` recipe in a temp
-# workspace (with git/gh shims first on PATH) to exercise the #420 guard
-# end to end: a .repo.toml whose urls.web_url disagrees with the git
-# origin remote must make the recipe refuse to sync, and a matching
-# .repo.toml must sync the shimmed gh metadata through. This mirrors the
-# recipe-mode coverage template_sync_test.sh added for the checksums
-# gates (#354). The recipe mode needs just, cue, and jq; without them
-# that section is skipped rather than failed (unit tests still run).
+# Also drives the real recipes in temp workspaces (with git/gh shims first
+# on PATH) to exercise the #420 machinery end to end:
+#
+#   - cue-sync-from-github must refuse to sync a .repo.toml whose
+#     urls.web_url disagrees with the git origin remote, and sync the
+#     shimmed gh metadata through when they agree
+#   - cue-verify must fail on a repo-name mismatch (stale template URLs)
+#     and only warn on an org-only mismatch (fork clone)
+#   - _clean_repo_toml must repoint [urls], seed a placeholder topic via
+#     the gh API when GitHub has none, sync real metadata, and tolerate a
+#     failed sync (e.g. a brand-new repo with no GitHub description)
+#
+# This mirrors the recipe-mode coverage template_sync_test.sh added for
+# the checksums gates (#354). The recipe modes need just, cue, and jq;
+# without them that section is skipped rather than failed (unit tests
+# still run).
 set -euo pipefail
 
 # Color codes
@@ -126,8 +134,10 @@ test_normalize_remote_url() {
 		'ssh://git@github.com/fini-net/template-repo.git' 'fini-net template-repo'
 	expect_pair "$f: ssh:// URL with colon" "$f" \
 		'ssh://git@github.com:fini-net/template-repo.git' 'fini-net template-repo'
-	expect_pair "$f: non-GitHub host tolerated" "$f" \
+	expect_pair "$f: scp-style non-GitHub host tolerated" "$f" \
 		'git@gitlab.example:group/project.git' 'group project'
+	expect_pair "$f: schemed non-GitHub host rejected" "$f" \
+		'https://gitlab.com/group/project' 'FAIL'
 	expect_pair "$f: no org/repo pair" "$f" 'not-a-remote' 'FAIL'
 	expect_pair "$f: empty repo part" "$f" 'git@github.com:fini-net/' 'FAIL'
 	expect_pair "$f: bare org, no repo" "$f" 'https://github.com/fini-net' 'FAIL'
@@ -172,16 +182,25 @@ test_repointed_repo_toml() {
 		"commented git_ssh/web_url lines repointed and uncommented"
 	expect_repoint "missing_urls.toml" \
 		"absent [urls] keys get a section appended"
+	expect_repoint "doc_example_urls.toml" \
+		"commented web_url doc lines outside [urls] left untouched"
+	expect_repoint "web_url_only.toml" \
+		"missing git_ssh partner inserted into [urls]"
+	expect_repoint "git_ssh_only.toml" \
+		"missing web_url partner inserted into [urls]"
 }
 
 # Scaffold a workspace holding a copy of the real cue-verify.just (plus
 # the modules it needs) and a fixture .repo.toml, with git/gh shims first
-# on PATH. The git shim claims the origin remote is
-# other-org/derived-repo; the gh shim serves fixture metadata for that
-# repo and logs every call to $GH_CALL_LOG.
+# on PATH. The git shim claims the origin remote is argument 2 and that
+# the HEAD is on a feature branch (for _on_a_branch); the gh shim serves
+# repos/other-org/derived-repo metadata driven by run_recipe's GH_DESC /
+# GH_TOPICS_JSON environment, records the topic list in GH_STATE after a
+# PUT, and logs every call to GH_CALL_LOG.
 build_workspace() {
 	local fixture="$1"
-	local ws="$2"
+	local origin_url="$2"
+	local ws="$3"
 
 	mkdir -p "$ws/.just/lib" "$ws/docs" "$ws/shims"
 	cp "$REPO_ROOT/.just/cue-verify.just" "$ws/.just/"
@@ -192,24 +211,77 @@ build_workspace() {
 
 	printf '%s\n' "import '.just/cue-verify.just'" >"$ws/justfile"
 
-	cat >"$ws/shims/git" <<'EOF'
+	write_git_shim "$origin_url" "$ws"
+	write_gh_shim "$ws"
+}
+
+# Like build_workspace, but also imports clean-template.just (the
+# _clean_repo_toml recipe under test) and gh-process.just (its
+# _on_a_branch dependency, which is self-contained).
+build_clean_workspace() {
+	local fixture="$1"
+	local origin_url="$2"
+	local ws="$3"
+
+	mkdir -p "$ws/.just/lib" "$ws/docs" "$ws/shims"
+	cp "$REPO_ROOT/.just/cue-verify.just" "$ws/.just/"
+	cp "$REPO_ROOT/.just/clean-template.just" "$ws/.just/"
+	cp "$REPO_ROOT/.just/gh-process.just" "$ws/.just/"
+	cp "$REPO_ROOT/.just/lib/repo_urls.sh" "$ws/.just/lib/"
+	cp "$REPO_ROOT/.just/lib/cue_sync.awk" "$ws/.just/lib/"
+	cp "$REPO_ROOT/docs/repo-toml.cue" "$ws/docs/"
+	cp "$REPO_ROOT/$FIXTURES_DIR/$fixture" "$ws/.repo.toml"
+
+	{
+		printf '%s\n' "import '.just/cue-verify.just'"
+		printf '%s\n' "import '.just/gh-process.just'"
+		printf '%s\n' "import '.just/clean-template.just'"
+	} >"$ws/justfile"
+
+	write_git_shim "$origin_url" "$ws"
+	write_gh_shim "$ws"
+}
+
+write_git_shim() {
+	local origin_url="$1"
+	local ws="$2"
+
+	cat >"$ws/shims/git" <<EOF
 #!/usr/bin/env bash
-if [[ "$1 $2" == "remote get-url" && "$3" == "origin" ]]; then
-	echo "git@github.com:other-org/derived-repo.git"
+if [[ "\$1 \$2" == "remote get-url" && "\$3" == "origin" ]]; then
+	echo "$origin_url"
 	exit 0
 fi
-echo "git shim: unexpected call: $*" >&2
+if [[ "\$1 \$2" == "rev-parse --abbrev-ref" ]]; then
+	echo "feature-branch"
+	exit 0
+fi
+echo "git shim: unexpected call: \$*" >&2
 exit 1
 EOF
 	chmod +x "$ws/shims/git"
+}
 
-	cat >"$ws/shims/gh" <<EOF
+write_gh_shim() {
+	local ws="$1"
+
+	cat >"$ws/shims/gh" <<'EOF'
 #!/usr/bin/env bash
-if [[ -n "\${GH_CALL_LOG:-}" ]]; then
-	echo "gh \$*" >> "\$GH_CALL_LOG"
+if [[ -n "${GH_CALL_LOG:-}" ]]; then
+	echo "gh $*" >> "$GH_CALL_LOG"
 fi
-if [[ "\$1 \$2" == "api repos/other-org/derived-repo" ]]; then
-	printf '%s\n' '{"description": "fixture description", "topics": ["fixture-topic"]}'
+if [[ "$1 $2" == "api repos/other-org/derived-repo" ]]; then
+	topics='["fixture-topic"]'
+	if [[ -s "${GH_STATE:-}" ]]; then
+		topics=$(cat "$GH_STATE")
+	elif [[ -n "${GH_TOPICS_JSON:-}" ]]; then
+		topics="$GH_TOPICS_JSON"
+	fi
+	printf '{"description": "%s", "topics": %s}\n' "${GH_DESC-fixture description}" "$topics"
+	exit 0
+fi
+if [[ "$1 $2 $3" == "api -X PUT" ]]; then
+	echo '["placeholder"]' > "${GH_STATE:-/dev/null}"
 	exit 0
 fi
 exit 1
@@ -217,14 +289,35 @@ EOF
 	chmod +x "$ws/shims/gh"
 }
 
+# Run a recipe inside the workspace with the shims first on PATH. The
+# description and topics served by the gh shim come from arguments 3/4;
+# every gh call is logged to $ws/gh_calls.log for refusal assertions.
 run_recipe() {
-	local ws="$1"
+	local ws="$1" recipe="$2" desc="$3" topics_json="$4"
 	(
-		cd "$ws" &&
-			PATH="$ws/shims:$PATH" \
-				GH_CALL_LOG="$ws/gh_calls.log" \
-				just cue-sync-from-github 2>&1
+		cd "$ws" || exit 1
+		PATH="$ws/shims:$PATH" \
+			GH_CALL_LOG="$ws/gh_calls.log" \
+			GH_STATE="$ws/gh_state.json" \
+			GH_DESC="$desc" \
+			GH_TOPICS_JSON="$topics_json" \
+			just "$recipe" 2>&1
 	)
+}
+
+# Report a recipe-mode case: $1 label, $2 accumulated problem string,
+# $3 captured recipe output (printed on failure for debugging).
+report_recipe_case() {
+	local label="$1" problems="$2" out="$3"
+
+	if [[ -z "$problems" ]]; then
+		pass "$label"
+	else
+		fail "$label - $problems"
+		echo "    --- recipe output ---"
+		echo "    ${out//$'\n'/$'\n'    }"
+		echo "    --- end output ---"
+	fi
 }
 
 recipe_tools_available() {
@@ -243,9 +336,11 @@ test_sync_refuses_stale_urls() {
 	local label="sync refuses stale template URLs (#420)"
 
 	ws=$(mktemp -d -t repo_urls_stale.XXXXXX)
-	build_workspace "recipe_stale_urls.toml" "$ws"
+	build_workspace "recipe_stale_urls.toml" \
+		'git@github.com:other-org/derived-repo.git' "$ws"
 
-	out=$(run_recipe "$ws") || rc=$?
+	out=$(run_recipe "$ws" cue-sync-from-github \
+		"fixture description" '["fixture-topic"]') || rc=$?
 
 	[[ $rc -eq 1 ]] || problems+="exit code $rc (want 1); "
 	grep -q "refusing to sync" <<<"$out" || problems+="guard message missing; "
@@ -257,14 +352,7 @@ test_sync_refuses_stale_urls() {
 		problems+="gh was called despite the guard; "
 	fi
 
-	if [[ -z "$problems" ]]; then
-		pass "$label"
-	else
-		fail "$label - $problems"
-		echo "    --- recipe output ---"
-		echo "    ${out//$'\n'/$'\n'    }"
-		echo "    --- end output ---"
-	fi
+	report_recipe_case "$label" "$problems" "$out"
 	rm -rf "$ws"
 }
 
@@ -275,9 +363,11 @@ test_sync_allows_matching_urls() {
 	local label="sync proceeds when URLs match the origin remote"
 
 	ws=$(mktemp -d -t repo_urls_match.XXXXXX)
-	build_workspace "recipe_match_urls.toml" "$ws"
+	build_workspace "recipe_match_urls.toml" \
+		'git@github.com:other-org/derived-repo.git' "$ws"
 
-	out=$(run_recipe "$ws") || rc=$?
+	out=$(run_recipe "$ws" cue-sync-from-github \
+		"fixture description" '["fixture-topic"]') || rc=$?
 
 	[[ $rc -eq 0 ]] || problems+="exit code $rc (want 0); "
 	grep -q "Successfully synced" <<<"$out" || problems+="success message missing; "
@@ -287,14 +377,109 @@ test_sync_allows_matching_urls() {
 		|| problems+="topics not synced; "
 	[[ ! -e "$ws/.repo.toml.backup" ]] || problems+="backup left behind; "
 
-	if [[ -z "$problems" ]]; then
-		pass "$label"
-	else
-		fail "$label - $problems"
-		echo "    --- recipe output ---"
-		echo "    ${out//$'\n'/$'\n'    }"
-		echo "    --- end output ---"
-	fi
+	report_recipe_case "$label" "$problems" "$out"
+	rm -rf "$ws"
+}
+
+# cue-verify must fail on the stale-template shape: web_url names a
+# different repo than the origin remote.
+test_verify_errors_on_name_mismatch() {
+	local ws out rc=0 problems=""
+	local label="cue-verify errors when web_url names another repo"
+
+	ws=$(mktemp -d -t repo_urls_vfail.XXXXXX)
+	build_workspace "recipe_stale_urls.toml" \
+		'git@github.com:other-org/derived-repo.git' "$ws"
+
+	out=$(run_recipe "$ws" cue-verify \
+		"fixture description" '["fixture-topic"]') || rc=$?
+
+	[[ $rc -eq 1 ]] || problems+="exit code $rc (want 1); "
+	grep -q "\[urls\] web_url points at" <<<"$out" \
+		|| problems+="mismatch error missing; "
+
+	report_recipe_case "$label" "$problems" "$out"
+	rm -rf "$ws"
+}
+
+# An org-only mismatch (fork clone: same repo name, different org) is
+# the expected shape, so cue-verify only warns and still passes.
+test_verify_warns_on_org_mismatch() {
+	local ws out rc=0 problems=""
+	local label="cue-verify warns (not errors) on fork-shape org mismatch"
+
+	ws=$(mktemp -d -t repo_urls_vwarn.XXXXXX)
+	build_workspace "recipe_org_mismatch.toml" \
+		'git@github.com:someone/derived-repo.git' "$ws"
+
+	out=$(run_recipe "$ws" cue-verify \
+		"fixture description" '["fixture-topic"]') || rc=$?
+
+	[[ $rc -eq 0 ]] || problems+="exit code $rc (want 0); "
+	grep -q "differs from the origin remote" <<<"$out" \
+		|| problems+="fork warning missing; "
+
+	report_recipe_case "$label" "$problems" "$out"
+	rm -rf "$ws"
+}
+
+# _clean_repo_toml happy path: repoint both [urls] keys, seed the
+# placeholder topic through the gh API (the repo has none), and sync the
+# shimmed metadata - all in one recipe run.
+test_clean_repo_toml_repoints_and_syncs() {
+	local ws out rc=0 problems=""
+	local label="_clean_repo_toml repoints URLs, seeds placeholder topic, syncs"
+
+	ws=$(mktemp -d -t repo_urls_clean.XXXXXX)
+	build_clean_workspace "clean_stale_urls.toml" \
+		'git@github.com:other-org/derived-repo.git' "$ws"
+
+	out=$(run_recipe "$ws" _clean_repo_toml \
+		"fixture description" '[]') || rc=$?
+
+	[[ $rc -eq 0 ]] || problems+="exit code $rc (want 0); "
+	grep -qF 'git_ssh = "git@github.com:other-org/derived-repo.git"' "$ws/.repo.toml" \
+		|| problems+="git_ssh not repointed; "
+	grep -qF 'web_url = "https://github.com/other-org/derived-repo"' "$ws/.repo.toml" \
+		|| problems+="web_url not repointed; "
+	grep -q "placeholder" <<<"$out" || problems+="placeholder topic message missing; "
+	grep -q "api -X PUT repos/other-org/derived-repo/topics" "$ws/gh_calls.log" \
+		|| problems+="placeholder topic not PUT to GitHub; "
+	grep -q "Successfully synced" <<<"$out" || problems+="sync success message missing; "
+	grep -qF 'description = "fixture description"' "$ws/.repo.toml" \
+		|| problems+="description not synced; "
+	grep -qF 'topics = ["placeholder"]' "$ws/.repo.toml" \
+		|| problems+="placeholder topic not synced; "
+	[[ ! -e "$ws/.repo.toml.backup" ]] || problems+="backup left behind; "
+
+	report_recipe_case "$label" "$problems" "$out"
+	rm -rf "$ws"
+}
+
+# A failed sync (here: GitHub serves no description, which the CUE schema
+# requires) must not fail the cleanup - the repointed URLs survive and
+# the recipe warns with instructions.
+test_clean_repo_toml_tolerates_sync_failure() {
+	local ws out rc=0 problems=""
+	local label="_clean_repo_toml warns and continues when the sync fails"
+
+	ws=$(mktemp -d -t repo_urls_cleanfail.XXXXXX)
+	build_clean_workspace "clean_stale_urls.toml" \
+		'git@github.com:other-org/derived-repo.git' "$ws"
+
+	out=$(run_recipe "$ws" _clean_repo_toml \
+		"" '[]') || rc=$?
+
+	[[ $rc -eq 0 ]] || problems+="exit code $rc (want 0); "
+	grep -q "Warning: metadata sync did not complete" <<<"$out" \
+		|| problems+="sync-failure warning missing; "
+	grep -qF 'web_url = "https://github.com/other-org/derived-repo"' "$ws/.repo.toml" \
+		|| problems+="repointed URLs did not survive the failed sync; "
+	grep -qF 'description = "stale template metadata"' "$ws/.repo.toml" \
+		|| problems+="description should still hold the fixture value; "
+	[[ ! -e "$ws/.repo.toml.backup" ]] || problems+="backup left behind; "
+
+	report_recipe_case "$label" "$problems" "$out"
 	rm -rf "$ws"
 }
 
@@ -310,6 +495,10 @@ main() {
 	if recipe_tools_available; then
 		test_sync_refuses_stale_urls
 		test_sync_allows_matching_urls
+		test_verify_errors_on_name_mismatch
+		test_verify_warns_on_org_mismatch
+		test_clean_repo_toml_repoints_and_syncs
+		test_clean_repo_toml_tolerates_sync_failure
 	else
 		echo -e "${YELLOW}Skipping recipe-mode tests (need just, cue, and jq on PATH)${NORMAL}"
 		((skipped += 1))

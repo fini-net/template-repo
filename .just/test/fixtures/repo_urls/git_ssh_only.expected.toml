@@ -1,0 +1,12 @@
+# .repo.toml
+
+[about]
+description = "git_ssh without web_url gets its partner inserted"
+topics = ["alpha"]
+
+[urls]
+git_ssh = "git@github.com:other-org/derived-repo.git"
+web_url = "https://github.com/other-org/derived-repo"
+
+[flags]
+claude = false

@@ -5,8 +5,10 @@
 clean_template: _clean_readme _clean_repo_toml _remove_template_files
 
 # generate a clean README
+# No [no-cd]: like every other recipe these run at the justfile directory
+# (repo root), so the relative paths they touch (README.md, .repo.toml,
+# .just/lib/*) are correct no matter where clean_template is invoked from.
 [group('Utility')]
-[no-cd]
 _clean_readme: _on_a_branch
     #!/usr/bin/env bash
     set -euo pipefail # strict mode without tracing
@@ -19,8 +21,7 @@ _clean_readme: _on_a_branch
         echo "{{RED}}Error: cannot determine org/repo from the git origin remote{{NORMAL}}"
         exit 1
     fi
-    GITHUB_ORG=$(echo "$GITHUB_ORG_REPO" | cut -d' ' -f1)
-    GITHUB_REPO=$(echo "$GITHUB_ORG_REPO" | cut -d' ' -f2)
+    read -r GITHUB_ORG GITHUB_REPO <<<"$GITHUB_ORG_REPO"
     echo "org={{BLUE}}$GITHUB_ORG{{NORMAL}}"
 
     echo "repo={{BLUE}}$GITHUB_REPO{{NORMAL}}"
@@ -55,7 +56,6 @@ _clean_readme: _on_a_branch
 # template's metadata - silently, since cue-verify read the same stale
 # URL. See #420.
 [group('Utility')]
-[no-cd]
 _clean_repo_toml: _on_a_branch
     #!/usr/bin/env bash
     set -euo pipefail # strict mode without tracing
@@ -65,17 +65,20 @@ _clean_repo_toml: _on_a_branch
         echo "{{RED}}Error: cannot determine org/repo from the git origin remote{{NORMAL}}"
         exit 1
     fi
-    GITHUB_ORG=$(echo "$GITHUB_ORG_REPO" | cut -d' ' -f1)
-    GITHUB_REPO=$(echo "$GITHUB_ORG_REPO" | cut -d' ' -f2)
+    read -r GITHUB_ORG GITHUB_REPO <<<"$GITHUB_ORG_REPO"
     echo "org={{BLUE}}$GITHUB_ORG{{NORMAL}} repo={{BLUE}}$GITHUB_REPO{{NORMAL}}"
 
     if [[ ! -f .repo.toml ]]; then
         echo "{{YELLOW}}.repo.toml not found - skipping URL repoint{{NORMAL}}"
     else
         echo "{{BLUE}}Repointing .repo.toml [urls] at this repo...{{NORMAL}}"
+        EXPECTED_SSH="git@github.com:$GITHUB_ORG/$GITHUB_REPO.git"
         EXPECTED_WEB_URL="https://github.com/$GITHUB_ORG/$GITHUB_REPO"
         repointed_repo_toml .repo.toml "$GITHUB_ORG" "$GITHUB_REPO" > .repo.toml.tmp
-        if ! grep -qF "web_url = \"$EXPECTED_WEB_URL\"" .repo.toml.tmp; then
+        # Both keys must land - the transform inserts a missing partner,
+        # so a failure here means the rewrite did not take at all
+        if ! grep -qF "git_ssh = \"$EXPECTED_SSH\"" .repo.toml.tmp \
+            || ! grep -qF "web_url = \"$EXPECTED_WEB_URL\"" .repo.toml.tmp; then
             rm -f .repo.toml.tmp
             echo "{{RED}}Error: failed to repoint [urls] in .repo.toml{{NORMAL}}"
             exit 1
@@ -116,8 +119,8 @@ _clean_repo_toml: _on_a_branch
 
 # remove template-specific files
 # NOTE: Files removed here must also be listed in CLEANED_FILES in .just/lib/generate_checksums.sh
+# No [no-cd] - runs at the repo root like the rest of clean_template
 [group('Utility')]
-[no-cd]
 _remove_template_files: _on_a_branch
     #!/usr/bin/env bash
     set -euo pipefail # strict mode without tracing

@@ -21,9 +21,11 @@
 
 # Normalize a git remote URL (SSH, ssh://, HTTPS, git://, with or without a
 # .git suffix) to "org repo" on stdout. Returns 1 when no org/repo pair can
-# be extracted. A non-GitHub host is tolerated (the host prefix is simply
-# stripped); recipes that need GitHub specifically will fail later on the
-# GitHub API call, with a clearer message than a mangled org name.
+# be extracted. Only GitHub remote forms are reduced to org/repo; an
+# scp-style user@host remote on another host is tolerated (the host prefix
+# is simply stripped), but any other scheme-bearing URL is rejected rather
+# than guessed at - recipes that need GitHub specifically will fail later
+# on the GitHub API call, with a clearer message than a mangled pair.
 normalize_remote_url() {
 	local url="${1%.git}"
 
@@ -36,6 +38,11 @@ normalize_remote_url() {
 	url="${url#git://github.com/}"
 	# any other scp-style user@host form
 	url="${url#git@*[:/]}"
+
+	# a scheme still present means a non-GitHub host we do not know how
+	# to reduce to org/repo (e.g. https://gitlab.com/o/r) - reject
+	# explicitly instead of guessing
+	[[ "$url" == *"://"* ]] && return 1
 
 	local org="${url%%/*}"
 	local repo="${url#*/}"
@@ -89,25 +96,90 @@ classify_url_mismatch() {
 }
 
 # Echo a copy of the .repo.toml at argument 1 with its [urls] repointed at
-# org/repo (arguments 2/3). Active or commented git_ssh/web_url lines are
-# replaced in place (a commented line is uncommented). When no such lines
-# exist at all, a fresh [urls] section is appended - trailing sections are
-# valid TOML. Callers verify the result (clean_template treats a failed
-# repoint as an error so it can never silently ship the template's URLs).
+# org/repo (arguments 2/3). The rewrite is scoped to the [urls] section:
+# active or commented git_ssh/web_url lines there are replaced in place (a
+# commented line is uncommented), and whichever of the two keys is absent
+# is inserted at the end of the section - so git_ssh and web_url can never
+# drift apart. Commented key lines *outside* [urls] (doc comments, example
+# lines in other sections) are left untouched. When the file has no [urls]
+# section at all, one is appended - trailing sections are valid TOML.
+# Callers verify the result (clean_template treats a failed repoint as an
+# error so it can never silently ship the template's URLs). See #420.
 repointed_repo_toml() {
 	local file="$1" org="$2" repo="$3"
 	local git_ssh="git@github.com:${org}/${repo}.git"
 	local web_url="https://github.com/${org}/${repo}"
 
-	if grep -qE '^[#[:space:]]*web_url[[:space:]]*=' "$file"; then
-		sed \
-			-e "s|^[#[:space:]]*git_ssh[[:space:]]*=.*|git_ssh = \"$git_ssh\"|" \
-			-e "s|^[#[:space:]]*web_url[[:space:]]*=.*|web_url = \"$web_url\"|" \
-			"$file"
-	else
-		cat "$file"
-		printf '\n[urls]\ngit_ssh = "%s"\nweb_url = "%s"\n' "$git_ssh" "$web_url"
-	fi
+	# State-aware, [urls]-scoped rewriter. Blank lines inside [urls] are
+	# buffered so missing-key insertions land adjacent to the preceding
+	# key rather than after the blank line separating the section from
+	# the next header - the same buffering cue_sync.awk uses (see #165).
+	awk -v ssh="$git_ssh" -v web="$web_url" '
+		function flush_blanks() {
+			if (blanks != "") {
+				printf "%s", blanks
+				blanks = ""
+			}
+		}
+		function ensure_keys() {
+			if (!have_ssh) {
+				print "git_ssh = \"" ssh "\""
+				have_ssh = 1
+			}
+			if (!have_web) {
+				print "web_url = \"" web "\""
+				have_web = 1
+			}
+		}
+		/^\[urls\]/ {
+			flush_blanks()
+			in_urls = 1
+			seen_urls = 1
+			print
+			next
+		}
+		/^\[/ && !/^\[urls\]/ {
+			if (in_urls) {
+				ensure_keys()
+			}
+			in_urls = 0
+			flush_blanks()
+			print
+			next
+		}
+		in_urls && /^[#[:space:]]*git_ssh[[:space:]]*=/ {
+			flush_blanks()
+			print "git_ssh = \"" ssh "\""
+			have_ssh = 1
+			next
+		}
+		in_urls && /^[#[:space:]]*web_url[[:space:]]*=/ {
+			flush_blanks()
+			print "web_url = \"" web "\""
+			have_web = 1
+			next
+		}
+		in_urls && /^[[:space:]]*$/ {
+			blanks = blanks "\n"
+			next
+		}
+		{
+			flush_blanks()
+			print
+		}
+		END {
+			if (in_urls) {
+				ensure_keys()
+			}
+			flush_blanks()
+			if (!seen_urls) {
+				print ""
+				print "[urls]"
+				print "git_ssh = \"" ssh "\""
+				print "web_url = \"" web "\""
+			}
+		}
+	' "$file"
 }
 
 # Extract "org repo" from the git origin remote, in any supported URL form.

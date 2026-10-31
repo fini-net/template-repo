@@ -5,6 +5,9 @@ on:
   push:
     paths:
       - '.just/cue-verify.just'
+      - '.just/clean-template.just'
+      - '.just/gh-process.just'
+      - '.just/testing.just'
       - '.just/lib/cue_sync.awk'
       - '.just/lib/cue_sync_test.sh'
       - '.just/lib/repo_urls.sh'
@@ -15,6 +18,9 @@ on:
   pull_request:
     paths:
       - '.just/cue-verify.just'
+      - '.just/clean-template.just'
+      - '.just/gh-process.just'
+      - '.just/testing.just'
       - '.just/lib/cue_sync.awk'
       - '.just/lib/cue_sync_test.sh'
       - '.just/lib/repo_urls.sh'
