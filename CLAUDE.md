@@ -55,7 +55,7 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 - `just wait_for_copilot_test` - Test the shared Copilot-wait state machine
 - `just release <version>` - Create a GitHub release with auto-generated notes
 - `just release_age` - Check how long ago the last release was
-- `just clean_template` - Generate a clean README from template (strips template documentation) and removes other files not needed in new repos
+- `just clean_template` - Generate a clean README from template (strips template documentation), repoint `.repo.toml` [urls] at this repo and sync its real description/topics from GitHub, and remove other files that are not required
 - `just compliance_check` - Run custom repo compliance checks
 - `just shellcheck` - Run shellcheck on all bash scripts in just recipes
 - `just cue-verify` - Verify `.repo.toml` validity and flag configuration
@@ -218,9 +218,8 @@ When using this template for a new project:
     - `template-repo` → your repo name
     - `chicks-net` → your username (especially in `.github/workflows/auto-assign.yml`)
 2. Update `.repo.toml` with your repository metadata
-3. Run `just clean_template` to strip template documentation and files from README
-4. Run `just cue-sync-from-github` to sync description and topics from GitHub
-5. Run `just compliance_check` to verify all community standards files are in place
+3. Run `just clean_template` to strip template documentation and files from README, repoint `.repo.toml` [urls] at your repo, and sync its real description/topics from GitHub
+4. Run `just compliance_check` to verify all community standards files are in place
 
 ## Important implementation notes
 

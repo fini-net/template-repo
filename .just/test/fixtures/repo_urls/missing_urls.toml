@@ -1,0 +1,8 @@
+# .repo.toml
+
+[about]
+description = "no urls section at all"
+topics = ["alpha"]
+
+[flags]
+claude = false

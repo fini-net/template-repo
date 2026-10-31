@@ -2,6 +2,67 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
+## October 2026
+
+### v10.0 - clean_template repoints .repo.toml URLs; cue sync refuses stale URLs (2026-10-31)
+
+- Fixes issue [#420](https://github.com/fini-net/template-repo/issues/420)
+
+**Derived repos used to ship with `.repo.toml` still describing template-repo.**
+`clean_template` regenerated README.md from the derived repo's real org/repo
+(pulled from `git remote` in `_clean_readme`) but never touched `.repo.toml`,
+and nothing else in the fork flow fixed the `[urls]` section either.
+`cue-sync-from-github` decides which GitHub repo to query from
+`urls.web_url`, so in a derived repo it fetched the *template's* description
+and topics, wrote them into the derived repo's `.repo.toml`, and the trailing
+`just cue-verify` passed - both sides of the comparison pointed at
+template-repo. The git-remote fallback only fired when the extracted names
+were empty, not valid-but-stale, so the failure was completely silent: one
+derived repo went three PRs believing its `.repo.toml` described itself while
+every sync re-imported the template's metadata, triple-space typo and all.
+
+**clean_template now repoints `[urls]` and syncs real metadata in the same
+pass.** A new `_clean_repo_toml` recipe (running between `_clean_readme` and
+`_remove_template_files`) extracts org/repo from the origin remote, rewrites
+`git_ssh`/`web_url` in `.repo.toml`, validates with `cue vet`, then runs
+`just cue-sync-from-github` so description and topics come from the derived
+repo's own GitHub metadata. Two fresh-fork realities are handled: a repo
+with zero GitHub topics gets a `placeholder` topic added via the GitHub
+topics API (the CUE schema requires at least one topic, so the first sync
+would otherwise fail validation and roll back - replace it with real topics
+and re-sync), and a sync failure - typically a brand-new repo with no GitHub
+description yet - warns with instructions instead of failing the cleanup.
+
+**The sync recipe and cue-verify now cross-check `urls.web_url` against the
+git origin remote.** A new shared library, `.just/lib/repo_urls.sh`,
+centralizes the URL parsing both recipes use: `normalize_remote_url`
+(SSH, HTTPS, and `ssh://` remotes, with or without a `.git` suffix),
+`parse_web_url` (strict `github.com` org/repo - replacing a sed extraction
+that returned misleading partial values for non-matching URLs),
+`classify_url_mismatch` (`match` / `org-mismatch` / `name-mismatch`), and a
+`repointed_repo_toml` transform. `cue-sync-from-github` refuses to sync on
+*any* mismatch before writing anything; `cue-verify` stage 3 reports a
+repo-name mismatch as a fatal error (the stale template-URL shape) and an
+org-only mismatch as a warning (the normal contributor-fork clone, where
+verification legitimately runs against the repo named in web_url). Existing
+derived repos pick the guards up via `just update_from_template`, so a stale
+`.repo.toml` gets caught on day one instead of after manual archaeology.
+
+**`_clean_readme` also learned HTTPS.** Its inline sed extraction produced an
+empty org for `https://github.com/org/repo` origin remotes, silently breaking
+the README badges. It now uses the shared helper, which handles SSH and
+HTTPS alike.
+
+Also in this version: a unit + recipe-mode test suite for the new library
+(`.just/lib/repo_urls_test.sh`, run via `just repo_urls_test`; the
+recipe-mode cases drive the real `cue-sync-from-github` in a temp workspace
+with git/gh shims on PATH, proving the refusal actually refuses and that a
+matching `.repo.toml` syncs the shimmed metadata end to end), the
+`cue-sync-tests.yml` workflow learns about the new files and installs cue for
+the recipe-mode cases, the triple-space typo in the template's own
+description is fixed on both the `.repo.toml` side and the GitHub side, and
+the CONTRIBUTING recipe listing catches up with reality.
+
 ## September 2026
 
 ### v9.9 - self-contained positional-argument recipes + bare-justfile test pass (2026-09-14)

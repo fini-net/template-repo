@@ -32,6 +32,23 @@ cue_sync_test:
         exit 1
     fi
 
+# test repo_urls.sh extraction, mismatch classification, and [urls]
+# repointing - including the #420 sync-refusal guard, driven through the
+# real cue-sync-from-github recipe in a shimmed workspace
+[group('Testing/Automation')]
+repo_urls_test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "{{BLUE}}Testing repo_urls extraction and sync guards...{{NORMAL}}"
+
+    if .just/lib/repo_urls_test.sh; then
+        echo "{{GREEN}}All repo_urls tests passed!{{NORMAL}}"
+    else
+        echo "{{RED}}Some repo_urls tests failed{{NORMAL}}"
+        exit 1
+    fi
+
 # test the shared Copilot-wait state machine (mocked gh/sleep, fixtures)
 [group('Testing/Automation')]
 wait_for_copilot_test:

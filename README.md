@@ -99,7 +99,9 @@ Thirteen workflows handle automation and quality, all hardened with [StepSecurit
   with the right values for your project.  (Github templates do not offer
   variable substitution, but we still have to call them templates for some reason.)
 1. Ditch the "Template Status", "Usage", and "Kudos" sections in the `README.md`.
-  `just clean_template` will give you a clean `/README.md`, and remove other files that are not required.
+  `just clean_template` will give you a clean `/README.md`, repoint `.repo.toml`
+  [urls] at your repo and sync its real description/topics from GitHub, and
+  remove other files that are not required.
 
 [Here is a nice checklist](https://github.com/jlcanovas/gh-best-practices-template/blob/main/guidelines.md)
 of things to consider with a new repo.

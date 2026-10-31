@@ -1,0 +1,12 @@
+# .repo.toml
+
+[about]
+description = "commented urls get uncommented"
+topics = ["alpha"]
+
+[urls]
+# git_ssh = "git@github.com:fini-net/template-repo.git"
+# web_url = "https://github.com/fini-net/template-repo"
+
+[flags]
+claude = false
