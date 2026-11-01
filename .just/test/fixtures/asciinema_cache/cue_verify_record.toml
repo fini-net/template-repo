@@ -1,0 +1,20 @@
+# .repo.toml fixture for the asciinema_cache cue-verify recipe-mode
+# cases: asciinema-record is the only enabled flag, and the [urls] and
+# [about] values agree with the origin remote the workspace builder
+# configures and the metadata the gh shim serves, so stage 3 passes and
+# the output under test is purely the asciinema-record block.
+
+[about]
+description = "fixture description"
+topics = ["fixture-topic"]
+
+[urls]
+git_ssh = "git@github.com:other-org/derived-repo.git"
+web_url = "https://github.com/other-org/derived-repo"
+
+[flags]
+claude = false
+claude-review = false
+copilot-review = false
+standard-release = true
+asciinema-record = true

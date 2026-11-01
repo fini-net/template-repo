@@ -67,6 +67,7 @@ wait_for_copilot_test:
 # recipe-mode workspaces drive the real _ensure_cache_ignored recipe
 # (#375: .cache/ gitignore protection before recording) and source
 # assertions pin the #374 pr/_pr_inner guard split
+
 # test the _ensure_cache_ignored recording guard and the #374 pr guard split
 [group('Testing/Automation')]
 asciinema_cache_test:

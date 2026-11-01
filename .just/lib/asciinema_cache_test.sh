@@ -16,12 +16,20 @@
 #
 # Source assertions pin the wiring in gh-process.just itself: the #374
 # single-guard split (pr carries no _has_commits dependency, _pr_inner
-# keeps it) and the #375 call sites (both wrappers route through the
-# guard before recording).
+# keeps it), the #375 call sites (both wrappers route through the guard
+# before recording), and the guard-before-recording ordering.
+#
+# A second recipe-mode section drives the real cue-verify recipe with
+# asciinema-record = true (gh shimmed, git real) to pin the warning
+# behavior Claude review of #427 item 3 asked for: a directory-only
+# '.cache/' ignore rule must not trigger the "not gitignored" warning
+# (the probe path is a file under the directory), and the warning must
+# fire when nothing covers .cache at all.
 #
 # This mirrors the recipe-mode coverage repo_urls_test.sh added for
-# #420. Recipe-mode cases need just and git; without them that section
-# is skipped rather than failed (source assertions still run).
+# #420. Guard cases need just and git; cue-verify cases need just, cue,
+# jq, and git. Without them a section is skipped rather than failed
+# (source assertions always run).
 set -euo pipefail
 
 # Color codes
@@ -34,6 +42,7 @@ readonly NORMAL='\033[0m'
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 readonly REPO_ROOT
 readonly GH_PROCESS="$REPO_ROOT/.just/gh-process.just"
+readonly FIXTURES_DIR=".just/test/fixtures/asciinema_cache"
 
 passed=0
 failed=0
@@ -66,7 +75,7 @@ report_recipe_case() {
 
 recipe_tools_available() {
 	local tool
-	for tool in just git; do
+	for tool in "$@"; do
 		command -v "$tool" >/dev/null 2>&1 || return 1
 	done
 	return 0
@@ -253,6 +262,107 @@ test_outside_git_repo() {
 	rm -rf "$ws"
 }
 
+# Build a sandbox that drives the real cue-verify recipe with the
+# fixture's asciinema-record = true flag: git stays real (the workspace
+# is a repo with an origin remote, so check-ignore and the #420 origin
+# cross-check see genuine answers) while gh is shimmed to serve the
+# [about] metadata the fixture holds. ignore_rule, when non-empty,
+# becomes the workspace's entire .gitignore (and .cache/ is NOT created,
+# so directory-only patterns meet a nonexistent path - the exact shape
+# that produced the spurious warning Claude review of #427 item 3
+# flagged).
+build_verify_workspace() {
+	local ws="$1" ignore_rule="$2"
+
+	mkdir -p "$ws/.just/lib" "$ws/docs" "$ws/shims"
+	cp "$REPO_ROOT/.just/cue-verify.just" "$ws/.just/"
+	cp "$REPO_ROOT/.just/lib/repo_urls.sh" "$ws/.just/lib/"
+	cp "$REPO_ROOT/docs/repo-toml.cue" "$ws/docs/"
+	cp "$REPO_ROOT/$FIXTURES_DIR/cue_verify_record.toml" "$ws/.repo.toml"
+	if [[ -n "$ignore_rule" ]]; then
+		printf '%s\n' "$ignore_rule" >"$ws/.gitignore"
+	fi
+
+	printf '%s\n' "import '.just/cue-verify.just'" >"$ws/justfile"
+
+	git -C "$ws" init -q
+	git -C "$ws" remote add origin git@github.com:other-org/derived-repo.git
+
+	write_gh_shim "$ws"
+}
+
+# The gh shim serves the [about] metadata the fixture holds, so stage 3
+# passes and the output under test is purely the asciinema-record block.
+write_gh_shim() {
+	local ws="$1"
+
+	cat >"$ws/shims/gh" <<'EOF'
+#!/usr/bin/env bash
+if [[ "$1 $2" == "api repos/other-org/derived-repo" ]]; then
+	printf '{"description": "%s", "topics": %s}\n' "fixture description" '["fixture-topic"]'
+	exit 0
+fi
+exit 1
+EOF
+	chmod +x "$ws/shims/gh"
+}
+
+run_verify() {
+	local ws="$1"
+
+	(
+		cd "$ws" || exit 1
+		GIT_CEILING_DIRECTORIES="$ws" \
+		GIT_CONFIG_GLOBAL=/dev/null \
+		GIT_CONFIG_SYSTEM=/dev/null \
+			PATH="$ws/shims:$PATH" \
+			just cue-verify 2>&1
+	)
+}
+
+# A directory-only '.cache/' rule with no .cache/ directory must not
+# trigger the "not gitignored" warning - the child-path probe
+# (.cache/x.cast) matches it (Claude review of #427, item 3).
+test_verify_no_spurious_warning() {
+	local ws out rc=0 problems=""
+	local label="cue-verify does not warn when a .cache/ rule covers the dir"
+
+	ws=$(mktemp -d -t asciinema_cache_vok.XXXXXX)
+	build_verify_workspace "$ws" '.cache/'
+
+	out=$(run_verify "$ws") || rc=$?
+
+	[[ $rc -eq 0 ]] || problems+="exit code $rc (want 0); "
+	grep -q "cast files may capture sensitive output" <<<"$out" \
+		|| problems+="sensitive-output caveat missing; "
+	if grep -q "is not gitignored" <<<"$out"; then
+		problems+="spurious not-gitignored warning fired; "
+	fi
+	[[ ! -d "$ws/.cache" ]] || problems+="cue-verify created .cache/; "
+
+	report_recipe_case "$label" "$problems" "$out"
+	rm -rf "$ws"
+}
+
+# With nothing ignoring .cache at all, the warning must fire (and
+# cue-verify still passes - it is a soft warn).
+test_verify_warns_when_unignored() {
+	local ws out rc=0 problems=""
+	local label="cue-verify warns when nothing ignores .cache"
+
+	ws=$(mktemp -d -t asciinema_cache_vwarn.XXXXXX)
+	build_verify_workspace "$ws" ''
+
+	out=$(run_verify "$ws") || rc=$?
+
+	[[ $rc -eq 0 ]] || problems+="exit code $rc (want 0); "
+	grep -q "is not gitignored" <<<"$out" \
+		|| problems+="not-gitignored warning missing; "
+
+	report_recipe_case "$label" "$problems" "$out"
+	rm -rf "$ws"
+}
+
 # #374: the guard lives on _pr_inner only - declaring it on both recipes
 # ran it (and its _on_a_branch chain) twice per invocation.
 test_pr_guard_split() {
@@ -262,8 +372,10 @@ test_pr_guard_split() {
 	if grep -q '^pr: _has_commits' "$GH_PROCESS"; then
 		problems+="pr still declares _has_commits; "
 	fi
-	line=$(grep -n '^pr:' "$GH_PROCESS") || problems+="pr recipe not found; "
-	[[ "$line" == *"pr:" ]] || problems+="pr carries dependencies: ${line#*:}; "
+	# match the recipe line itself, not just a prefix, so a future
+	# parameter or dependency surfaces here with the actual line
+	line=$(grep -nE '^pr:[[:space:]]*$' "$GH_PROCESS") \
+		|| problems+="pr recipe line is not a bare 'pr:' (got: ${line:-<none>}); "
 	grep -q '^_pr_inner: _has_commits' "$GH_PROCESS" \
 		|| problems+="_pr_inner lost its guard; "
 
@@ -271,20 +383,41 @@ test_pr_guard_split() {
 }
 
 # #375: both recording wrappers must route through the guard recipe
-# before recording, and the sensitive-output caveat must ship with
-# both recordings.
+# before recording starts (the cast is written into .cache/, so the
+# ignore guarantee has to be in place before asciinema runs), and the
+# sensitive-output caveat must ship with both recordings.
 test_guard_call_sites() {
-	local problems="" calls
-	local label="pr and again wrappers call the guard; caveat present (#375)"
+	local problems="" calls unordered
+	local label="pr and again wrappers call the guard before recording; caveat present (#375)"
 
-	calls=$(grep -c '^    just _ensure_cache_ignored$' "$GH_PROCESS" || true)
-	[[ "$calls" -eq 2 ]] || problems+="expected 2 guard call sites, found $calls; "
+	calls=$(grep -cE '^[[:space:]]+just _ensure_cache_ignored[[:space:]]*$' "$GH_PROCESS" || true)
+	[[ "$calls" -ge 2 ]] \
+		|| problems+="expected at least 2 guard call sites, found $calls; "
 	grep -q '^_ensure_cache_ignored:' "$GH_PROCESS" \
 		|| problems+="guard recipe missing; "
 	grep -q 'capture sensitive output' "$GH_PROCESS" \
 		|| problems+="sensitive-output caveat missing; "
 
-	report_recipe_case "$label" "$problems" "grep on .just/gh-process.just"
+	# ordering: within each wrapper, an asciinema rec line must not
+	# appear before that wrapper's guard call. Whitespace-flexible on
+	# the guard so a reformat does not break the count above; the
+	# awk state machine pairs rec lines with the wrapper region they
+	# sit in (recipe lines 'pr:' / 'again:' start a region).
+	unordered=$(awk '
+		/^pr:/ { wrapper = "pr" }
+		/^again:/ { wrapper = "again" }
+		/^[[:space:]]+just _ensure_cache_ignored[[:space:]]*$/ { guard[wrapper] = NR }
+		/asciinema rec / {
+			if (wrapper != "" && !(wrapper in guard)) {
+				print wrapper " records at line " NR " before its guard call"
+			}
+		}
+	' "$GH_PROCESS")
+	if [[ -n "$unordered" ]]; then
+		problems+="recording starts before the guard: $unordered; "
+	fi
+
+	report_recipe_case "$label" "$problems" "grep/awk on .just/gh-process.just"
 }
 
 main() {
@@ -294,7 +427,7 @@ main() {
 	test_pr_guard_split
 	test_guard_call_sites
 
-	if recipe_tools_available; then
+	if recipe_tools_available just git; then
 		test_creates_gitignore
 		test_appends_to_existing
 		test_repairs_missing_newline
@@ -303,7 +436,15 @@ main() {
 		test_noop_when_ignored_by_exclude
 		test_outside_git_repo
 	else
-		echo -e "${YELLOW}Skipping recipe-mode tests (need just and git on PATH)${NORMAL}"
+		echo -e "${YELLOW}Skipping guard recipe-mode tests (need just and git on PATH)${NORMAL}"
+		((skipped += 1))
+	fi
+
+	if recipe_tools_available just cue jq git; then
+		test_verify_no_spurious_warning
+		test_verify_warns_when_unignored
+	else
+		echo -e "${YELLOW}Skipping cue-verify recipe-mode tests (need just, cue, jq, and git on PATH)${NORMAL}"
 		((skipped += 1))
 	fi
 

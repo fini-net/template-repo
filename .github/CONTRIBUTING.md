@@ -90,7 +90,7 @@ Available recipes:
     update_from_template     # Update .just modules from template-repo (derived repos only)
 
     [Testing/Automation]
-    asciinema_cache_test      # test the _ensure_cache_ignored recording guard and the #374 pr guard split
+    asciinema_cache_test     # test the _ensure_cache_ignored recording guard and the #374 pr guard split
     checksums_verify         # Verify local .just files against template versions
     cue_sync_test            # test cue-sync-from-github awk logic (missing/commented keys in [about])
     pr_body_test             # test PR body update logic

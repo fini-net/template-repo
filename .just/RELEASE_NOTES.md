@@ -57,6 +57,21 @@ wrappers route through the guard). The `cue-sync-tests.yml` workflow
 runs the suite alongside the cue-sync and repo_urls tests it already
 carries.
 
+**The review round hardened the probe and the messaging** (Claude
+review of PR #427). `git check-ignore` now probes a path *under*
+`.cache/` (`.cache/x.cast`) instead of the directory itself, in both the
+guard recipe and `cue-verify`: directory-only patterns like `.cache/`
+do not match a path that does not exist yet, so `cue-verify` warned
+"not gitignored" even when a rule covered the directory. The guard's
+"Added '/.cache'" message now tells the user to commit the `.gitignore`
+change so the entry sticks, and the wrapper comments document that the
+guard may append `.gitignore` before `_pr_inner`'s guards fail a doomed
+run - intentional, since the entry is wanted as soon as recording is on
+and the guard prints exactly what it changed. Two new recipe-mode cases
+drive the real `cue-verify` (flag on, gh shimmed, git real) to pin both
+warning behaviors, and the source assertions gained a
+guard-before-recording ordering check plus clearer failure messages.
+
 **The clean_template removal list caught a v10.0 straggler.**
 `repo_urls_test.sh` landed in `CLEANED_FILES` but never got a matching
 removal block in `_remove_template_files`, leaving the script orphaned

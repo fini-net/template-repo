@@ -109,12 +109,18 @@ cue-verify:
         fi
         # pr/again append '/.cache' to .gitignore themselves when it is
         # not ignored yet, but surface the gap here too so it is visible
-        # before the first recording run. check-ignore's non-zero exits
-        # are handled cases (#326/#327 convention): 1 = definitively not
-        # ignored, anything else (e.g. 128 outside a repo) just means the
-        # probe cannot tell, so warn only on the definitive answer.
+        # before the first recording run. The probe path is a file under
+        # the directory (.cache/x.cast), not the directory itself:
+        # directory-only patterns like '.cache/' do not match a path
+        # that does not exist yet, so probing '.cache' warned spuriously
+        # in exactly that case, while the child path matches both
+        # '/.cache' and '.cache/' rules either way (Claude review of
+        # #427, item 3). check-ignore's non-zero exits are handled cases
+        # (#326/#327 convention): 1 = definitively not ignored, anything
+        # else (e.g. 128 outside a repo) just means the probe cannot
+        # tell, so warn only on the definitive answer.
         CACHE_IGNORE_RC=0
-        git check-ignore -q .cache || CACHE_IGNORE_RC=$?
+        git check-ignore -q .cache/x.cast || CACHE_IGNORE_RC=$?
         if [[ "$CACHE_IGNORE_RC" -eq 1 ]]; then
             echo "{{YELLOW}}[flags.asciinema-record] /.cache is not gitignored - the next pr/again recording will append it to .gitignore{{NORMAL}}"
         fi

@@ -58,7 +58,11 @@ pr:
 
     # The root .gitignore is not CHECKSUMS-tracked, so a derived repo
     # may have no /.cache entry yet: the guard recipe creates .cache/
-    # and gitignores it before recording starts (#375)
+    # and gitignores it before recording starts (#375). The guard runs
+    # before _pr_inner's branch/commit guards, so a doomed run may
+    # append .gitignore before failing - intentional, since the entry
+    # is wanted as soon as recording is on and the guard prints exactly
+    # what it changed (Claude review of #427, item 1)
     just _ensure_cache_ignored
     TMP_CAST=".cache/pr-$$.cast.tmp"
     echo "{{BLUE}}Recording pr flow to $TMP_CAST (asciinema)...{{NORMAL}}"
@@ -213,12 +217,16 @@ _ensure_cache_ignored:
 
     mkdir -p .cache
 
-    # git check-ignore exit codes: 0 = some rule ignores .cache,
+    # git check-ignore exit codes: 0 = some rule ignores the probe path,
     # 1 = not ignored, 128+ = git itself failed (e.g. not a repo).
+    # Probe a file under the directory rather than '.cache' itself:
+    # directory-only patterns like '.cache/' do not match a path that
+    # does not exist yet, while the child path matches both '/.cache'
+    # and '.cache/' rules either way (Claude review of #427, item 3).
     # The non-zero exits are handled cases, so guard the bare call per
     # the #326/#327 convention.
     IGNORE_RC=0
-    git check-ignore -q .cache || IGNORE_RC=$?
+    git check-ignore -q .cache/x.cast || IGNORE_RC=$?
     if [[ "$IGNORE_RC" -eq 0 ]]; then
         # already covered by some ignore rule - nothing to do
         exit 0
@@ -243,7 +251,7 @@ _ensure_cache_ignored:
     fi
     printf '%s\n' "# asciinema recordings (just pr/again, flags.asciinema-record)" >> .gitignore
     printf '%s\n' "/.cache" >> .gitignore
-    echo "{{YELLOW}}Added '/.cache' to .gitignore - casts may capture sensitive output, keep them out of commits and review before sharing{{NORMAL}}"
+    echo "{{YELLOW}}Added '/.cache' to .gitignore - commit this change so the entry sticks; casts may capture sensitive output, review before sharing{{NORMAL}}"
 
 # error if not on a branch with a pull request
 [group('sanity check')]
@@ -846,7 +854,11 @@ again:
         CAST=".cache/again-${PRNUM}-$$.cast"
     fi
 
-    # ensure .cache/ exists and is gitignored before recording (#375)
+    # ensure .cache/ exists and is gitignored before recording (#375).
+    # Like pr, the guard may append .gitignore before this flow's own
+    # guards (pr_update's _on_a_pull_request) get a chance to fail -
+    # intentional: the entry is wanted as soon as recording is on, and
+    # the guard prints exactly what it changed
     just _ensure_cache_ignored
     echo "{{BLUE}}Recording again flow to $CAST (asciinema)...{{NORMAL}}"
     echo "{{YELLOW}}Casts may capture sensitive output (gh, tokens, file dumps) - review before sharing{{NORMAL}}"
