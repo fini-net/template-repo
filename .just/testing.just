@@ -82,3 +82,22 @@ asciinema_cache_test:
         echo "{{RED}}Some asciinema cache tests failed{{NORMAL}}"
         exit 1
     fi
+
+# recipe-mode workspaces drive the real shellcheck recipe with a failing
+# cue shim (#372: stub sandboxing - the real .just/repo-toml.sh path must
+# stay untouched) and the real repo_toml_check against stub-marked files
+
+# test the #372 repo-toml stub sandboxing and repo_toml_check sentinel
+[group('Testing/Automation')]
+repo_toml_stub_test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "{{BLUE}}Testing repo_toml stub sandboxing...{{NORMAL}}"
+
+    if .just/lib/repo_toml_stub_test.sh; then
+        echo "{{GREEN}}All repo_toml stub tests passed!{{NORMAL}}"
+    else
+        echo "{{RED}}Some repo_toml stub tests failed{{NORMAL}}"
+        exit 1
+    fi

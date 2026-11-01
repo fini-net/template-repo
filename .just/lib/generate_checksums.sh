@@ -24,6 +24,7 @@ CLEANED_FILES=(
 	".just/lib/asciinema_cache_test.sh"
 	".just/lib/repo_urls_test.sh"
 	".just/lib/wait_for_copilot_test.sh"
+	".just/lib/repo_toml_stub_test.sh"
 	".just/test"
 	".github/workflows/pr-body-tests.yml"
 	".github/workflows/checksums-verify.yml"
