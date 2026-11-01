@@ -38,7 +38,9 @@ flags?: {
 	// Enable standard release workflow
 	"standard-release"?: bool
 
-	// Record pr/again recipes with asciinema into .cache/
+	// Record pr/again recipes with asciinema into .cache/ (casts may
+	// capture sensitive output - review before sharing; the recipes
+	// gitignore .cache/ automatically)
 	"asciinema-record"?: bool
 
 	// Allow additional custom flags

@@ -16,4 +16,6 @@ claude = true
 claude-review = true
 copilot-review = true
 standard-release = true
+# pr/again record the full flow into .cache/*.cast; casts may capture
+# sensitive output (gh, tokens, file dumps) - review before sharing
 asciinema-record = false

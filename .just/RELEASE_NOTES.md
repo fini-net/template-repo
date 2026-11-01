@@ -2,6 +2,68 @@
 
 This file tracks the evolution of the Git/GitHub workflow automation module.
 
+## November 2026
+
+### v10.1 - asciinema .cache gitignore guard, sensitive-recording caveat, single-guard pr (2026-11-01)
+
+- Fixes issues [#374](https://github.com/fini-net/template-repo/issues/374)
+  and [#375](https://github.com/fini-net/template-repo/issues/375)
+
+**The asciinema recording feature now guarantees `.cache/` is gitignored
+before any recording starts.** v9.9 added the opt-in
+`flags.asciinema-record` feature, but the root `.gitignore` is not
+CHECKSUMS-tracked and does not ship via `just update_from_template`, so
+a derived repo that flipped the flag on had nothing stopping a
+`git add -A` from sweeping a `.cast` file into a commit - four v9.9 sync
+reviews flagged exactly that gap. A new hidden guard recipe,
+`_ensure_cache_ignored`, now runs before both `pr` and `again` start
+recording: it creates `.cache/` when missing, probes with
+`git check-ignore`, and appends a root-anchored `/.cache` entry to
+`.gitignore` when nothing covers it yet. The append is careful: it
+creates `.gitignore` when absent, repairs a missing trailing newline so
+the entry cannot glue itself onto the last line, and leaves
+already-ignored repos - `/.cache`, `.cache/`, or `.git/info/exclude`
+shapes - untouched. Outside a git repo it warns and continues rather
+than failing; the flow's branch guards surface the real problem next.
+
+**Recordings are now labeled as what they are: sensitive local
+artifacts.** A cast of a `pr`/`again` run can capture `gh` output,
+tokens echoed by a misbehaving tool, or accidentally displayed files,
+so both recording paths and `cue-verify`'s `asciinema-record` block
+print a review-before-sharing caveat, and `cue-verify` also warns when
+`/.cache` is not gitignored yet. The `.repo.toml`,
+`docs/repo-toml.cue`, and `.just/README.md` documentation says the
+same. Since the caveat lives in CHECKSUMS-tracked recipes, derived
+repos pick it up through the normal `just update_from_template` flow.
+
+**`pr` no longer runs the `_has_commits` guard twice.** Since v9.9 the
+`pr` wrapper declared `_has_commits` as a dependency while
+unconditionally delegating to `_pr_inner`, which declares the same
+dependency - so the `git cherry` check (and its `_on_a_branch` chain)
+ran twice per invocation. The dependency is gone from `pr`: every path
+delegates to `_pr_inner`, so the guard still fires exactly once, inside
+the recipe body it protects. The `again`/`_again_inner` pair was checked
+for the same duplication and is clean - neither recipe declares the
+dependency.
+
+**New tests cover the guard end to end.** `.just/lib/asciinema_cache_test.sh`
+(run via `just asciinema_cache_test`) drives the real
+`_ensure_cache_ignored` recipe in temp workspaces: `.gitignore`
+creation and appending, trailing-newline repair, the three
+already-ignored no-op shapes, idempotent re-runs, and the
+outside-a-repo warning path. Source assertions pin the #374 split (no
+`_has_commits` on `pr`, still on `_pr_inner`) and the #375 wiring (both
+wrappers route through the guard). The `cue-sync-tests.yml` workflow
+runs the suite alongside the cue-sync and repo_urls tests it already
+carries.
+
+**The clean_template removal list caught a v10.0 straggler.**
+`repo_urls_test.sh` landed in `CLEANED_FILES` but never got a matching
+removal block in `_remove_template_files`, leaving the script orphaned
+in derived repos (its fixtures and workflow are removed). It is removed
+alongside the new `asciinema_cache_test.sh`, whose removal block and
+`CLEANED_FILES` entry ship together this time.
+
 ## October 2026
 
 ### v10.0 - clean_template repoints .repo.toml URLs; cue sync refuses stale URLs (2026-10-31)

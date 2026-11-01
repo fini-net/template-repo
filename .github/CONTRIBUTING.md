@@ -74,7 +74,7 @@ Available recipes:
     branch branchname        # start a new branch
     claude_review            # Claude's latest PR code review
     merge                    # merge PR and return to starting point
-    pr                       # PR create v10.0
+    pr                       # PR create v10.1
     pr_checks                # watch GHAs then check for Copilot suggestions
     pr_update                # update the Done section of PR description with current commits
     pr_verify                # add or append to Verify section from stdin
@@ -90,6 +90,7 @@ Available recipes:
     update_from_template     # Update .just modules from template-repo (derived repos only)
 
     [Testing/Automation]
+    asciinema_cache_test      # test the _ensure_cache_ignored recording guard and the #374 pr guard split
     checksums_verify         # Verify local .just files against template versions
     cue_sync_test            # test cue-sync-from-github awk logic (missing/commented keys in [about])
     pr_body_test             # test PR body update logic

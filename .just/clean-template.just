@@ -190,6 +190,16 @@ _remove_template_files: _on_a_branch
         rm -f ".just/lib/cue_sync_test.sh"
     fi
 
+    if [[ -f ".just/lib/asciinema_cache_test.sh" ]]; then
+        echo "Removing .just/lib/asciinema_cache_test.sh"
+        rm -f ".just/lib/asciinema_cache_test.sh"
+    fi
+
+    if [[ -f ".just/lib/repo_urls_test.sh" ]]; then
+        echo "Removing .just/lib/repo_urls_test.sh"
+        rm -f ".just/lib/repo_urls_test.sh"
+    fi
+
     if [[ -f ".just/lib/wait_for_copilot_test.sh" ]]; then
         echo "Removing .just/lib/wait_for_copilot_test.sh"
         rm -f ".just/lib/wait_for_copilot_test.sh"
