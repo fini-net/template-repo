@@ -63,3 +63,22 @@ wait_for_copilot_test:
         echo "{{RED}}Some wait_for_copilot tests failed{{NORMAL}}"
         exit 1
     fi
+
+# recipe-mode workspaces drive the real _ensure_cache_ignored recipe
+# (#375: .cache/ gitignore protection before recording) and source
+# assertions pin the #374 pr/_pr_inner guard split
+
+# test the _ensure_cache_ignored recording guard and the #374 pr guard split
+[group('Testing/Automation')]
+asciinema_cache_test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "{{BLUE}}Testing asciinema cache guards...{{NORMAL}}"
+
+    if .just/lib/asciinema_cache_test.sh; then
+        echo "{{GREEN}}All asciinema cache tests passed!{{NORMAL}}"
+    else
+        echo "{{RED}}Some asciinema cache tests failed{{NORMAL}}"
+        exit 1
+    fi

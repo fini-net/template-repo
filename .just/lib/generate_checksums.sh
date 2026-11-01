@@ -21,6 +21,7 @@ CLEANED_FILES=(
 	".just/lib/pr_body_test.sh"
 	".just/lib/template_sync_test.sh"
 	".just/lib/cue_sync_test.sh"
+	".just/lib/asciinema_cache_test.sh"
 	".just/lib/repo_urls_test.sh"
 	".just/lib/wait_for_copilot_test.sh"
 	".just/test"

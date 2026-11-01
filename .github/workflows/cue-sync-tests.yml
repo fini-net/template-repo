@@ -12,8 +12,10 @@ on:
       - '.just/lib/cue_sync_test.sh'
       - '.just/lib/repo_urls.sh'
       - '.just/lib/repo_urls_test.sh'
+      - '.just/lib/asciinema_cache_test.sh'
       - '.just/test/fixtures/cue_sync/**'
       - '.just/test/fixtures/repo_urls/**'
+      - '.just/test/fixtures/asciinema_cache/**'
       - '.github/workflows/cue-sync-tests.yml'
   pull_request:
     paths:
@@ -25,8 +27,10 @@ on:
       - '.just/lib/cue_sync_test.sh'
       - '.just/lib/repo_urls.sh'
       - '.just/lib/repo_urls_test.sh'
+      - '.just/lib/asciinema_cache_test.sh'
       - '.just/test/fixtures/cue_sync/**'
       - '.just/test/fixtures/repo_urls/**'
+      - '.just/test/fixtures/asciinema_cache/**'
       - '.github/workflows/cue-sync-tests.yml'
 
 # global permissions
@@ -60,9 +64,13 @@ jobs:
         run: |
           chmod +x .just/lib/cue_sync_test.sh
           chmod +x .just/lib/repo_urls_test.sh
+          chmod +x .just/lib/asciinema_cache_test.sh
 
       - name: Run cue-sync tests
         run: just cue_sync_test
 
       - name: Run repo_urls tests
         run: just repo_urls_test
+
+      - name: Run asciinema cache tests
+        run: just asciinema_cache_test

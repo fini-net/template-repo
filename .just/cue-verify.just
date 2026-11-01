@@ -96,12 +96,33 @@ cue-verify:
     # asciinema installed and the recipes degrade gracefully to unrecorded
     # runs, so a missing binary is not a hard error)
     if [[ "$ASCIINEMA_RECORD_FLAG" == "true" ]]; then
+        # casts are sensitive local artifacts (#375): a recording can
+        # capture gh output, tokens echoed by a misbehaving tool, or
+        # accidentally displayed files
+        echo "{{YELLOW}}[flags.asciinema-record] cast files may capture sensitive output - review before sharing{{NORMAL}}"
         if command -v asciinema >/dev/null 2>&1; then
             echo "{{GREEN}}[flags.asciinema-record] asciinema found - pr/again recipes will record into .cache/{{NORMAL}}"
         else
             echo "{{YELLOW}}[flags.asciinema-record] asciinema not found on PATH{{NORMAL}}"
             echo "{{YELLOW}}  pr/again recipes will warn and run unrecorded{{NORMAL}}"
             echo "{{YELLOW}}  Install with: brew install asciinema{{NORMAL}}"
+        fi
+        # pr/again append '/.cache' to .gitignore themselves when it is
+        # not ignored yet, but surface the gap here too so it is visible
+        # before the first recording run. The probe path is a file under
+        # the directory (.cache/x.cast), not the directory itself:
+        # directory-only patterns like '.cache/' do not match a path
+        # that does not exist yet, so probing '.cache' warned spuriously
+        # in exactly that case, while the child path matches both
+        # '/.cache' and '.cache/' rules either way (Claude review of
+        # #427, item 3). check-ignore's non-zero exits are handled cases
+        # (#326/#327 convention): 1 = definitively not ignored, anything
+        # else (e.g. 128 outside a repo) just means the probe cannot
+        # tell, so warn only on the definitive answer.
+        CACHE_IGNORE_RC=0
+        git check-ignore -q .cache/x.cast || CACHE_IGNORE_RC=$?
+        if [[ "$CACHE_IGNORE_RC" -eq 1 ]]; then
+            echo "{{YELLOW}}[flags.asciinema-record] /.cache is not gitignored - the next pr/again recording will append it to .gitignore{{NORMAL}}"
         fi
     fi
 

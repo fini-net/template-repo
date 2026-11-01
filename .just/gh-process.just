@@ -22,9 +22,15 @@ sync:
     git pull
     git status --porcelain # stp
 
-# PR create v10.0
+# No _has_commits dependency on this wrapper (#374): _pr_inner owns
+# that guard, and declaring it in both places ran it (and its
+# _on_a_branch chain) twice per invocation. The wrapper body only needs
+# the asciinema flag file, not git state - every path delegates to
+# _pr_inner, so the guard still fires exactly once, inside the recipe
+# body it protects.
+# PR create v10.1
 [group('Process')]
-pr: _has_commits
+pr:
     #!/usr/bin/env bash
     set -euo pipefail # strict mode
 
@@ -50,9 +56,17 @@ pr: _has_commits
         exit 0
     fi
 
-    mkdir -p .cache
+    # The root .gitignore is not CHECKSUMS-tracked, so a derived repo
+    # may have no /.cache entry yet: the guard recipe creates .cache/
+    # and gitignores it before recording starts (#375). The guard runs
+    # before _pr_inner's branch/commit guards, so a doomed run may
+    # append .gitignore before failing - intentional, since the entry
+    # is wanted as soon as recording is on and the guard prints exactly
+    # what it changed (Claude review of #427, item 1)
+    just _ensure_cache_ignored
     TMP_CAST=".cache/pr-$$.cast.tmp"
     echo "{{BLUE}}Recording pr flow to $TMP_CAST (asciinema)...{{NORMAL}}"
+    echo "{{YELLOW}}Casts may capture sensitive output (gh, tokens, file dumps) - review before sharing{{NORMAL}}"
     # asciinema 3.x exits 0 regardless of the recorded command's status
     # unless --return is passed; 2.x propagates by default and has no
     # --return flag, so detect support rather than hardcode either way
@@ -186,6 +200,58 @@ _main_branch:
         echo "You are on a {{BLUE}}branch that is not the release branch{{NORMAL}} so you are not ready to start a new branch."
         exit 102
     fi
+
+# recording guard: ensure .cache/ exists and is gitignored before any
+# asciinema recording starts (#375). Cast files are sensitive local
+# artifacts - a recording of a pr/again run can capture gh output,
+# tokens echoed by a misbehaving tool, or accidentally displayed files.
+# The root .gitignore is not CHECKSUMS-tracked and does not ship with
+# this module, so a derived repo that flips flags.asciinema-record = true
+# may have nothing stopping a `git add -A` from sweeping a .cast file
+# into a commit. Probe with git check-ignore and append '/.cache' when
+# nothing covers it yet.
+[group('sanity check')]
+_ensure_cache_ignored:
+    #!/usr/bin/env bash
+    set -euo pipefail # strict mode
+
+    mkdir -p .cache
+
+    # git check-ignore exit codes: 0 = some rule ignores the probe path,
+    # 1 = not ignored, 128+ = git itself failed (e.g. not a repo).
+    # Probe a file under the directory rather than '.cache' itself:
+    # directory-only patterns like '.cache/' do not match a path that
+    # does not exist yet, while the child path matches both '/.cache'
+    # and '.cache/' rules either way (Claude review of #427, item 3).
+    # The non-zero exits are handled cases, so guard the bare call per
+    # the #326/#327 convention.
+    IGNORE_RC=0
+    git check-ignore -q .cache/x.cast || IGNORE_RC=$?
+    if [[ "$IGNORE_RC" -eq 0 ]]; then
+        # already covered by some ignore rule - nothing to do
+        exit 0
+    fi
+    if [[ "$IGNORE_RC" -ne 1 ]]; then
+        # git itself is unhappy (e.g. outside a repo) - warn and carry
+        # on; the flow's branch guards surface the real problem before
+        # anything recorded here could be committed
+        echo "{{YELLOW}}Warning: could not probe ignore status for .cache (git check-ignore rc=$IGNORE_RC){{NORMAL}}"
+        echo "{{YELLOW}}Verify .cache/ is gitignored before committing any cast files{{NORMAL}}"
+        exit 0
+    fi
+
+    # Not ignored yet: append a root-anchored '/.cache' entry (nested
+    # .cache directories stay unaffected). Create .gitignore when
+    # absent, and repair a missing trailing newline first so the
+    # append cannot glue itself onto the current last line.
+    if [[ ! -f .gitignore ]]; then
+        echo "{{YELLOW}}No .gitignore found - creating one so recordings stay out of commits{{NORMAL}}"
+    elif [[ -n "$(tail -c 1 .gitignore)" ]]; then
+        printf '\n' >> .gitignore
+    fi
+    printf '%s\n' "# asciinema recordings (just pr/again, flags.asciinema-record)" >> .gitignore
+    printf '%s\n' "/.cache" >> .gitignore
+    echo "{{YELLOW}}Added '/.cache' to .gitignore - commit this change so the entry sticks; casts may capture sensitive output, review before sharing{{NORMAL}}"
 
 # error if not on a branch with a pull request
 [group('sanity check')]
@@ -788,8 +854,14 @@ again:
         CAST=".cache/again-${PRNUM}-$$.cast"
     fi
 
-    mkdir -p .cache
+    # ensure .cache/ exists and is gitignored before recording (#375).
+    # Like pr, the guard may append .gitignore before this flow's own
+    # guards (pr_update's _on_a_pull_request) get a chance to fail -
+    # intentional: the entry is wanted as soon as recording is on, and
+    # the guard prints exactly what it changed
+    just _ensure_cache_ignored
     echo "{{BLUE}}Recording again flow to $CAST (asciinema)...{{NORMAL}}"
+    echo "{{YELLOW}}Casts may capture sensitive output (gh, tokens, file dumps) - review before sharing{{NORMAL}}"
     # asciinema 3.x exits 0 regardless of the recorded command's status
     # unless --return is passed; 2.x propagates by default and has no
     # --return flag, so detect support rather than hardcode either way
