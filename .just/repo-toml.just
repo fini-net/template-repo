@@ -129,7 +129,10 @@ repo_toml_check:
     # .repo.toml - and every recipe that sources it silently inherits
     # those defaults. Stubs now live in the lint run's temp dir; this
     # guard catches stubs written by template versions v10.1 and earlier.
-    if grep -q "^# Stub written by" .just/repo-toml.sh; then
+    # First line only - the stub marker always led the file; a marker
+    # buried mid-file is a hand edit, not a stub.
+    IFS= read -r stub_header < .just/repo-toml.sh || true
+    if [[ "$stub_header" == "# Stub written by"* ]]; then
         echo "{{RED}}Error: .just/repo-toml.sh is a shellcheck stub, not a generated file{{NORMAL}}"
         echo "{{BLUE}}Run 'just repo_toml_generate' to regenerate it (requires cue and jq){{NORMAL}}"
         echo "{{BLUE}}Or delete the stub - sourcing recipes fall back to their built-in defaults{{NORMAL}}"

@@ -32,15 +32,18 @@ its variable list to `repo_toml_generate`.
 
 **`repo_toml_check` now refuses stub-marked files.** Checkouts that
 already carry a v10.1-era stub at the real path are healed by a new
-sentinel check: the stub's first line (`# Stub written by ...`) is
-grepped for before the `-nt` test, so a fresh stub is rejected with a
-"regenerate" hint instead of passing as up-to-date - the `-nt` test
-alone could never catch it. If `cue`/`jq` are unavailable, deleting the
-stub is enough: the sourcing recipes' existing fallback branches supply
-their built-in defaults. No `gh-process.just` recipes changed - a
-legacy stub only exists on machines without `jq`, which cannot complete
-the `pr` flow anyway, and the sentinel check plus the sandbox make the
-sourcing sites safe in practice.
+sentinel check: the file's first line is compared against the stub
+marker (`# Stub written by ...`) before the `-nt` test, so a fresh stub
+is rejected with a "regenerate" hint instead of passing as up-to-date -
+the `-nt` test alone could never catch it. The comparison is
+first-line only: every stub the old recipe wrote led with the marker,
+so a marker buried mid-file is treated as a hand edit, not a stub. If
+`cue`/`jq` are unavailable, deleting the stub is enough: the sourcing
+recipes' existing fallback branches supply their built-in defaults. No
+`gh-process.just` recipes changed - a legacy stub only exists on
+machines without `jq`, which cannot complete the `pr` flow anyway, and
+the sentinel check plus the sandbox make the sourcing sites safe in
+practice.
 
 **New tests cover both ends of #372.** `.just/lib/repo_toml_stub_test.sh`
 (run via `just repo_toml_stub_test`) drives the real `shellcheck` recipe

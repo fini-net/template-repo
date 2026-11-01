@@ -217,7 +217,13 @@ test_stub_sandboxed_in_source() {
 		END { exit !found }
 	' "$SHELLCHECK_JUST" \
 		|| problems+="shellcheck invocation lost -P/--source-path; "
-	if grep -qE '>[[:space:]]*\.just/repo-toml\.sh' "$SHELLCHECK_JUST"; then
+	# comment lines do not count here either; a write routed through a
+	# variable ("> $f") is beyond any static grep - the behavioral test
+	# is the guarantee, this is the backstop
+	if awk '
+		$0 !~ /^[[:space:]]*#/ && />[[:space:]]*\.just\/repo-toml\.sh/ { found = 1 }
+		END { exit !found }
+	' "$SHELLCHECK_JUST"; then
 		problems+="a write to the real .just/repo-toml.sh path remains; "
 	fi
 
@@ -409,6 +415,35 @@ test_check_passes_fresh_generated() {
 	rm -rf "$ws"
 }
 
+# Control (Claude review round 3 on #428): the sentinel matches the
+# stub marker only as the file's FIRST line - the shape every stub
+# written by v10.1-and-earlier had. A marker buried mid-file is a hand
+# edit and must not brick a legitimate file.
+test_check_ignores_midfile_stub_marker() {
+	local ws out rc=0 problems=""
+	local label="repo_toml_check ignores a stub marker that is not the first line"
+
+	ws=$(mktemp -d -t repo_toml_stub_mid.XXXXXX)
+	build_check_workspace "$ws"
+	touch -t "$STAMP_OLD" "$ws/.repo.toml"
+	{
+		echo "# Auto-generated from .repo.toml by 'just repo_toml_generate'"
+		echo "# Stub written by 'just shellcheck' - hand edit, not a stub"
+		echo "FLAG_CLAUDE=true"
+	} >"$ws/.just/repo-toml.sh"
+	touch -t "$STAMP_NEW" "$ws/.just/repo-toml.sh" # newer than .repo.toml
+
+	out=$(run_check_recipe "$ws") || rc=$?
+
+	[[ $rc -eq 0 ]] || problems+="exit code $rc (want 0); "
+	if grep -q "shellcheck stub" <<<"$out"; then
+		problems+="mid-file marker was treated as a stub; "
+	fi
+
+	report_recipe_case "$label" "$problems" "$out"
+	rm -rf "$ws"
+}
+
 # Control: a missing file still fails (pins the pre-existing branch).
 test_check_fails_missing_file() {
 	local ws out rc=0 problems=""
@@ -489,6 +524,7 @@ main() {
 
 	if skip_or_require_tools "repo_toml_check recipe-mode tests" just; then
 		test_check_rejects_stub
+		test_check_ignores_midfile_stub_marker
 		test_check_passes_fresh_generated
 		test_check_fails_missing_file
 		test_check_flags_stale_generated
