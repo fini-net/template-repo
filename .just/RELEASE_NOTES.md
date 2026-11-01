@@ -11,22 +11,21 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 **`just shellcheck` no longer writes its fallback stub to the real
 `.just/repo-toml.sh` path.** When the generated file was missing and
-`repo_toml_generate` failed (no `cue`/`jq` on PATH - the [#192](https://github.com/fini-net/template-repo/issues/192)
-auto-generate fallback), the recipe wrote a hardcoded default-flag stub
-to the real path so shellcheck would have something to follow. That had
-two consequences: the stub was freshly written, so `repo_toml_check`'s
-`-nt` staleness test read it as up-to-date even though its `FLAG_*`
-values might not match `.repo.toml`, and every recipe that sources the
-file (`pr`, `again`, `pr_checks`, `claude_review`, `release`,
-`release_age`) silently inherited those defaults until someone noticed
-and regenerated. The stub now lives in the lint run's temp directory
+`repo_toml_generate` failed (no `cue`/`jq` on PATH - the
+[#192](https://github.com/fini-net/template-repo/issues/192) auto-generate
+fallback), the recipe wrote a hardcoded default-flag stub to the real path so
+shellcheck would have something to follow. That had two consequences: the stub
+was freshly written, so `repo_toml_check`'s `-nt` staleness test read it as
+up-to-date even though its `FLAG_*` values might not match `.repo.toml`, and
+every recipe that sources the file (`pr`, `again`, `pr_checks`, `claude_review`,
+`release`, `release_age`) silently inherited those defaults until someone
+noticed and regenerated. The stub now lives in the lint run's temp directory
 (`$CHECKS_TMPDIR/.just/repo-toml.sh`) and shellcheck resolves it through
-`-P`/`--source-path` for that run only, so the real path is never
-touched and a failed lint run can no longer leave poison behind. When
-the real file exists the stub branch never runs at all; the suite pins
-that shellcheck's cwd-first source resolution makes the real file win
-over the sandboxed candidates, so the normal path lints exactly as
-before.
+`-P`/`--source-path` for that run only, so the real path is never touched and a
+failed lint run can no longer leave poison behind. When the real file exists the
+stub branch never runs at all; the suite pins that shellcheck's cwd-first source
+resolution makes the real file win over the sandboxed candidates, so the normal
+path lints exactly as before.
 
 **`repo_toml_check` now refuses stub-marked files.** Checkouts that
 already carry a v10.1-era stub at the real path are healed by a new
@@ -35,29 +34,30 @@ marker (`# Stub written by ...`) before the `-nt` test, so a fresh stub
 is rejected with a "regenerate" hint instead of passing as up-to-date.
 The comparison is first-line only: every stub the old recipe wrote led
 with the marker, so a marker buried mid-file is treated as a hand edit,
-not a stub. If `cue`/`jq` are unavailable, deleting the stub is enough
-- the sourcing recipes' existing fallback branches supply their
-built-in defaults. No `gh-process.just` recipes changed: a legacy stub
+not a stub. If `cue`/`jq` are unavailable, deleting the stub is enough:
+the sourcing recipes' existing fallback branches supply their built-in
+defaults. No `gh-process.just` recipes changed: a legacy stub
 only exists on machines without `jq`, which cannot complete the `pr`
 flow anyway.
 
-**New tests cover both ends of [#372](https://github.com/fini-net/template-repo/issues/372).** `.just/lib/repo_toml_stub_test.sh`
-(run via `just repo_toml_stub_test`) drives the real `shellcheck` and
-`repo_toml_check` recipes in temp workspaces: the lint passes with no
-SC1091/SC2154 noise while the real `.just/repo-toml.sh` path stays
-untouched, a fresh stub is rejected, a generated-looking file passes,
-and staleness detection still fires. A drift assertion fails the suite
-if the stub's variable list diverges from `repo_toml_generate`'s emit
-block, and a precedence pin drives the real shellcheck binary in the
-recipe's layout to prove the real file wins over the sandboxed stub.
-The suite runs in `cue-sync-tests.yml` - whose path triggers now include
-the modules under test, so a PR that regresses only them cannot skip
-the suite that guards them - and ships with matching `CLEANED_FILES`
-and `clean_template` removal entries so derived repos do not keep it.
-In CI (`$CI` set) a missing `just`/`shellcheck` fails the suite instead
-of skipping it: this is the only regression coverage for [#372](https://github.com/fini-net/template-repo/issues/372), and a
-vacuous green run would be worse than a red one; locally the
-skip-with-note behavior is unchanged.
+**New tests cover both ends of
+[#372](https://github.com/fini-net/template-repo/issues/372).**
+`.just/lib/repo_toml_stub_test.sh` (run via `just repo_toml_stub_test`) drives
+the real `shellcheck` and `repo_toml_check` recipes in temp workspaces: the lint
+passes with no SC1091/SC2154 noise while the real `.just/repo-toml.sh` path
+stays untouched, a fresh stub is rejected, a generated-looking file passes, and
+staleness detection still fires. A drift assertion fails the suite if the stub's
+variable list diverges from `repo_toml_generate`'s emit block, and a precedence
+pin drives the real shellcheck binary in the recipe's layout to prove the real
+file wins over the sandboxed stub. The suite runs in `cue-sync-tests.yml` -
+whose path triggers now include the modules under test, so a PR that regresses
+only them cannot skip the suite that guards them - and ships with matching
+`CLEANED_FILES` and `clean_template` removal entries so derived repos do not
+keep it. In CI (`$CI` set) a missing `just`/`shellcheck` fails the suite instead
+of skipping it: this is the only regression coverage for
+[#372](https://github.com/fini-net/template-repo/issues/372), and a vacuous
+green run would be worse than a red one; locally the skip-with-note behavior is
+unchanged.
 
 ### v10.1 - asciinema .cache gitignore guard, sensitive-recording caveat, single-guard pr (2026-11-01)
 
@@ -220,23 +220,22 @@ injection payload end to end: under a bare justfile,
 `just claude 'x"$(echo PWNED)"y'` still passes the argument through as
 a literal string.
 
-**The recipe-mode harness no longer tests against a configuration real
-consumers never have.** `run_recipe_test()` baked
-`set positional-arguments := true` into every sandbox justfile, which is
-exactly why the v9.7 breakage sailed through CI green ([#368](https://github.com/fini-net/template-repo/issues/368)). The
-harness now supports `modules`, `bare_justfile` (omit the `set` line,
-mirroring a derived-repo justfile), and `shims/` fixture options, and
-four new bare fixtures pin the invariant that tracked modules must be
-self-contained: `checksums_diff`, `claude`, `release`, and `branch`
-each driven through shims in a bare workspace, all four confirmed red
-against the pre-fix recipes. The fixtures assert
-environment-independent verdicts (e.g. a boolean OK/MISSING line from
-the git shim) rather than `$USER`/date-dependent output, so they stay
-deterministic on any runner. Along the way the bare fixtures surfaced
-a latent harness bug: the expected-output matcher aborted the whole
-suite under `set -euo pipefail` the first time an expected line was
-missing, so no failing fixture could ever be reported; both matcher
-copies now guard the substitution with `|| true`.
+**The recipe-mode harness no longer tests against a configuration real consumers
+never have.** `run_recipe_test()` baked `set positional-arguments := true` into
+every sandbox justfile, which is exactly why the v9.7 breakage sailed through CI
+green ([#368](https://github.com/fini-net/template-repo/issues/368)). The
+harness now supports `modules`, `bare_justfile` (omit the `set` line, mirroring
+a derived-repo justfile), and `shims/` fixture options, and four new bare
+fixtures pin the invariant that tracked modules must be self-contained:
+`checksums_diff`, `claude`, `release`, and `branch` each driven through shims in
+a bare workspace, all four confirmed red against the pre-fix recipes. The
+fixtures assert environment-independent verdicts (e.g. a boolean OK/MISSING line
+from the git shim) rather than `$USER`/date-dependent output, so they stay
+deterministic on any runner. Along the way the bare fixtures surfaced a latent
+harness bug: the expected-output matcher aborted the whole suite under `set -euo
+pipefail` the first time an expected line was missing, so no failing fixture
+could ever be reported; both matcher copies now guard the substitution with `||
+true`.
 
 ### v9.8 - claude_review is the single print site for the Copilot summary line (2026-09-13)
 
@@ -266,30 +265,29 @@ once, from `claude_review`.
   and [#359](https://github.com/fini-net/template-repo/issues/359)
 - **Related PR:** [#362](https://github.com/fini-net/template-repo/pull/362)
 
-**The last `{{...}}` argument templating is gone from user-facing recipes.**
-PR [#352](https://github.com/fini-net/template-repo/pull/352) (v9.1) proved empirically that interpolating a recipe argument
-into the body via `{{arg}}` is command-injectable at the templating
-layer - a branch name like `x"$(echo PWNED)"y` executes the
-substitution before bash parses the script. [#353](https://github.com/fini-net/template-repo/issues/353) was
-the audit follow-up listing the three remaining sites with that same
-code shape, and all three now take the positional form: `branch` runs
-`git checkout -b "$USER/$NOW-$1"`, `release` reads `rel_version="$1"`
-up front and interpolates `"$rel_version"` throughout, and the variadic
-`claude *args` in `claude.just` becomes a shebang recipe running
-`claude "$@"`. Testing confirmed variadics arrive as real positional
-shell parameters (the payload stayed a literal string end to end), so
-`"$@"` is safe.
+**The last `{{...}}` argument templating is gone from user-facing recipes.** PR
+[#352](https://github.com/fini-net/template-repo/pull/352) (v9.1) proved
+empirically that interpolating a recipe argument into the body via `{{arg}}` is
+command-injectable at the templating layer - a branch name like `x"$(echo
+PWNED)"y` executes the substitution before bash parses the script.
+[#353](https://github.com/fini-net/template-repo/issues/353) was the audit
+follow-up listing the three remaining sites with that same code shape, and all
+three now take the positional form: `branch` runs `git checkout -b
+"$USER/$NOW-$1"`, `release` reads `rel_version="$1"` up front and interpolates
+`"$rel_version"` throughout, and the variadic `claude *args` in `claude.just`
+becomes a shebang recipe running `claude "$@"`. Testing confirmed variadics
+arrive as real positional shell parameters (the payload stayed a literal string
+end to end), so `"$@"` is safe.
 
-**The release regex is now actually load-bearing ([#359](https://github.com/fini-net/template-repo/issues/359)).** The old
-`^v[0-9]` start-anchored-only check let `v1"; touch /tmp/pwned #`
-pass validation and then break out of the quoting in `gh release
-create`. The guard is now tightened to
-`^v[0-9]+(\.[0-9]+){0,2}$`: strict input validation with a clean error
-message (`v1`, `v1.0`, `v1.0.0` pass; anything with stray characters
-fails). The strict form deliberately rejects prerelease suffixes
-(`v0.1-beta`); the repo's own tags have only ever been plain `vX.Y`
-forms, and the looser variant remains a one-line change if a
-prerelease workflow ever needs it.
+**The release regex is now actually load-bearing
+([#359](https://github.com/fini-net/template-repo/issues/359)).** The old
+`^v[0-9]` start-anchored-only check let `v1"; touch /tmp/pwned #` pass
+validation and then break out of the quoting in `gh release create`. The guard
+is now tightened to `^v[0-9]+(\.[0-9]+){0,2}$`: strict input validation with a
+clean error message (`v1`, `v1.0`, `v1.0.0` pass; anything with stray characters
+fails). The strict form deliberately rejects prerelease suffixes (`v0.1-beta`);
+the repo's own tags have only ever been plain `vX.Y` forms, and the looser
+variant remains a one-line change if a prerelease workflow ever needs it.
 
 ### v9.6 - release-process hygiene: editorconfig pre-push guard (2026-09-12)
 
@@ -297,39 +295,41 @@ prerelease workflow ever needs it.
 - **Related PR:** [#361](https://github.com/fini-net/template-repo/pull/361)
 
 **The 3-space indent regression finally has a local gate.** Numbered-list
-continuation lines in this very file kept landing with a 3-space indent
-(the visual alignment under the `1.` list marker) instead of a multiple of 2,
-which is what `.editorconfig` demands for `*.md` - and editorconfig CI
-failed for it three times across two consecutive versions: [#289](https://github.com/fini-net/template-repo/pull/289) (v8.3)
-flagged it, the fix landed, then a follow-up push to the same PR
-re-broke items 4-5, and [#317](https://github.com/fini-net/template-repo/pull/317) (v8.5) hit it again. Every failure was
-caught in CI *after* the push, which is exactly where you want it not
-to be. The new `editorconfig_check` recipe in `compliance.just` runs
-`editorconfig-checker` over all git-tracked files and now sits in
-`_pr-hook`, so `just pr` fails locally before the push instead of
-letting CI deliver the news. Since the binary is not yet in the
-required-tools list, the gate is deliberately best-effort: a missing
-`.editorconfig` or a missing `editorconfig-checker` binary warns and
-exits 0 (the asciinema/shellcheck-stub precedent), and CI
+continuation lines in this very file kept landing with a 3-space indent (the
+visual alignment under the `1.` list marker) instead of a multiple of 2, which
+is what `.editorconfig` demands for `*.md` - and editorconfig CI failed for it
+three times across two consecutive versions:
+[#289](https://github.com/fini-net/template-repo/pull/289) (v8.3) flagged it,
+the fix landed, then a follow-up push to the same PR re-broke items 4-5, and
+[#317](https://github.com/fini-net/template-repo/pull/317) (v8.5) hit it again.
+Every failure was caught in CI *after* the push, which is exactly where you want
+it not to be. The new `editorconfig_check` recipe in `compliance.just` runs
+`editorconfig-checker` over all git-tracked files and now sits in `_pr-hook`, so
+`just pr` fails locally before the push instead of letting CI deliver the news.
+Since the binary is not yet in the required-tools list, the gate is deliberately
+best-effort: a missing `.editorconfig` or a missing `editorconfig-checker`
+binary warns and exits 0 (the asciinema/shellcheck-stub precedent), and CI
 (`.github/workflows/editorconfig.yml`) remains the hard enforcement
 ([#329](https://github.com/fini-net/template-repo/issues/329)).
 
-**The `again` path is guarded too.** The second [#289](https://github.com/fini-net/template-repo/pull/289) regression arrived
-through `just again` - a follow-up push to an open PR - which never ran
-the pre-PR hook. `_again_inner` now invokes `_pr-hook` (when present)
-before its `git push`, same as `_pr_inner` does, so both push paths
-through the PR lifecycle get the same pre-flight checks ([#329](https://github.com/fini-net/template-repo/issues/329)).
+**The `again` path is guarded too.** The second
+[#289](https://github.com/fini-net/template-repo/pull/289) regression arrived
+through `just again` - a follow-up push to an open PR - which never ran the
+pre-PR hook. `_again_inner` now invokes `_pr-hook` (when present) before its
+`git push`, same as `_pr_inner` does, so both push paths through the PR
+lifecycle get the same pre-flight checks
+([#329](https://github.com/fini-net/template-repo/issues/329)).
 
-**Tooling support and docs.** `install-prerequisites.sh` now knows
-about `editorconfig-checker`: it detects it, installs it via Homebrew
-on macOS, points pacman users at the official Arch package, and
-points everyone else at the installation docs (there is no apt/dnf
-package - the release binary, npm, and pip are the supported routes).
-CLAUDE.md's "Versioning `.just/*` changes" section gains an explicit
-RELEASE_NOTES.md indentation rule aimed at the actual culprit - AI
-agents appending list items mid-PR - and `.just/README.md` no longer
-calls `_pr-hook` a placeholder that "just prints a message", because
-it now runs three real checks ([#329](https://github.com/fini-net/template-repo/issues/329)).
+**Tooling support and docs.** `install-prerequisites.sh` now knows about
+`editorconfig-checker`: it detects it, installs it via Homebrew on macOS, points
+pacman users at the official Arch package, and points everyone else at the
+installation docs (there is no apt/dnf package - the release binary, npm, and
+pip are the supported routes). CLAUDE.md's "Versioning `.just/*` changes"
+section gains an explicit RELEASE_NOTES.md indentation rule aimed at the actual
+culprit - AI agents appending list items mid-PR - and `.just/README.md` no
+longer calls `_pr-hook` a placeholder that "just prints a message", because it
+now runs three real checks
+([#329](https://github.com/fini-net/template-repo/issues/329)).
 
 ### v9.5 - test infrastructure: wait_for_copilot suite + recipe-gate coverage (2026-09-11)
 
@@ -338,44 +338,43 @@ it now runs three real checks ([#329](https://github.com/fini-net/template-repo/
 - **Related PR:** [#360](https://github.com/fini-net/template-repo/pull/360)
 
 **The Copilot-wait state machine finally has tests.** The shared
-`.just/lib/wait_for_copilot.sh` poll loop sits on the critical path of
-every `just pr` / `just again` / `just copilot_refresh` run and needed
-two rounds of GraphQL/state-machine bug fixes in v8.4 alone - yet
-unlike its siblings it had no automated test. The new
-`.just/lib/wait_for_copilot_test.sh` runs the production script
-byte-for-byte unmodified, intercepting `gh` and `sleep` with a PATH
-shim directory (the same mocking precedent `template_sync_test.sh` set
-for curl). The mock `gh` plays fixture responses in order and applies
-the real `--jq` filter with real jq, so the exact response shaping the
-script relies on is exercised; the no-op `sleep` keeps tests instant.
-Ten fixtures cover the full branch matrix - completion, in-progress,
-the null-response/not-found fast-fail, the stale-review fast-fail,
-timeout with and without a stale review, and the `USING_GUM` dot
-suppression - and sentinel files are asserted written on stale exits
-and cleared on clean ones (the [#300](https://github.com/fini-net/template-repo/pull/300) review regression). An
-`exact_output.txt` fixture mode takes precedence over the in-order line
-check and requires byte-for-byte output, so extra progress dots fail
-the suite instead of passing a substring check. Wired into
-`.just/testing.just` as `just wait_for_copilot_test` and CI
-via `.github/workflows/wait-for-copilot-tests.yml` ([#330](https://github.com/fini-net/template-repo/issues/330)).
+`.just/lib/wait_for_copilot.sh` poll loop sits on the critical path of every
+`just pr` / `just again` / `just copilot_refresh` run and needed two rounds of
+GraphQL/state-machine bug fixes in v8.4 alone - yet unlike its siblings it had
+no automated test. The new `.just/lib/wait_for_copilot_test.sh` runs the
+production script byte-for-byte unmodified, intercepting `gh` and `sleep` with a
+PATH shim directory (the same mocking precedent `template_sync_test.sh` set for
+curl). The mock `gh` plays fixture responses in order and applies the real
+`--jq` filter with real jq, so the exact response shaping the script relies on
+is exercised; the no-op `sleep` keeps tests instant. Ten fixtures cover the full
+branch matrix - completion, in-progress, the null-response/not-found fast-fail,
+the stale-review fast-fail, timeout with and without a stale review, and the
+`USING_GUM` dot suppression - and sentinel files are asserted written on stale
+exits and cleared on clean ones (the
+[#300](https://github.com/fini-net/template-repo/pull/300) review regression).
+An `exact_output.txt` fixture mode takes precedence over the in-order line check
+and requires byte-for-byte output, so extra progress dots fail the suite instead
+of passing a substring check. Wired into `.just/testing.just` as `just
+wait_for_copilot_test` and CI via `.github/workflows/wait-for-copilot-tests.yml`
+([#330](https://github.com/fini-net/template-repo/issues/330)).
 
 **Recipe gates are now tested, not just the update script.** The
-validate_filepath path-traversal gate added in [#352](https://github.com/fini-net/template-repo/pull/352) lives in three
-places - `template_update.sh`'s `process_file()` and the
-`checksums_verify` / `checksums_diff` recipe bodies - but the fixture
-harness only drove a patched copy of the update script.
-`template_sync_test.sh` grew a recipe mode: fixtures with a `recipe`
-file get a sandboxed workspace holding a copy of the real
-`.just/template-sync.just` plus a minimal justfile, and the harness
-runs the actual `just checksums_verify` / `checksums_diff` commands
-with mocked curl, asserting exit codes, ordered output lines, and
-expected state. Five new fixtures cover the invalid-manifest-key
-rejection, the cleaned/not-present/modified file states, the
-all-latest success path, the traversal-argument rejection in
-`checksums_diff`, and a happy-path diff against a mocked template
-version. The shared mock curl now writes `-o` output files properly
-and no-ops when source and destination are the same file, so the
-legacy fixtures keep passing unchanged ([#354](https://github.com/fini-net/template-repo/issues/354)).
+validate_filepath path-traversal gate added in
+[#352](https://github.com/fini-net/template-repo/pull/352) lives in three
+places - `template_update.sh`'s `process_file()` and the `checksums_verify` /
+`checksums_diff` recipe bodies - but the fixture harness only drove a patched
+copy of the update script. `template_sync_test.sh` grew a recipe mode: fixtures
+with a `recipe` file get a sandboxed workspace holding a copy of the real
+`.just/template-sync.just` plus a minimal justfile, and the harness runs the
+actual `just checksums_verify` / `checksums_diff` commands with mocked curl,
+asserting exit codes, ordered output lines, and expected state. Five new
+fixtures cover the invalid-manifest-key rejection, the
+cleaned/not-present/modified file states, the all-latest success path, the
+traversal-argument rejection in `checksums_diff`, and a happy-path diff against
+a mocked template version. The shared mock curl now writes `-o` output files
+properly and no-ops when source and destination are the same file, so the legacy
+fixtures keep passing unchanged
+([#354](https://github.com/fini-net/template-repo/issues/354)).
 
 **Both runners ship clean.** Following the v7.2 lesson
 (`cue_sync_test.sh` initially shipped into derived repos as a dead
@@ -390,28 +389,30 @@ in a derived repo.
   and [#337](https://github.com/fini-net/template-repo/issues/337)
 - **Related PR:** [#357](https://github.com/fini-net/template-repo/pull/357)
 
-**No more "calling shell" confusion.** The comment above
-`unset 'footer_content[...]'` in `update_pr_body.sh` was added by [#203](https://github.com/fini-net/template-repo/issues/203)
-to stop recurring false-positive reviews of the single-quoted `unset`
-idiom. It failed: Copilot's review of [gh-amp#18](https://github.com/fini-net/gh-amp/pull/18) flagged the *comment*
-itself, noting "there is no separate 'calling shell'" — the framing
-invited exactly the wrong mental model. The comment now says what the
-code does in one accurate sentence: single-quoting lets `unset` itself
-evaluate the subscript arithmetic, so nothing is expanded by this
-line. Copilot custom instructions now cover the idiom too:
-`review-guidance.instructions.md` in `.github/instructions/` uses
-the `*.instructions.md` filename and `applyTo` frontmatter key that
-Copilot code review requires (a plain `.md` name with `apply-to`
-would be silently ignored). Note that template sync ships only the
-`.just/` tree, so derived repos wanting this review guidance must
-copy `.github/instructions/` themselves ([#339](https://github.com/fini-net/template-repo/issues/339)).
+**No more "calling shell" confusion.** The comment above `unset
+'footer_content[...]'` in `update_pr_body.sh` was added by
+[#203](https://github.com/fini-net/template-repo/issues/203) to stop recurring
+false-positive reviews of the single-quoted `unset` idiom. It failed: Copilot's
+review of [gh-amp#18](https://github.com/fini-net/gh-amp/pull/18) flagged the
+*comment* itself, noting "there is no separate 'calling shell'" — the framing
+invited exactly the wrong mental model. The comment now says what the code does
+in one accurate sentence: single-quoting lets `unset` itself evaluate the
+subscript arithmetic, so nothing is expanded by this line. Copilot custom
+instructions now cover the idiom too: `review-guidance.instructions.md` in
+`.github/instructions/` uses the `*.instructions.md` filename and `applyTo`
+frontmatter key that Copilot code review requires (a plain `.md` name with
+`apply-to` would be silently ignored). Note that template sync ships only the
+`.just/` tree, so derived repos wanting this review guidance must copy
+`.github/instructions/` themselves
+([#339](https://github.com/fini-net/template-repo/issues/339)).
 
-**No more phantom test runners.** `cue_sync.awk` and `cue-verify.just`
-comments referenced `.just/lib/cue_sync_test.sh` unconditionally —
-but `clean_template` strips that file from every derived repo, so
-downstream repos carried comments pointing at a missing file (flagged
-twice in [fini-clock#18](https://github.com/fini-net/fini-clock/pull/18)). Both comments now describe the actual
-derived-repo caller (`cue-sync-from-github`) ([#337](https://github.com/fini-net/template-repo/issues/337)).
+**No more phantom test runners.** `cue_sync.awk` and `cue-verify.just` comments
+referenced `.just/lib/cue_sync_test.sh` unconditionally — but `clean_template`
+strips that file from every derived repo, so downstream repos carried comments
+pointing at a missing file (flagged twice in
+[fini-clock#18](https://github.com/fini-net/fini-clock/pull/18)). Both comments
+now describe the actual derived-repo caller (`cue-sync-from-github`)
+([#337](https://github.com/fini-net/template-repo/issues/337)).
 
 ### v9.3 - install-prerequisites.sh cleanup (2026-09-10)
 
@@ -428,12 +429,12 @@ is gone; a failed brew install now falls back to
 `npm install -g markdownlint-cli2` so the tool still gets installed
 ([#335](https://github.com/fini-net/template-repo/issues/335)).
 
-**Cross-platform unsupported-OS hint.** The "Unsupported OS" fallback
-— reached precisely when the OS is neither macOS nor Linux — told
-users to `brew install markdownlint-cli2`, a macOS-first path that
-sends other platforms down a dead end. The hint now lists the
-cross-platform npm install first, with brew as a macOS/Linux
-alternative, matching the Linux branch's existing npm guidance ([#333](https://github.com/fini-net/template-repo/issues/333)).
+**Cross-platform unsupported-OS hint.** The "Unsupported OS" fallback — reached
+precisely when the OS is neither macOS nor Linux — told users to `brew install
+markdownlint-cli2`, a macOS-first path that sends other platforms down a dead
+end. The hint now lists the cross-platform npm install first, with brew as a
+macOS/Linux alternative, matching the Linux branch's existing npm guidance
+([#333](https://github.com/fini-net/template-repo/issues/333)).
 
 ### v9.2 - check recipes fail gracefully and report accurately (2026-09-10)
 
@@ -445,15 +446,15 @@ alternative, matching the Linux branch's existing npm guidance ([#333](https://g
 **Graceful failure.** The lint/compliance recipes no longer die or lie
 when optional tooling misbehaves:
 
-- The repo description check in `compliance_check` no longer runs
-  `$(gh repo view ...)` inside `[[ ... ]]`. A failed `gh repo view`
-  (missing gh, expired auth, API error) could either abort the whole
-  recipe under `set -euo pipefail` or yield an empty substitution
-  that inverted the length test, reporting a healthy description as a
-  compliance problem. The substitution now sits in an `if` assignment
-  (matching the existing `REPO_META` pattern in the same file); on
-  failure the check prints a yellow "skipped" note — no false verdict
-  — and the recipe continues ([#340](https://github.com/fini-net/template-repo/issues/340)).
+- The repo description check in `compliance_check` no longer runs `$(gh repo
+  view ...)` inside `[[ ... ]]`. A failed `gh repo view` (missing gh, expired
+  auth, API error) could either abort the whole recipe under `set -euo pipefail`
+  or yield an empty substitution that inverted the length test, reporting a
+  healthy description as a compliance problem. The substitution now sits in an
+  `if` assignment (matching the existing `REPO_META` pattern in the same file);
+  on failure the check prints a yellow "skipped" note — no false verdict — and
+  the recipe continues
+  ([#340](https://github.com/fini-net/template-repo/issues/340)).
 - `just shellcheck` no longer hard-fails when
   `.just/repo-toml.sh` generation fails (no `cue`, no `jq`, API
   hiccup). Since shellcheck itself could still run, a linting command
@@ -470,18 +471,19 @@ when optional tooling misbehaves:
 **Accurate reporting.** The OpenSSF Token-Permissions heuristic no
 longer reports a vacuous GREEN:
 
-- `compliance_check` grepped workflows for
-  `'^[[:space:]]*permissions:'`, which also matches job-level
-  indented `permissions:` blocks — a workflow with no top-level
-  block at all was silently reported as least-privilege compliant.
-  The pattern is now anchored to `'^permissions:'`, and the CI-Tests
-  heuristic gets a `\b` before its `just [a-z0-9_-]*test`
-  alternative so prose like "adjust testing" can't match mid-word.
-  The remaining word-boundary items from the original audit
-  (`\bsecrets\.` for Dangerous-Workflow, `\b(tox|jest|rspec|vitest)\b`
-  for CI-Tests, `-w sudo`) had already landed in v8.5/v8.8 rounds
-  ([#328](https://github.com/fini-net/template-repo/issues/328)). A fixture-driven regression test for these checks is
-  planned with the [#330](https://github.com/fini-net/template-repo/issues/330) test-infrastructure work.
+- `compliance_check` grepped workflows for `'^[[:space:]]*permissions:'`, which
+  also matches job-level indented `permissions:` blocks — a workflow with no
+  top-level block at all was silently reported as least-privilege compliant. The
+  pattern is now anchored to `'^permissions:'`, and the CI-Tests heuristic gets
+  a `\b` before its `just [a-z0-9_-]*test` alternative so prose like "adjust
+  testing" can't match mid-word. The remaining word-boundary items from the
+  original audit (`\bsecrets\.` for Dangerous-Workflow,
+  `\b(tox|jest|rspec|vitest)\b` for CI-Tests, `-w sudo`) had already landed in
+  v8.5/v8.8 rounds
+  ([#328](https://github.com/fini-net/template-repo/issues/328)). A
+  fixture-driven regression test for these checks is planned with the
+  [#330](https://github.com/fini-net/template-repo/issues/330)
+  test-infrastructure work.
 
 ### v9.1 - template-sync security and correctness (2026-09-10)
 
@@ -521,21 +523,22 @@ longer reports a vacuous GREEN:
 
 **Correctness.**
 
-- `template_sync_test` no longer hard-fails in derived repos: its
-  harness (`.just/lib/template_sync_test.sh`, `.just/testing.just`,
-  fixtures) is stripped by `clean_template`, so the recipe previously
-  died with "No such file or directory" everywhere except
-  template-repo. It now exits early with a friendly yellow message
-  unless `.repo.toml` points at `fini-net/template-repo`, mirroring
-  the `checksums_generate` guard ([#346](https://github.com/fini-net/template-repo/issues/346)).
-- The cleaned-file jq predicate in both `checksums_verify` and
-  `process_file()` carries explicit parentheses so the `|`/`or`
-  precedence doesn't have to be re-derived by every reviewer, and the
-  status messages now mention the tracked `.just/lib/*.awk` files
-  that `generate_checksums.sh` includes ([#336](https://github.com/fini-net/template-repo/issues/336)).
-- Checksum mismatch errors from `download_file()` print expected vs
-  actual values, making CI failures actionable without manual
-  re-runs. Rollback (backup restore) behavior is unchanged ([#338](https://github.com/fini-net/template-repo/issues/338)).
+- `template_sync_test` no longer hard-fails in derived repos: its harness
+  (`.just/lib/template_sync_test.sh`, `.just/testing.just`, fixtures) is
+  stripped by `clean_template`, so the recipe previously died with "No such file
+  or directory" everywhere except template-repo. It now exits early with a
+  friendly yellow message unless `.repo.toml` points at
+  `fini-net/template-repo`, mirroring the `checksums_generate` guard
+  ([#346](https://github.com/fini-net/template-repo/issues/346)).
+- The cleaned-file jq predicate in both `checksums_verify` and `process_file()`
+  carries explicit parentheses so the `|`/`or` precedence doesn't have to be
+  re-derived by every reviewer, and the status messages now mention the tracked
+  `.just/lib/*.awk` files that `generate_checksums.sh` includes
+  ([#336](https://github.com/fini-net/template-repo/issues/336)).
+- Checksum mismatch errors from `download_file()` print expected vs actual
+  values, making CI failures actionable without manual re-runs. Rollback (backup
+  restore) behavior is unchanged
+  ([#338](https://github.com/fini-net/template-repo/issues/338)).
 - `checksums_verify` routes every manifest key through the same
   `validate_filepath()` gate (and `checksums_diff` its user-supplied
   filepath), sourcing `.just/lib/common.sh` instead of carrying a
@@ -652,21 +655,20 @@ exposure for the vast majority of runs.
 - Fixes issue [#332](https://github.com/fini-net/template-repo/issues/332)
 - **Related PR:** [#344](https://github.com/fini-net/template-repo/pull/344)
 
-`copilot_rollback` (`.just/copilot.just`) reconstructed backup
-filenames by splitting on the *first* underscore (`safe_path
-=${filename%%_*}`). That worked for current URL-encoded names
-(post-v6.3, where `/` is `%2F` and `_` is `%5F`, so the safe path
-contains no raw underscores) but broke every **legacy** backup - the
-old scheme encoded `/` as `_`, so legacy safe paths are full of
-underscores. The first-underscore split truncated the path at its
-first underscore and let the timestamp pick up path fragments, which
-meant the legacy fallback decode branch (`${safe_path//_/\/}`, added
-back in v5.4) could never see a full path - it was unreachable by
-design. Rollback listed wrong targets, restored to wrong paths, or
-silently skipped valid legacy backups. Copilot flagged this
-recurrence on 12 fini-net repos' v8.\* sync PRs; v7.9 ([#216](https://github.com/fini-net/template-repo/pull/216)) fixed
-the timestamp-underscore collision for new-format backups only, so
-this closes the remaining half of [#199](https://github.com/fini-net/template-repo/issues/199).
+`copilot_rollback` (`.just/copilot.just`) reconstructed backup filenames by
+splitting on the *first* underscore (`safe_path =${filename%%_*}`). That worked
+for current URL-encoded names (post-v6.3, where `/` is `%2F` and `_` is `%5F`,
+so the safe path contains no raw underscores) but broke every **legacy**
+backup - the old scheme encoded `/` as `_`, so legacy safe paths are full of
+underscores. The first-underscore split truncated the path at its first
+underscore and let the timestamp pick up path fragments, which meant the legacy
+fallback decode branch (`${safe_path//_/\/}`, added back in v5.4) could never
+see a full path - it was unreachable by design. Rollback listed wrong targets,
+restored to wrong paths, or silently skipped valid legacy backups. Copilot
+flagged this recurrence on 12 fini-net repos' v8.\* sync PRs; v7.9
+([#216](https://github.com/fini-net/template-repo/pull/216)) fixed the
+timestamp-underscore collision for new-format backups only, so this closes the
+remaining half of [#199](https://github.com/fini-net/template-repo/issues/199).
 
 Backup names are now parsed by matching the timestamp **pattern** from
 the end of the filename (`^ (.*)_([0-9]{8}_[0-9]{6}_[0-9]+)\.bak$`)
@@ -705,11 +707,11 @@ and documented as a convention in the headers of `copilot.just` and
 `gh-process.just`, instead of being patched one-off each time a review
 trips over a new instance.
 
-**Issue [#326](https://github.com/fini-net/template-repo/issues/326) - bare commands under `set -e`.** In `copilot_pick` and
-`copilot_refresh` (`.just/copilot.just`), bare `gh api graphql` calls
-that were not wrapped in `if`/`&&`/`||` aborted the recipe on any
-transient GraphQL failure before the friendly fallback messaging could
-print. Three sites are fixed:
+**Issue [#326](https://github.com/fini-net/template-repo/issues/326) - bare
+commands under `set -e`.** In `copilot_pick` and `copilot_refresh`
+(`.just/copilot.just`), bare `gh api graphql` calls that were not wrapped in
+`if`/`&&`/`||` aborted the recipe on any transient GraphQL failure before the
+friendly fallback messaging could print. Three sites are fixed:
 
 1. `copilot_pick`'s comment fetch now has a `|| { ... }` block that
   prints a "transient API error - try again" message and exits 1
@@ -726,46 +728,48 @@ print. Three sites are fixed:
 (established for the copilot spinner in v8.4) and falls back to plain
 `poll_for_checks` if gum itself fails.
 
-**Issue [#327](https://github.com/fini-net/template-repo/issues/327) - unguarded integers from jq/temp files.** Values derived
-from `jq` or read from temp files and fed into `[[ ... -eq/-gt ... ]]`
-crashed with bash "integer expression expected" when the upstream call
-failed or returned empty. The v8.3 follow-up added `${var:-0}` defaults
-in `wait_for_copilot.sh` but the pattern was not applied to new sites.
-All remaining sites are now normalized with `2>/dev/null || echo "0"`
-plus a `[[ "$var" =~ ^[0-9]+$ ]] || var=0` regex guard: `COMMENT_COUNT`
-(copilot_pick), `THREAD_COUNT` and `COPILOT_COUNT` (copilot_refresh),
-and the `COPILOT_COUNT` pair in `pr_checks` and `claude_review`
-(`.just/gh-process.just`) - the latter read from the `/tmp` count file,
-the exact site flagged in Claude's review of [#300](https://github.com/fini-net/template-repo/pull/300).
+**Issue [#327](https://github.com/fini-net/template-repo/issues/327) - unguarded
+integers from jq/temp files.** Values derived from `jq` or read from temp files
+and fed into `[[ ... -eq/-gt ... ]]` crashed with bash "integer expression
+expected" when the upstream call failed or returned empty. The v8.3 follow-up
+added `${var:-0}` defaults in `wait_for_copilot.sh` but the pattern was not
+applied to new sites. All remaining sites are now normalized with `2>/dev/null
+|| echo "0"` plus a `[[ "$var" =~ ^[0-9]+$ ]] || var=0` regex guard:
+`COMMENT_COUNT` (copilot_pick), `THREAD_COUNT` and `COPILOT_COUNT`
+(copilot_refresh), and the `COPILOT_COUNT` pair in `pr_checks` and
+`claude_review` (`.just/gh-process.just`) - the latter read from the `/tmp`
+count file, the exact site flagged in Claude's review of
+[#300](https://github.com/fini-net/template-repo/pull/300).
 
 ### v8.7 - pr_checks skips redundant Copilot wait on gh observer path (2026-09-01)
 
 - Fixes issue [#320](https://github.com/fini-net/template-repo/issues/320)
 - **Related PR:** [#322](https://github.com/fini-net/template-repo/pull/322)
 
-`pr_checks` (`.just/gh-process.just`) ran `.just/lib/wait_for_copilot.sh`
-after the CI watcher exited to stop the one-shot `reviewThreads` GraphQL
-query from racing Copilot (the fix for [#299](https://github.com/fini-net/template-repo/issues/299) in v8.3). That wait is
-correct for the `gh pr checks --watch` fallback path, which only watches
-CI check runs and does not synchronize with Copilot. But on the
-`gh observer` path it is dead time: `gh observer` has gated its own exit
-on Copilot review completion since
-[gh-observer #409](https://github.com/fini-net/gh-observer/issues/409)
-(default `wait_for_copilot: true`, `copilot_max_wait: 180s`), so by the
-time control returns to `pr_checks` the review state is already settled.
-The second wait therefore spun through its initial delay and first poll
-before observing the already-finished review, adding up to ~180s on
-repos where Copilot is auto-requested but slow to land and a smaller but
-still pointless delay on every PR.
+`pr_checks` (`.just/gh-process.just`) ran `.just/lib/wait_for_copilot.sh` after
+the CI watcher exited to stop the one-shot `reviewThreads` GraphQL query from
+racing Copilot (the fix for
+[#299](https://github.com/fini-net/template-repo/issues/299) in v8.3). That wait
+is correct for the `gh pr checks --watch` fallback path, which only watches CI
+check runs and does not synchronize with Copilot. But on the `gh observer` path
+it is dead time: `gh observer` has gated its own exit on Copilot review
+completion since
+[gh-observer #409](https://github.com/fini-net/gh-observer/issues/409) (default
+`wait_for_copilot: true`, `copilot_max_wait: 180s`), so by the time control
+returns to `pr_checks` the review state is already settled. The second wait
+therefore spun through its initial delay and first poll before observing the
+already-finished review, adding up to ~180s on repos where Copilot is
+auto-requested but slow to land and a smaller but still pointless delay on every
+PR.
 
-The fix tracks which watcher ran in a new `used_gh_observer` flag set in
-the CI-watcher dispatch block. The Copilot wait block now branches on
-that flag: on the `gh observer` path it prints a one-line
-`Copilot wait already handled by gh observer` note and falls straight
-through to the GraphQL query; on the `gh pr checks --watch` path the
-existing `wait_for_copilot.sh` spinner runs unchanged. The downstream
-one-shot `reviewThreads` query is untouched — it runs against settled
-state on both paths, which was the whole point of [#299](https://github.com/fini-net/template-repo/issues/299).
+The fix tracks which watcher ran in a new `used_gh_observer` flag set in the
+CI-watcher dispatch block. The Copilot wait block now branches on that flag: on
+the `gh observer` path it prints a one-line `Copilot wait already handled by gh
+observer` note and falls straight through to the GraphQL query; on the `gh pr
+checks --watch` path the existing `wait_for_copilot.sh` spinner runs unchanged.
+The downstream one-shot `reviewThreads` query is untouched — it runs against
+settled state on both paths, which was the whole point of
+[#299](https://github.com/fini-net/template-repo/issues/299).
 
 No correctness impact; purely wasted wall-clock removed. Filed as an
 enhancement (cleanup) for that reason.
@@ -870,18 +874,18 @@ instead of duplicated.
 
 - Fixes issue [#299](https://github.com/fini-net/template-repo/issues/299)
 - **Related PR:** [#300](https://github.com/fini-net/template-repo/pull/300)
-- Follow-up to v8.3 ([#288](https://github.com/fini-net/template-repo/issues/288)), which only wired the in-progress / zero-comment
-  detection into `copilot_refresh`
+- Follow-up to v8.3
+  ([#288](https://github.com/fini-net/template-repo/issues/288)), which only
+  wired the in-progress / zero-comment detection into `copilot_refresh`
 
-The v8.3 fix closed [#288](https://github.com/fini-net/template-repo/issues/288) for `copilot_refresh` but left the main PR flow
-(`just pr` / `just again` -> `pr_checks` in `.just/gh-process.just`)
-running a **one-shot** `reviewThreads` query the moment the CI watcher
-exited. The watcher only waits for CI checks; Copilot's review is a
-dynamic workflow run, not a PR check, so it provides no synchronization
-with Copilot at all. When CI settled before Copilot finished (~2-3
-min), `pr_checks` printed "🐈‍⬛ No unresolved Copilot suggestions -
-looks good!" - a false negative indistinguishable from a real clean
-review.
+The v8.3 fix closed [#288](https://github.com/fini-net/template-repo/issues/288)
+for `copilot_refresh` but left the main PR flow (`just pr` / `just again` ->
+`pr_checks` in `.just/gh-process.just`) running a **one-shot** `reviewThreads`
+query the moment the CI watcher exited. The watcher only waits for CI checks;
+Copilot's review is a dynamic workflow run, not a PR check, so it provides no
+synchronization with Copilot at all. When CI settled before Copilot finished
+(~2-3 min), `pr_checks` printed "🐈‍⬛ No unresolved Copilot suggestions - looks
+good!" - a false negative indistinguishable from a real clean review.
 
 Five fixes ship in v8.4:
 
@@ -1007,11 +1011,12 @@ the calling shell would expand `${#footer_content[@]}` to the array
 length *before* `unset` ran, producing a literal index like
 `footer_content[5-1]` that would never shrink as the loop iterated.
 
-The idiom kept tripping reviewers as a false-positive bug. Copilot
-flagged it as a hard error in [fini-net/gh-amp#17](https://github.com/fini-net/gh-amp/pull/17) (claiming the
-single quotes prevented evaluation), and Claude's deeper review on
-template-repo PR [#174](https://github.com/fini-net/template-repo/pull/174) confirmed it was safe but suggested
-documenting the fragility. Each re-flag costs a review round-trip.
+The idiom kept tripping reviewers as a false-positive bug. Copilot flagged it as
+a hard error in [fini-net/gh-amp#17](https://github.com/fini-net/gh-amp/pull/17)
+(claiming the single quotes prevented evaluation), and Claude's deeper review on
+template-repo PR [#174](https://github.com/fini-net/template-repo/pull/174)
+confirmed it was safe but suggested documenting the fragility. Each re-flag
+costs a review round-trip.
 
 v8.2 adds a three-line comment directly above the `unset` inside the
 loop, explaining why the single-quoting is correct and what it
@@ -1059,15 +1064,14 @@ and busybox awk on all target platforms.
 - Fixes issue [#196](https://github.com/fini-net/template-repo/issues/196)
 - **Related PR:** [#219](https://github.com/fini-net/template-repo/pull/219)
 
-The awk program powering `cue-sync-from-github` was duplicated verbatim
-between `.just/cue-verify.just` (the production recipe) and
-`.just/lib/cue_sync_test.sh` (the test runner). The test file even
-acknowledged the hazard with a "keep this in sync with the recipe"
-comment — the exact fragility that caused the original [#165](https://github.com/fini-net/template-repo/issues/165) regression
-the test suite was built to guard against. If the recipe's awk was
-silently modified without updating the test copy, the tests kept
-passing while production code regressed: the test validated a **copy**,
-not the production path.
+The awk program powering `cue-sync-from-github` was duplicated verbatim between
+`.just/cue-verify.just` (the production recipe) and `.just/lib/cue_sync_test.sh`
+(the test runner). The test file even acknowledged the hazard with a "keep this
+in sync with the recipe" comment — the exact fragility that caused the original
+[#165](https://github.com/fini-net/template-repo/issues/165) regression the test
+suite was built to guard against. If the recipe's awk was silently modified
+without updating the test copy, the tests kept passing while production code
+regressed: the test validated a **copy**, not the production path.
 
 v8.0 extracts the awk program to a standalone file,
 `.just/lib/cue_sync.awk`, and both the recipe and the test runner now
@@ -1235,9 +1239,10 @@ The broken filter `any($fp | startswith(.))` rebinds `.` to `$fp` inside `any`,
 so `startswith(.)` becomes `startswith($fp)` — a string always starts with
 itself, so the result is always true.
 
-The same bug was fixed in `.just/lib/template_update.sh` in v6.7 (PR [#163](https://github.com/fini-net/template-repo/pull/163))
-but the companion check in `template-sync.just` was missed. v7.4 applies the
-same corrected filter:
+The same bug was fixed in `.just/lib/template_update.sh` in v6.7 (PR
+[#163](https://github.com/fini-net/template-repo/pull/163)) but the companion
+check in `template-sync.just` was missed. v7.4 applies the same corrected
+filter:
 
 ```jq
 any(. as $p | $fp | startswith($p + "/") or $fp == $p)
@@ -1272,10 +1277,12 @@ rather than continuing and emitting 4 misleading failures.
 `just clean_template` already removed the PR-body test infrastructure
 (`.just/testing.just`, `.just/lib/pr_body_test.sh`, `.just/test/`, and the
 `pr-body-tests.yml` / `checksums-verify.yml` workflows) but the cue-sync test
-infra added in v6.9 (PR [#175](https://github.com/fini-net/template-repo/pull/175)) was never added to the cleanup. Derived repos
-that ran `clean_template` shipped a dead `.just/lib/cue_sync_test.sh` runner
-whose missing-fixtures guard at line 156–160 exits 0 with "Tests skipped" —
-`just cue_sync_test` asserted nothing and went green in 9+ derived repos.
+infra added in v6.9 (PR
+[#175](https://github.com/fini-net/template-repo/pull/175)) was never added to
+the cleanup. Derived repos that ran `clean_template` shipped a dead
+`.just/lib/cue_sync_test.sh` runner whose missing-fixtures guard at line 156–160
+exits 0 with "Tests skipped" — `just cue_sync_test` asserted nothing and went
+green in 9+ derived repos.
 
 v7.2 adds `.github/workflows/cue-sync-tests.yml` and `.just/lib/cue_sync_test.sh`
 to `_remove_template_files` and to `CLEANED_FILES` in `generate_checksums.sh`,
@@ -1291,21 +1298,22 @@ pattern applies. The `update_from_template` machinery
 `.just/lib/generate_checksums.sh`, `.just/CHECKSUMS.json`) is intentionally
 retained so derived repos can still self-update from template-repo.
 
-While touching the runner, fix `mktemp -d` at `cue_sync_test.sh:119` to use
-a portable template (`mktemp -d -t cue_sync_test.XXXXXX`) so it works on
-BSD/macOS, which require X's in the template. Flagged by Copilot in [fini-projects#31](https://github.com/fini-net/fini-projects/pull/31).
+While touching the runner, fix `mktemp -d` at `cue_sync_test.sh:119` to use a
+portable template (`mktemp -d -t cue_sync_test.XXXXXX`) so it works on
+BSD/macOS, which require X's in the template. Flagged by Copilot in
+[fini-projects#31](https://github.com/fini-net/fini-projects/pull/31).
 
 ### v7.1 - Drop npm fallback for markdownlint-cli2 (2026-06-25)
 
 - **Related PR:** [#186](https://github.com/fini-net/template-repo/pull/186)
 - Fixes issue [#185](https://github.com/fini-net/template-repo/issues/185)
 
-PR [#186](https://github.com/fini-net/template-repo/pull/186) pinned `markdownlint-cli2` via Homebrew to satisfy Scorecard's
-Pinned-Dependencies check, but the macOS install path still fell back to
-`npm install -g markdownlint-cli2` when Homebrew was absent — an unpinned
-install that left the Scorecard warning in place. v7.1 removes the npm
-fallback so the prerequisites installer is brew-only on macOS, matching
-the PR's stated goal.
+PR [#186](https://github.com/fini-net/template-repo/pull/186) pinned
+`markdownlint-cli2` via Homebrew to satisfy Scorecard's Pinned-Dependencies
+check, but the macOS install path still fell back to `npm install -g
+markdownlint-cli2` when Homebrew was absent — an unpinned install that left the
+Scorecard warning in place. v7.1 removes the npm fallback so the prerequisites
+installer is brew-only on macOS, matching the PR's stated goal.
 
 **Changes:**
 
@@ -1326,17 +1334,17 @@ the PR's stated goal.
 
 - **Related PR:** [#178](https://github.com/fini-net/template-repo/pull/178)
 
-PR [#175](https://github.com/fini-net/template-repo/pull/175) (v6.9) landed on `main` as a single squash commit, but the messy
-branch history that preceded it leaked two artifacts through into the
-shipped state: the `pr` recipe comment in `.just/gh-process.just` read
-`# PR create v6.10`, and `RELEASE_NOTES.md` carried a separate
-`### v6.10 - Complete cue-sync test matrix` section describing follow-up
-review work that never existed as its own release. The
-`.just/CHECKSUMS.json` manifest was similarly misaligned - its "latest"
-entries for `.just/cue-verify.just`, `.just/testing.just`, and
-`.just/lib/cue_sync_test.sh` pointed at intermediate branch commits
-(`dc02707`, `1f0b3c3`, `626d593`) with empty `version` strings, rather
-than the squash commit (`d499305`) that actually landed on `main`.
+PR [#175](https://github.com/fini-net/template-repo/pull/175) (v6.9) landed on
+`main` as a single squash commit, but the messy branch history that preceded it
+leaked two artifacts through into the shipped state: the `pr` recipe comment in
+`.just/gh-process.just` read `# PR create v6.10`, and `RELEASE_NOTES.md` carried
+a separate `### v6.10 - Complete cue-sync test matrix` section describing
+follow-up review work that never existed as its own release. The
+`.just/CHECKSUMS.json` manifest was similarly misaligned - its "latest" entries
+for `.just/cue-verify.just`, `.just/testing.just`, and
+`.just/lib/cue_sync_test.sh` pointed at intermediate branch commits (`dc02707`,
+`1f0b3c3`, `626d593`) with empty `version` strings, rather than the squash
+commit (`d499305`) that actually landed on `main`.
 
 v7.0 reconciles the labels so the version recorded for each file matches
 what actually shipped.
@@ -1350,12 +1358,12 @@ what actually shipped.
   this revert is itself tagged `v7.0` in the regenerated manifest, so it
   becomes the new latest checkpoint for `gh-process.just` while
   `d499305` is recorded as the prior `v6.9` historical entry.
-- **Folded the v6.10 release notes into v6.9.** The four bullets that
-  described the cue-sync test-matrix completion (the
-  `commented_topics.toml` and `active_keys.toml` fixtures, trailing
-  newlines on the v6.9-added files, and the `SC2002` fix in
-  `cue_sync_test.sh`) all shipped inside PR [#175](https://github.com/fini-net/template-repo/pull/175)'s squash, so they belong
-  under v6.9. The standalone `### v6.10` section and its month header are
+- **Folded the v6.10 release notes into v6.9.** The four bullets that described
+  the cue-sync test-matrix completion (the `commented_topics.toml` and
+  `active_keys.toml` fixtures, trailing newlines on the v6.9-added files, and
+  the `SC2002` fix in `cue_sync_test.sh`) all shipped inside PR
+  [#175](https://github.com/fini-net/template-repo/pull/175)'s squash, so they
+  belong under v6.9. The standalone `### v6.10` section and its month header are
   removed; the bullets are appended to the existing v6.9 "Changes" list.
 - **Regenerated `.just/CHECKSUMS.json`:**
   - Dropped the orphan intermediate-branch commits (`dc02707`,
@@ -1416,10 +1424,11 @@ so `cue vet` passing does not prove the sync wrote anything.
   outside the existing-file branch; the verification now runs inside
   each branch (existing-file and create-new-file) so the backup
   restore logic can wrap it.
-- Added `.just/test/fixtures/cue_sync/commented_topics.toml` and a
-  corresponding test case. This is the headline fix for issue [#165](https://github.com/fini-net/template-repo/issues/165), yet
-  the original test matrix only covered `commented_description` -
-  `commented_topics` is the exact regression the awk change targets.
+- Added `.just/test/fixtures/cue_sync/commented_topics.toml` and a corresponding
+  test case. This is the headline fix for issue
+  [#165](https://github.com/fini-net/template-repo/issues/165), yet the original
+  test matrix only covered `commented_description` - `commented_topics` is the
+  exact regression the awk change targets.
 - Added `.just/test/fixtures/cue_sync/active_keys.toml` and a happy-path
   test case with both `description` and `topics` active, guarding against
   any future awk change silently breaking the pre-existing in-place
@@ -1462,10 +1471,12 @@ trailing newline:
   state after a few `pr_update` cycles) and an expected output with
   those blanks stripped. Auto-discovered by `pr_body_test.sh`.
 
-**Related:** The v4.4 blank-line preservation fix (PR [#50](https://github.com/fini-net/template-repo/pull/50)) correctly
-guarded blank lines *between* sections but inadvertently also preserved
-the trailing-blank-line accumulation path this issue describes. The v5.8
-CRLF normalization (PR [#107](https://github.com/fini-net/template-repo/pull/107)) is a related robustness effort.
+**Related:** The v4.4 blank-line preservation fix (PR
+[#50](https://github.com/fini-net/template-repo/pull/50)) correctly guarded
+blank lines *between* sections but inadvertently also preserved the
+trailing-blank-line accumulation path this issue describes. The v5.8 CRLF
+normalization (PR [#107](https://github.com/fini-net/template-repo/pull/107)) is
+a related robustness effort.
 
 ### v6.7 - Fix update_from_template failures on test fixtures (2026-06-20)
 
@@ -1670,7 +1681,8 @@ that already had this guard.
 This was a regression that slipped in during v5.7. The history of the
 `_on_a_pull_request` guard on `pr_checks`:
 
-- **v4.0–v4.4** — `pr_checks: _on_a_pull_request` (direct dependency, added in [#44](https://github.com/fini-net/template-repo/pull/44))
+- **v4.0–v4.4** — `pr_checks: _on_a_pull_request` (direct dependency, added in
+  [#44](https://github.com/fini-net/template-repo/pull/44))
 - **v4.5–v5.2** — `pr_checks: _wait_for_checks && claude_review` — the guard was
   inherited transitively through `_wait_for_checks: _on_a_pull_request`
 - **v5.7** — [#97](https://github.com/fini-net/template-repo/pull/97) changed
@@ -1741,7 +1753,8 @@ normal LF line endings.
 
 - **Related PR:** [#97](https://github.com/fini-net/template-repo/pull/97)
 
-Utilize the [gh observer extension](https://github.com/fini-net/gh-observer) if it is installed.
+Utilize the [gh observer extension](https://github.com/fini-net/gh-observer) if
+it is installed.
 
 ## January 2026 - Avila Beach is awesome
 
@@ -1885,7 +1898,9 @@ Implementation details:
 - Polls every 3 seconds for up to 45 seconds for review completion
 - Uses same GraphQL query as copilot_pick to detect completed reviews
 - Does not check copilot-review flag (user-initiated action)
-- Complements existing copilot_pick ([#67](https://github.com/fini-net/template-repo/issues/67), [#72](https://github.com/fini-net/template-repo/pull/72)) workflow
+- Complements existing copilot_pick
+  ([#67](https://github.com/fini-net/template-repo/issues/67),
+  [#72](https://github.com/fini-net/template-repo/pull/72)) workflow
 
 ### v5.0 - Robust PR Body Updates with HTML Markers
 
@@ -2256,7 +2271,8 @@ reviews will have less trivial stuff to complain about.
 
 ### v3.8bis - Shellcheck Integration
 
-- **Related PRs:** [#37](https://github.com/fini-net/template-repo/pull/37), [#39](https://github.com/fini-net/template-repo/pull/39)
+- **Related PRs:** [#37](https://github.com/fini-net/template-repo/pull/37),
+  [#39](https://github.com/fini-net/template-repo/pull/39)
 
 Added a whole new module for linting bash scripts embedded in just recipes.
 The `shellcheck` recipe extracts bash scripts from all justfiles in the repo,
@@ -2289,7 +2305,8 @@ used to seeing `stp` in the output, you know what's happening.
 
 ### v3.7 - Pre-PR Hook Support
 
-- **Related PRs:** [#32](https://github.com/fini-net/template-repo/pull/32), [#33](https://github.com/fini-net/template-repo/pull/33)
+- **Related PRs:** [#32](https://github.com/fini-net/template-repo/pull/32),
+  [#33](https://github.com/fini-net/template-repo/pull/33)
 
 Added support for optional pre-PR hooks to allow project-specific automation
 before creating pull requests. The `pr` recipe now checks for
