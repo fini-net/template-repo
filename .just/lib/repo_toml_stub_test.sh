@@ -62,6 +62,19 @@ passed=0
 failed=0
 skipped=0
 
+# Temp workspaces, tracked so a single EXIT trap can clean them even
+# when the suite is interrupted - the per-test rm -rf calls remain as
+# the fast path (Claude review round 4 on #428).
+TEST_WORKSPACES=()
+
+track_workspace() {
+	TEST_WORKSPACES+=("$1")
+}
+
+cleanup_workspaces() {
+	rm -rf ${TEST_WORKSPACES[@]+"${TEST_WORKSPACES[@]}"} 2>/dev/null || true
+}
+
 pass() {
 	echo -e "${GREEN}✓${NORMAL} $1"
 	((passed += 1))
@@ -290,6 +303,7 @@ test_stub_never_touches_real_path() {
 	local label="failed generation: lint passes, real .just/repo-toml.sh untouched (#372)"
 
 	ws=$(mktemp -d -t repo_toml_stub_lint.XXXXXX)
+	track_workspace "$ws"
 	build_shellcheck_workspace "$ws"
 
 	out=$(run_shellcheck_recipe "$ws") || rc=$?
@@ -320,7 +334,9 @@ test_real_file_wins_over_sandbox_candidates() {
 	local label="real .just/repo-toml.sh wins over the sandboxed candidates"
 
 	cwddir=$(mktemp -d -t repo_toml_prec_cwd.XXXXXX)
+	track_workspace "$cwddir"
 	pdir=$(mktemp -d -t repo_toml_prec_pdir.XXXXXX)
+	track_workspace "$pdir"
 	mkdir -p "$cwddir/.just" "$pdir/.just"
 	printf '%s\n' "# clean real file" "FLAG_CLAUDE=true" >"$cwddir/.just/repo-toml.sh"
 	printf '%s\n' "# BROKEN stub" 'FLAG_CLAUDE="unterminated' >"$pdir/.just/repo-toml.sh"
@@ -346,6 +362,7 @@ test_real_file_present_lints_against_it() {
 	local label="real .just/repo-toml.sh present: lint passes without the stub branch"
 
 	ws=$(mktemp -d -t repo_toml_stub_real.XXXXXX)
+	track_workspace "$ws"
 	build_shellcheck_workspace "$ws"
 	write_generated_file "$ws"
 
@@ -374,6 +391,7 @@ test_check_rejects_stub() {
 	local label="repo_toml_check rejects a fresh stub at the real path (#372)"
 
 	ws=$(mktemp -d -t repo_toml_stub_sent.XXXXXX)
+	track_workspace "$ws"
 	build_check_workspace "$ws"
 	touch -t "$STAMP_OLD" "$ws/.repo.toml"
 	write_stub_file "$ws"
@@ -400,6 +418,7 @@ test_check_passes_fresh_generated() {
 	local label="repo_toml_check still accepts a fresh generated file"
 
 	ws=$(mktemp -d -t repo_toml_stub_ok.XXXXXX)
+	track_workspace "$ws"
 	build_check_workspace "$ws"
 	touch -t "$STAMP_OLD" "$ws/.repo.toml"
 	write_generated_file "$ws"
@@ -424,6 +443,7 @@ test_check_ignores_midfile_stub_marker() {
 	local label="repo_toml_check ignores a stub marker that is not the first line"
 
 	ws=$(mktemp -d -t repo_toml_stub_mid.XXXXXX)
+	track_workspace "$ws"
 	build_check_workspace "$ws"
 	touch -t "$STAMP_OLD" "$ws/.repo.toml"
 	{
@@ -450,6 +470,7 @@ test_check_fails_missing_file() {
 	local label="repo_toml_check still fails when the file is missing"
 
 	ws=$(mktemp -d -t repo_toml_stub_missing.XXXXXX)
+	track_workspace "$ws"
 	build_check_workspace "$ws"
 
 	out=$(run_check_recipe "$ws") || rc=$?
@@ -469,6 +490,7 @@ test_check_flags_stale_generated() {
 	local label="repo_toml_check still flags a stale generated file"
 
 	ws=$(mktemp -d -t repo_toml_stub_stale.XXXXXX)
+	track_workspace "$ws"
 	build_check_workspace "$ws"
 	write_generated_file "$ws"
 	touch -t "$STAMP_NEW" "$ws/.just/repo-toml.sh"
@@ -506,6 +528,8 @@ skip_or_require_tools() {
 }
 
 main() {
+	trap cleanup_workspaces EXIT
+
 	echo -e "${BLUE}Running repo_toml stub tests...${NORMAL}"
 	echo
 

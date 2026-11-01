@@ -62,36 +62,32 @@ it already carries, and the new test script ships with matching
 `CLEANED_FILES` and `clean_template` removal entries so derived repos
 do not keep it.
 
-**The review round hardened the suite itself** (Claude review of
-PR #428). A stray `}` in the test banner is gone. The `cue-sync-tests.yml`
-path triggers now include `shellcheck.just` and `repo-toml.just`
-themselves, so a PR that regresses only the modules under test cannot
-skip the suite that guards them. In CI (`$CI` set), a missing
-`just`/`shellcheck` fails the suite instead of skipping it - this is
-the only regression coverage for #372, and a vacuous green run would be
-worse than a red one; locally the skip-with-note behavior is unchanged.
-The sandbox source assertions loosened where they were brittle (flag
-order and `--source-path` long form are both fine, and comment lines no
-longer satisfy the `-P` check) and tightened where it matters: the
-no-write-to-the-real-path pattern now also catches the spaceless `}>`
-redirect form. A new source assertion compares the stub's variable list
-against `repo_toml_generate`'s emit block as sorted sets, so the
+**The review rounds hardened the suite and the sentinel.** The
+`cue-sync-tests.yml` path triggers now include `shellcheck.just` and
+`repo-toml.just` themselves, so a PR that regresses only the modules
+under test cannot skip the suite that guards them. In CI (`$CI` set),
+a missing `just`/`shellcheck` fails the suite instead of skipping it -
+this is the only regression coverage for #372, and a vacuous green run
+would be worse than a red one; locally the skip-with-note behavior is
+unchanged. The source assertions are comment-proof and flag-order
+loose (both `-P` and `--source-path` satisfy them), while the
+no-write-to-the-real-path backstop also catches the spaceless `}>`
+redirect form - the behavioral tests are the guarantee those back up. A
+drift assertion compares the stub's variable list against
+`repo_toml_generate`'s emit block as sorted sets (requiring the `=`
+after each name, so unrelated `echo` messages cannot register), so the
 remaining hand-synced duplication from #372 fails the suite when it
-drifts instead of surfacing as SC2154 noise on cue-less machines. The
-`repo_toml_check` recipe-mode cases now use fixed `touch -t` timestamps
-instead of `sleep 1`, making the `-nt` orderings deterministic even on
-coarse-mtime filesystems and trimming the suite runtime. A second
-review round added the two precedence pins Claude asked for: a
-unit-level case drives the real shellcheck binary in the recipe's
-layout (script inside the `-P` dir, clean real file at cwd, deliberately
-broken stub at the sandbox candidate) and requires the real file to
-win, so a future shellcheck resolution-order change fails the suite
-instead of silently linting a stale stub; and a recipe-mode control
-runs the lint with a real generated file present, asserting the stub
-branch never fires and the real file satisfies every `source` line.
-The drift extraction now requires the `=` after each variable name, so
-an unrelated `echo "REPO_..."` message can no longer register as a
-stub variable.
+drifts. A unit-level precedence pin drives the real shellcheck binary
+in the recipe's layout - script inside the `-P` dir, clean real file at
+cwd, deliberately broken stub at the sandbox candidate - and requires
+the real file to win, so a future shellcheck resolution-order change
+fails the suite instead of silently linting a stale stub; a recipe-mode
+control runs the lint with a real generated file present and asserts
+the stub branch never fires. The `-nt` ordering cases use fixed
+`touch -t` timestamps instead of `sleep 1`, temp workspaces are
+cleaned by an EXIT trap even when a run is interrupted, and the
+sentinel compares the file's first line only - a marker buried
+mid-file is a hand edit, not a stub, and has its own control case.
 
 ### v10.1 - asciinema .cache gitignore guard, sensitive-recording caveat, single-guard pr (2026-11-01)
 

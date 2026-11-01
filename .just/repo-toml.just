@@ -64,6 +64,10 @@ repo_toml_generate:
     FLAG_ASCIINEMA_RECORD=$(echo "$JSON" | jq -r 'if .flags["asciinema-record"] == true then "true" else "false" end')
 
     # Generate .just/repo-toml.sh with all content
+    # NOTE: keep this 'echo "VAR=..."' emit shape - the drift check in
+    # .just/lib/repo_toml_stub_test.sh extracts variable names from
+    # exactly these lines. Switching to printf or a heredoc empties the
+    # extraction and fails that suite, loudly and by design.
     # @sh-quoted string values already include proper shell quoting (e.g., 'value')
     # Flag values are bare true/false strings (no quoting needed)
     # shell_quote-d values use printf %q for safe embedding
