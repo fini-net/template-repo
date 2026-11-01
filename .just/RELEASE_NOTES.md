@@ -57,8 +57,8 @@ it already carries, and the new test script ships with matching
 `CLEANED_FILES` and `clean_template` removal entries so derived repos
 do not keep it.
 
-**The review round hardened the suite itself** (Claude review of PR
-#428). A stray `}` in the test banner is gone. The `cue-sync-tests.yml`
+**The review round hardened the suite itself** (Claude review of
+PR #428). A stray `}` in the test banner is gone. The `cue-sync-tests.yml`
 path triggers now include `shellcheck.just` and `repo-toml.just`
 themselves, so a PR that regresses only the modules under test cannot
 skip the suite that guards them. In CI (`$CI` set), a missing
