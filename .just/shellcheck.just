@@ -159,8 +159,11 @@ shellcheck:
                 # run shellcheck. -P adds CHECKS_TMPDIR to the source
                 # search path so the sandboxed stub above satisfies
                 # 'source .just/repo-toml.sh' lines for this run only.
-                # When the real .just/repo-toml.sh exists it wins over
-                # -P, so the normal path lints exactly as before (#372).
+                # Resolution is cwd-first: when the real
+                # .just/repo-toml.sh exists, it wins over the sandboxed
+                # candidates (the stub branch never even runs in that
+                # case), and the suite's precedence test pins the order
+                # - so the normal path lints exactly as before (#372).
                 if ! shellcheck -x -P "$CHECKS_TMPDIR" -s bash "$scriptfile"; then
                     echo "{{RED}}Issues found in $jfile recipe '$recipe'{{NORMAL}}"
                     ISSUES_FOUND=$(cat "$ISSUES_FILE")

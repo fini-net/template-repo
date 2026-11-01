@@ -24,9 +24,11 @@ derived repos. The stub now lives in the lint run's temp directory
 attempt) and shellcheck resolves it through `-P`/`--source-path` for
 that run only. The real path is never touched, so a failed lint run can
 no longer leave poison behind. When the real `.just/repo-toml.sh`
-exists, cwd resolution beats `-P`, so the normal path lints exactly as
-before; the stub's values remain lint-only scaffolding, with a comment
-tying its variable list to `repo_toml_generate`.
+exists the stub branch never runs at all, and the suite pins that
+shellcheck's cwd-first source resolution makes the real file win over
+the sandboxed candidates - so the normal path lints exactly as before;
+the stub's values remain lint-only scaffolding, with a comment tying
+its variable list to `repo_toml_generate`.
 
 **`repo_toml_check` now refuses stub-marked files.** Checkouts that
 already carry a v10.1-era stub at the real path are healed by a new
@@ -75,7 +77,18 @@ remaining hand-synced duplication from #372 fails the suite when it
 drifts instead of surfacing as SC2154 noise on cue-less machines. The
 `repo_toml_check` recipe-mode cases now use fixed `touch -t` timestamps
 instead of `sleep 1`, making the `-nt` orderings deterministic even on
-coarse-mtime filesystems and trimming the suite runtime.
+coarse-mtime filesystems and trimming the suite runtime. A second
+review round added the two precedence pins Claude asked for: a
+unit-level case drives the real shellcheck binary in the recipe's
+layout (script inside the `-P` dir, clean real file at cwd, deliberately
+broken stub at the sandbox candidate) and requires the real file to
+win, so a future shellcheck resolution-order change fails the suite
+instead of silently linting a stale stub; and a recipe-mode control
+runs the lint with a real generated file present, asserting the stub
+branch never fires and the real file satisfies every `source` line.
+The drift extraction now requires the `=` after each variable name, so
+an unrelated `echo "REPO_..."` message can no longer register as a
+stub variable.
 
 ### v10.1 - asciinema .cache gitignore guard, sensitive-recording caveat, single-guard pr (2026-11-01)
 

@@ -27,7 +27,11 @@
 # test, and the stub's variable list covers exactly what
 # repo_toml_generate emits - the two hand-maintained lists are the
 # remaining duplication from #372, so drift fails here instead of
-# waiting for a cue-less machine to notice.
+# waiting for a cue-less machine to notice. A unit-level precedence pin
+# drives the real shellcheck binary: a clean real file at the
+# invocation cwd must win over a deliberately broken stub sitting at
+# the sandbox candidates, which is what makes passing -P unconditionally
+# safe (Claude review round 2 on #428).
 #
 # The recipe modes need just and shellcheck; without them a section is
 # skipped rather than failed (source assertions always run) - except in
@@ -154,13 +158,28 @@ write_stub_file() {
 	} >"$ws/.just/repo-toml.sh"
 }
 
-# A plausible generated file - the header repo_toml_generate writes.
+# A plausible generated file - the header repo_toml_generate writes,
+# with the full variable set so recipes lint clean against it.
 write_generated_file() {
 	local ws="$1"
 
 	{
 		echo "# Auto-generated from .repo.toml by 'just repo_toml_generate'"
+		echo "REPO_DESCRIPTION='test'"
+		echo "REPO_LICENSE='GPL-2.0-only'"
+		echo "REPO_TOPICS=test"
+		echo "REPO_GIT_SSH='git@github.com:fini-net/template-repo.git'"
+		echo "REPO_WEB_URL='https://github.com/fini-net/template-repo'"
+		echo "REPO_ORG_NAME=fini-net"
+		echo "REPO_REPO_NAME=template-repo"
 		echo "FLAG_CLAUDE=true"
+		echo "FLAG_CLAUDE_REVIEW=true"
+		echo "FLAG_COPILOT_REVIEW=true"
+		echo "FLAG_STANDARD_RELEASE=true"
+		echo "FLAG_ASCIINEMA_RECORD=false"
+		echo "REPO_TOPICS_ARRAY=("
+		echo "    'test'"
+		echo ")"
 	} >"$ws/.just/repo-toml.sh"
 }
 
@@ -183,10 +202,12 @@ run_check_recipe() {
 }
 
 # #372 source assertion: no write to the bare real path may remain
-# (strict - it is the actual #372 property), and the shellcheck
-# invocation must carry -P/--source-path pointing at CHECKS_TMPDIR
-# (loose on flag order and long form, and comment lines do not count -
-# only the real invocation satisfies it; Claude review of #428).
+# (backstop grep for the common redirect forms - the behavioral test
+# is the guarantee, since a determined refactor could route around any
+# grep), and the shellcheck invocation must carry -P/--source-path
+# pointing at CHECKS_TMPDIR (loose on flag order and long form, and
+# comment lines do not count - only the real invocation satisfies it;
+# Claude review of #428).
 test_stub_sandboxed_in_source() {
 	local problems=""
 	local label="shellcheck.just lints with -P/--source-path and never writes the real path (#372)"
@@ -212,10 +233,10 @@ test_stub_covers_generated_variables() {
 	local problems="" gen_vars stub_vars only_gen only_stub
 	local label="stub variable list matches repo_toml_generate's output set"
 
-	gen_vars=$(grep -oE 'echo "(REPO_[A-Z_]+|FLAG_[A-Z_]+)' "$REPO_TOML_JUST" \
-		| sed 's/^echo "//' | sort -u)
-	stub_vars=$(grep -oE 'echo "(REPO_[A-Z_]+|FLAG_[A-Z_]+)' "$SHELLCHECK_JUST" \
-		| sed 's/^echo "//' | sort -u)
+	gen_vars=$(grep -oE 'echo "(REPO_[A-Z_]+|FLAG_[A-Z_]+)=' "$REPO_TOML_JUST" \
+		| sed 's/^echo "//; s/=$//' | sort -u)
+	stub_vars=$(grep -oE 'echo "(REPO_[A-Z_]+|FLAG_[A-Z_]+)=' "$SHELLCHECK_JUST" \
+		| sed 's/^echo "//; s/=$//' | sort -u)
 
 	[[ -n "$gen_vars" ]] \
 		|| problems+="no variables extracted from repo_toml_generate; "
@@ -274,6 +295,65 @@ test_stub_never_touches_real_path() {
 		|| problems+="generation-failure warning missing; "
 	if grep -qE "SC1091|SC2154" <<<"$out"; then
 		problems+="SC1091/SC2154 noise - sandboxed stub not followed; "
+	fi
+
+	report_recipe_case "$label" "$problems" "$out"
+	rm -rf "$ws"
+}
+
+# Precedence pin (Claude review round 2 on #428): the unconditional -P
+# is safe only because shellcheck resolves a relative source path
+# against the invocation cwd first. Recreate the recipe's layout -
+# script inside the -P dir, clean real file at cwd, deliberately
+# broken stub at the sandbox candidate - and require the real file to
+# win. If a future shellcheck changes the resolution order, the broken
+# stub surfaces as a syntax error and this fails, long before the
+# recipe's own comment about the resolution order goes stale.
+test_real_file_wins_over_sandbox_candidates() {
+	local cwddir pdir out rc=0 problems=""
+	local label="real .just/repo-toml.sh wins over the sandboxed candidates"
+
+	cwddir=$(mktemp -d -t repo_toml_prec_cwd.XXXXXX)
+	pdir=$(mktemp -d -t repo_toml_prec_pdir.XXXXXX)
+	mkdir -p "$cwddir/.just" "$pdir/.just"
+	printf '%s\n' "# clean real file" "FLAG_CLAUDE=true" >"$cwddir/.just/repo-toml.sh"
+	printf '%s\n' "# BROKEN stub" 'FLAG_CLAUDE="unterminated' >"$pdir/.just/repo-toml.sh"
+	# SC2016: the $ literals are literal script content written to the
+	# probe file - they must not expand
+	# shellcheck disable=SC2016
+	printf '%s\n' '#!/usr/bin/env bash' 'source .just/repo-toml.sh' 'echo "$FLAG_CLAUDE"' \
+		>"$pdir/script_1.sh"
+
+	out=$(cd "$cwddir" && shellcheck -x -P "$pdir" -s bash "$pdir/script_1.sh" 2>&1) || rc=$?
+
+	[[ $rc -eq 0 ]] || problems+="exit code $rc (want 0 - the broken stub was followed); "
+
+	report_recipe_case "$label" "$problems" "$out"
+	rm -rf "$cwddir" "$pdir"
+}
+
+# Control (Claude review round 2 on #428): when the real file exists,
+# the stub branch never runs and the lint follows the real file - no
+# generation warning, no stub warning, no SC1091/SC2154 noise.
+test_real_file_present_lints_against_it() {
+	local ws out rc=0 problems=""
+	local label="real .just/repo-toml.sh present: lint passes without the stub branch"
+
+	ws=$(mktemp -d -t repo_toml_stub_real.XXXXXX)
+	build_shellcheck_workspace "$ws"
+	write_generated_file "$ws"
+
+	out=$(run_shellcheck_recipe "$ws") || rc=$?
+
+	[[ $rc -eq 0 ]] || problems+="exit code $rc (want 0); "
+	if grep -q "not found - generating" <<<"$out"; then
+		problems+="guard wrongly treated the real file as missing; "
+	fi
+	if grep -q "Writing a stub" <<<"$out"; then
+		problems+="stub branch ran although the real file existed; "
+	fi
+	if grep -qE "SC1091|SC2154" <<<"$out"; then
+		problems+="SC1091/SC2154 noise - real file not followed; "
 	fi
 
 	report_recipe_case "$label" "$problems" "$out"
@@ -400,6 +480,11 @@ main() {
 
 	if skip_or_require_tools "shellcheck recipe-mode test" just shellcheck; then
 		test_stub_never_touches_real_path
+		test_real_file_present_lints_against_it
+	fi
+
+	if skip_or_require_tools "shellcheck precedence test" shellcheck; then
+		test_real_file_wins_over_sandbox_candidates
 	fi
 
 	if skip_or_require_tools "repo_toml_check recipe-mode tests" just; then
