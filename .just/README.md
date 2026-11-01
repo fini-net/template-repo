@@ -83,7 +83,8 @@ Automated shellcheck validation for bash scripts in just recipes:
 - **Automatic detection** - Scans all justfiles in repo (`justfile` and `.just/*.just`)
 - **Script extraction** - Uses awk to extract bash scripts (looks for `#!/usr/bin/env bash` or `#!/bin/bash`)
 - **Temporary file handling** - Creates temp files for each script and cleans up on exit
-- **Shellcheck execution** - Runs shellcheck with `-x -s bash` flags for thorough validation
+- **Shellcheck execution** - Runs shellcheck with `-x -P -s bash` flags for thorough validation
+- **repo-toml stub sandboxing** - When `.just/repo-toml.sh` is missing and generation fails (no `cue`/`jq`), a default-flag stub is written into the run's temp dir and resolved via `--source-path`; the real path is never touched, and `repo_toml_check` refuses any legacy stub found there (#372)
 - **Detailed reporting** - Shows which file and recipe each issue is in, with colorized output
 - **Statistics** - Reports total scripts checked and issues found
 - **Exit codes** - Returns 1 if issues found, 0 if all scripts pass

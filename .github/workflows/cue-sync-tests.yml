@@ -13,6 +13,7 @@ on:
       - '.just/lib/repo_urls.sh'
       - '.just/lib/repo_urls_test.sh'
       - '.just/lib/asciinema_cache_test.sh'
+      - '.just/lib/repo_toml_stub_test.sh'
       - '.just/test/fixtures/cue_sync/**'
       - '.just/test/fixtures/repo_urls/**'
       - '.just/test/fixtures/asciinema_cache/**'
@@ -28,6 +29,7 @@ on:
       - '.just/lib/repo_urls.sh'
       - '.just/lib/repo_urls_test.sh'
       - '.just/lib/asciinema_cache_test.sh'
+      - '.just/lib/repo_toml_stub_test.sh'
       - '.just/test/fixtures/cue_sync/**'
       - '.just/test/fixtures/repo_urls/**'
       - '.just/test/fixtures/asciinema_cache/**'
@@ -65,6 +67,7 @@ jobs:
           chmod +x .just/lib/cue_sync_test.sh
           chmod +x .just/lib/repo_urls_test.sh
           chmod +x .just/lib/asciinema_cache_test.sh
+          chmod +x .just/lib/repo_toml_stub_test.sh
 
       - name: Run cue-sync tests
         run: just cue_sync_test
@@ -74,3 +77,6 @@ jobs:
 
       - name: Run asciinema cache tests
         run: just asciinema_cache_test
+
+      - name: Run repo_toml stub tests
+        run: just repo_toml_stub_test

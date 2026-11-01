@@ -4,6 +4,59 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v10.2 - repo-toml stub sandboxing, repo_toml_check stub sentinel (2026-11-01)
+
+- Fixes issue [#372](https://github.com/fini-net/template-repo/issues/372)
+
+**`just shellcheck` no longer writes its fallback stub to the real
+`.just/repo-toml.sh` path.** When the generated file was missing and
+`repo_toml_generate` failed (no `cue`/`jq` on PATH - the #192
+auto-generate fallback), the recipe wrote a hardcoded default-flag stub
+to the real path so shellcheck would have something to follow. That had
+two consequences: the stub was freshly written, so `repo_toml_check`'s
+`-nt` staleness test read it as up-to-date even though its `FLAG_*`
+values might not match `.repo.toml`, and every recipe that sources the
+file (`pr`, `again`, `pr_checks`, `claude_review`, `release`,
+`release_age`) silently inherited those defaults until someone noticed
+and regenerated. Five v9.9 sync reviews flagged the same shape across
+derived repos. The stub now lives in the lint run's temp directory
+(`$CHECKS_TMPDIR/.just/repo-toml.sh`, created before the generation
+attempt) and shellcheck resolves it through `-P`/`--source-path` for
+that run only. The real path is never touched, so a failed lint run can
+no longer leave poison behind. When the real `.just/repo-toml.sh`
+exists, cwd resolution beats `-P`, so the normal path lints exactly as
+before; the stub's values remain lint-only scaffolding, with a comment
+tying its variable list to `repo_toml_generate`.
+
+**`repo_toml_check` now refuses stub-marked files.** Checkouts that
+already carry a v10.1-era stub at the real path are healed by a new
+sentinel check: the stub's first line (`# Stub written by ...`) is
+grepped for before the `-nt` test, so a fresh stub is rejected with a
+"regenerate" hint instead of passing as up-to-date - the `-nt` test
+alone could never catch it. If `cue`/`jq` are unavailable, deleting the
+stub is enough: the sourcing recipes' existing fallback branches supply
+their built-in defaults. No `gh-process.just` recipes changed - a
+legacy stub only exists on machines without `jq`, which cannot complete
+the `pr` flow anyway, and the sentinel check plus the sandbox make the
+sourcing sites safe in practice.
+
+**New tests cover both ends of #372.** `.just/lib/repo_toml_stub_test.sh`
+(run via `just repo_toml_stub_test`) drives the real `shellcheck` recipe
+in a temp workspace with a failing `cue` shim - deterministic on
+machines where `cue` is installed - and asserts the lint still passes
+(no SC1091/SC2154 noise) *and* that the real `.just/repo-toml.sh` path
+stays untouched. A second recipe-mode section drives the real
+`repo_toml_check`: a fresh stub at the real path is rejected, a fresh
+generated-looking file passes, a missing file fails, and staleness
+detection still fires - pinning the pre-existing branches. Source
+assertions pin the sandbox wiring (temp-dir write target, `-P` in the
+shellcheck invocation, no write to the real path) and that the sentinel
+grep precedes the `-nt` test. The `cue-sync-tests.yml` workflow runs
+the suite alongside the cue-sync, repo_urls, and asciinema cache tests
+it already carries, and the new test script ships with matching
+`CLEANED_FILES` and `clean_template` removal entries so derived repos
+do not keep it.
+
 ### v10.1 - asciinema .cache gitignore guard, sensitive-recording caveat, single-guard pr (2026-11-01)
 
 - Fixes issues [#374](https://github.com/fini-net/template-repo/issues/374)

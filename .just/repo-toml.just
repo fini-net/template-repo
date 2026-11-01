@@ -122,6 +122,20 @@ repo_toml_check:
         exit 1
     fi
 
+    # Refuse shellcheck stubs (#372): 'just shellcheck' used to write a
+    # hardcoded default-flag stub to this path when cue/jq were missing.
+    # A stub is freshly written, so the -nt staleness check below reads it
+    # as up-to-date even though its FLAG_* values may not match
+    # .repo.toml - and every recipe that sources it silently inherits
+    # those defaults. Stubs now live in the lint run's temp dir; this
+    # guard catches stubs written by template versions v10.1 and earlier.
+    if grep -q "^# Stub written by" .just/repo-toml.sh; then
+        echo "{{RED}}Error: .just/repo-toml.sh is a shellcheck stub, not a generated file{{NORMAL}}"
+        echo "{{BLUE}}Run 'just repo_toml_generate' to regenerate it (requires cue and jq){{NORMAL}}"
+        echo "{{BLUE}}Or delete the stub - sourcing recipes fall back to their built-in defaults{{NORMAL}}"
+        exit 1
+    fi
+
     # Check if .repo.toml is newer (staleness detection)
     if [[ .repo.toml -nt .just/repo-toml.sh ]]; then
         echo "{{YELLOW}}Warning: .just/repo-toml.sh is stale{{NORMAL}}"
