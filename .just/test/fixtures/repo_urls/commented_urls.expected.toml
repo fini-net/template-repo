@@ -1,0 +1,12 @@
+# .repo.toml
+
+[about]
+description = "commented urls get uncommented"
+topics = ["alpha"]
+
+[urls]
+git_ssh = "git@github.com:other-org/derived-repo.git"
+web_url = "https://github.com/other-org/derived-repo"
+
+[flags]
+claude = false

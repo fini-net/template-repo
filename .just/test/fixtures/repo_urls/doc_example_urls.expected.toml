@@ -1,0 +1,13 @@
+# .repo.toml
+
+[about]
+description = "doc examples elsewhere must survive untouched"
+# web_url = "https://github.com/fini-net/template-repo"
+topics = ["alpha"]
+
+[urls]
+git_ssh = "git@github.com:other-org/derived-repo.git"
+web_url = "https://github.com/other-org/derived-repo"
+
+[flags]
+claude = false

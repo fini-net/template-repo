@@ -1,0 +1,17 @@
+# .repo.toml
+
+[about]
+description = "derived repo with \"quotes\" and \\ backslash"
+topics = ["alpha", "beta"]
+license = "GPL-2.0-only"
+
+[urls]
+git_ssh = "git@github.com:other-org/derived-repo.git"
+web_url = "https://github.com/other-org/derived-repo"
+
+[flags]
+claude = false
+claude-review = false
+copilot-review = false
+standard-release = false
+asciinema-record = false

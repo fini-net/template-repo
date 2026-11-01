@@ -2,22 +2,28 @@
 
 # clean debris out of template
 [group('Utility')]
-clean_template: _clean_readme _remove_template_files
+clean_template: _clean_readme _clean_repo_toml _remove_template_files
 
 # generate a clean README
+# No [no-cd]: like every other recipe these run at the justfile directory
+# (repo root), so the relative paths they touch (README.md, .repo.toml,
+# .just/lib/*) are correct no matter where clean_template is invoked from.
 [group('Utility')]
-[no-cd]
 _clean_readme: _on_a_branch
     #!/usr/bin/env bash
     set -euo pipefail # strict mode without tracing
 
-    GIT_ORIGIN=$(git config --get remote.origin.url | sed -e 's/^.*://' -e 's/[.]git$//')
-    #echo "$GIT_ORIGIN"
-
-    GITHUB_ORG=$(echo "$GIT_ORIGIN" | sed -e 's/[/].*$//')
+    # Shared org/repo extraction (#420). The previous inline sed produced
+    # an empty org for HTTPS remotes, which silently broke the README
+    # badges; the helper handles SSH and HTTPS alike.
+    source .just/lib/repo_urls.sh
+    if ! GITHUB_ORG_REPO=$(origin_org_repo); then
+        echo "{{RED}}Error: cannot determine org/repo from the git origin remote{{NORMAL}}"
+        exit 1
+    fi
+    read -r GITHUB_ORG GITHUB_REPO <<<"$GITHUB_ORG_REPO"
     echo "org={{BLUE}}$GITHUB_ORG{{NORMAL}}"
 
-    GITHUB_REPO=$(echo "$GIT_ORIGIN" | sed -e 's/^.*[/]//')
     echo "repo={{BLUE}}$GITHUB_REPO{{NORMAL}}"
 
     cat > README.md << END_OF_HEREDOC
@@ -42,10 +48,79 @@ _clean_readme: _on_a_branch
     - [Security Policy](.github/SECURITY.md)
     END_OF_HEREDOC
 
+# repoint .repo.toml [urls] at this repo (from the git origin remote) and
+# sync its description/topics from GitHub. Must run before
+# _remove_template_files, which deletes this file; clean_template's
+# dependency order enforces that. Derived repos used to keep the
+# template's URLs here, which made cue-sync-from-github fetch the
+# template's metadata - silently, since cue-verify read the same stale
+# URL. See #420.
+[group('Utility')]
+_clean_repo_toml: _on_a_branch
+    #!/usr/bin/env bash
+    set -euo pipefail # strict mode without tracing
+
+    source .just/lib/repo_urls.sh
+    if ! GITHUB_ORG_REPO=$(origin_org_repo); then
+        echo "{{RED}}Error: cannot determine org/repo from the git origin remote{{NORMAL}}"
+        exit 1
+    fi
+    read -r GITHUB_ORG GITHUB_REPO <<<"$GITHUB_ORG_REPO"
+    echo "org={{BLUE}}$GITHUB_ORG{{NORMAL}} repo={{BLUE}}$GITHUB_REPO{{NORMAL}}"
+
+    if [[ ! -f .repo.toml ]]; then
+        echo "{{YELLOW}}.repo.toml not found - skipping URL repoint{{NORMAL}}"
+    else
+        echo "{{BLUE}}Repointing .repo.toml [urls] at this repo...{{NORMAL}}"
+        EXPECTED_SSH="git@github.com:$GITHUB_ORG/$GITHUB_REPO.git"
+        EXPECTED_WEB_URL="https://github.com/$GITHUB_ORG/$GITHUB_REPO"
+        repointed_repo_toml .repo.toml "$GITHUB_ORG" "$GITHUB_REPO" > .repo.toml.tmp
+        # Both keys must land - the transform inserts a missing partner,
+        # so a failure here means the rewrite did not take at all
+        if ! grep -qF "git_ssh = \"$EXPECTED_SSH\"" .repo.toml.tmp \
+            || ! grep -qF "web_url = \"$EXPECTED_WEB_URL\"" .repo.toml.tmp; then
+            rm -f .repo.toml.tmp
+            echo "{{RED}}Error: failed to repoint [urls] in .repo.toml{{NORMAL}}"
+            exit 1
+        fi
+        mv .repo.toml.tmp .repo.toml
+
+        cue vet .repo.toml docs/repo-toml.cue
+    fi
+
+    # A fresh repo has zero GitHub topics, but the CUE schema requires at
+    # least one, so the sync below would fail cue vet and roll back. Seed
+    # a placeholder topic so the first sync can pass; replace it with
+    # real topics on GitHub and re-run 'just cue-sync-from-github'.
+    if GH_DATA=$(gh api "repos/$GITHUB_ORG/$GITHUB_REPO" 2>/dev/null); then
+        TOPIC_COUNT=$(echo "$GH_DATA" | jq -r '.topics | length')
+        if [[ "$TOPIC_COUNT" -eq 0 ]]; then
+            echo "{{YELLOW}}No GitHub topics - adding 'placeholder' topic{{NORMAL}}"
+            if gh api -X PUT "repos/$GITHUB_ORG/$GITHUB_REPO/topics" -f 'names[]=placeholder' >/dev/null; then
+                echo "{{YELLOW}}  Replace it with real topics on GitHub, then run 'just cue-sync-from-github'{{NORMAL}}"
+            else
+                echo "{{YELLOW}}Warning: could not add placeholder topic (gh api failed){{NORMAL}}"
+            fi
+        fi
+    else
+        echo "{{YELLOW}}Warning: cannot read GitHub topics - skipping placeholder topic step{{NORMAL}}"
+    fi
+
+    # Fill description and topics from this repo's real GitHub metadata.
+    # Best-effort: a brand-new repo may have no GitHub description yet,
+    # which the schema requires, so a failed sync warns instead of
+    # failing the whole cleanup.
+    echo "{{BLUE}}Syncing description and topics from GitHub...{{NORMAL}}"
+    if ! just cue-sync-from-github; then
+        echo "{{YELLOW}}Warning: metadata sync did not complete.{{NORMAL}}"
+        echo "{{YELLOW}}  A brand-new repo usually needs a GitHub description first.{{NORMAL}}"
+        echo "{{YELLOW}}  Set one on GitHub, then run: just cue-sync-from-github{{NORMAL}}"
+    fi
+
 # remove template-specific files
 # NOTE: Files removed here must also be listed in CLEANED_FILES in .just/lib/generate_checksums.sh
+# No [no-cd] - runs at the repo root like the rest of clean_template
 [group('Utility')]
-[no-cd]
 _remove_template_files: _on_a_branch
     #!/usr/bin/env bash
     set -euo pipefail # strict mode without tracing

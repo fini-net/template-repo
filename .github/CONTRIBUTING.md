@@ -60,6 +60,7 @@ You should get a more colorful version of this:
 just --list
 Available recipes:
     [Claude Code]
+    claude *args             # Launch Claude Code in the repo root (with arguments optionally)
     claude_permissions_check # Check Claude Code permissions structure
     claude_permissions_sort  # Sort Claude Code permissions in canonical order
 
@@ -73,7 +74,7 @@ Available recipes:
     branch branchname        # start a new branch
     claude_review            # Claude's latest PR code review
     merge                    # merge PR and return to starting point
-    pr                       # PR create v5.4
+    pr                       # PR create v10.0
     pr_checks                # watch GHAs then check for Copilot suggestions
     pr_update                # update the Done section of PR description with current commits
     pr_verify                # add or append to Verify section from stdin
@@ -90,15 +91,18 @@ Available recipes:
 
     [Testing/Automation]
     checksums_verify         # Verify local .just files against template versions
+    cue_sync_test            # test cue-sync-from-github awk logic (missing/commented keys in [about])
     pr_body_test             # test PR body update logic
     repo_toml_check          # check if generated shell file is up-to-date
     repo_toml_generate       # generate shell variables from .repo.toml
+    repo_urls_test           # real cue-sync-from-github recipe in a shimmed workspace
     template_sync_test       # test template sync logic
-    wait_for_copilot_test    # test the shared Copilot-wait state machine
+    wait_for_copilot_test    # test the shared Copilot-wait state machine (mocked gh/sleep, fixtures)
 
     [Testing/Compliance]
     compliance_check         # our own repo compliance check
     cue-verify               # use Cue to verify /.repo.toml validity and flag configuration
+    editorconfig_check       # See: https://github.com/fini-net/template-repo/issues/329
     shellcheck               # run shellcheck on all bash scripts in just recipes
 
     [Utility]

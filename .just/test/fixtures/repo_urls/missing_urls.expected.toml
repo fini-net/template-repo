@@ -1,0 +1,12 @@
+# .repo.toml
+
+[about]
+description = "no urls section at all"
+topics = ["alpha"]
+
+[flags]
+claude = false
+
+[urls]
+git_ssh = "git@github.com:other-org/derived-repo.git"
+web_url = "https://github.com/other-org/derived-repo"
