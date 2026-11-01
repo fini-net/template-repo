@@ -22,12 +22,17 @@
 #     pre-existing behavior)
 #
 # Source assertions pin the wiring in shellcheck.just and repo-toml.just:
-# the stub write target lives under CHECKS_TMPDIR, no write to the real
-# path remains, the shellcheck invocation carries -P, and the sentinel
-# grep runs before the -nt staleness test.
+# no write to the real path remains, the shellcheck invocation carries
+# -P/--source-path, the sentinel grep runs before the -nt staleness
+# test, and the stub's variable list covers exactly what
+# repo_toml_generate emits - the two hand-maintained lists are the
+# remaining duplication from #372, so drift fails here instead of
+# waiting for a cue-less machine to notice.
 #
 # The recipe modes need just and shellcheck; without them a section is
-# skipped rather than failed (source assertions always run).
+# skipped rather than failed (source assertions always run) - except in
+# CI, where a missing tool fails the suite rather than letting it pass
+# vacuously (this is the only regression coverage for #372).
 set -euo pipefail
 
 # Color codes
@@ -41,6 +46,13 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 readonly REPO_ROOT
 readonly SHELLCHECK_JUST="$REPO_ROOT/.just/shellcheck.just"
 readonly REPO_TOML_JUST="$REPO_ROOT/.just/repo-toml.just"
+
+# Fixed mtimes instead of sleep for the -nt orderings: deterministic
+# even on coarse-mtime filesystems and no suite slowdown. Portable
+# BSD+GNU touch -t form [[CC]YY]MMDDhhmm (Claude review of #428).
+readonly STAMP_OLD="202601010000"
+readonly STAMP_NEW="202601010001"
+readonly STAMP_NEWEST="202601010002"
 
 passed=0
 failed=0
@@ -170,27 +182,52 @@ run_check_recipe() {
 	)
 }
 
-# #372 source assertion: the stub must be written under CHECKS_TMPDIR
-# (never to the real .just/repo-toml.sh path) and the shellcheck
-# invocation must carry -P so the sandboxed stub resolves the recipes'
-# source lines for this run only.
+# #372 source assertion: no write to the bare real path may remain
+# (strict - it is the actual #372 property), and the shellcheck
+# invocation must carry -P/--source-path pointing at CHECKS_TMPDIR
+# (loose on flag order and long form, and comment lines do not count -
+# only the real invocation satisfies it; Claude review of #428).
 test_stub_sandboxed_in_source() {
 	local problems=""
-	local label="shellcheck.just writes the stub to the temp dir and lints with -P (#372)"
+	local label="shellcheck.just lints with -P/--source-path and never writes the real path (#372)"
 
-	# SC2016: the $ literals are the point - grep must see the
-	# unexpanded pattern to pin the write target and -P wiring
-	# shellcheck disable=SC2016
-	grep -q '} > "$CHECKS_TMPDIR/.just/repo-toml.sh"' "$SHELLCHECK_JUST" \
-		|| problems+="stub write target is not CHECKS_TMPDIR/.just/repo-toml.sh; "
-	# shellcheck disable=SC2016
-	grep -q 'shellcheck -x -P "$CHECKS_TMPDIR" -s bash' "$SHELLCHECK_JUST" \
-		|| problems+="shellcheck invocation lost -P; "
-	if grep -q '> \.just/repo-toml\.sh' "$SHELLCHECK_JUST"; then
+	awk '
+		$0 !~ /^[[:space:]]*#/ && /shellcheck/ && /(-P|--source-path)/ && /CHECKS_TMPDIR/ { found = 1 }
+		END { exit !found }
+	' "$SHELLCHECK_JUST" \
+		|| problems+="shellcheck invocation lost -P/--source-path; "
+	if grep -qE '>[[:space:]]*\.just/repo-toml\.sh' "$SHELLCHECK_JUST"; then
 		problems+="a write to the real .just/repo-toml.sh path remains; "
 	fi
 
-	report_recipe_case "$label" "$problems" "grep on .just/shellcheck.just"
+	report_recipe_case "$label" "$problems" "grep/awk on .just/shellcheck.just"
+}
+
+# The stub's variable list and repo_toml_generate's emit block are the
+# two hand-maintained lists from #372 - this pins them together so
+# adding a variable to the generator without the stub (or vice versa)
+# fails the suite instead of surfacing as SC2154 noise on cue-less
+# machines (Claude review of #428).
+test_stub_covers_generated_variables() {
+	local problems="" gen_vars stub_vars only_gen only_stub
+	local label="stub variable list matches repo_toml_generate's output set"
+
+	gen_vars=$(grep -oE 'echo "(REPO_[A-Z_]+|FLAG_[A-Z_]+)' "$REPO_TOML_JUST" \
+		| sed 's/^echo "//' | sort -u)
+	stub_vars=$(grep -oE 'echo "(REPO_[A-Z_]+|FLAG_[A-Z_]+)' "$SHELLCHECK_JUST" \
+		| sed 's/^echo "//' | sort -u)
+
+	[[ -n "$gen_vars" ]] \
+		|| problems+="no variables extracted from repo_toml_generate; "
+	[[ -n "$stub_vars" ]] \
+		|| problems+="no variables extracted from the stub; "
+	if [[ -n "$gen_vars" && -n "$stub_vars" && "$gen_vars" != "$stub_vars" ]]; then
+		only_gen=$(comm -23 <(printf '%s\n' "$gen_vars") <(printf '%s\n' "$stub_vars") | tr '\n' ' ')
+		only_stub=$(comm -13 <(printf '%s\n' "$gen_vars") <(printf '%s\n' "$stub_vars") | tr '\n' ' ')
+		problems+="sets differ (generate-only: ${only_gen:-none} stub-only: ${only_stub:-none}); "
+	fi
+
+	report_recipe_case "$label" "$problems" "grep on .just/repo-toml.just + .just/shellcheck.just"
 }
 
 # #372 source assertion: repo_toml_check must refuse stub-marked files
@@ -252,8 +289,9 @@ test_check_rejects_stub() {
 
 	ws=$(mktemp -d -t repo_toml_stub_sent.XXXXXX)
 	build_check_workspace "$ws"
-	sleep 1 # ensure the stub is newer than .repo.toml, so -nt passes
+	touch -t "$STAMP_OLD" "$ws/.repo.toml"
 	write_stub_file "$ws"
+	touch -t "$STAMP_NEW" "$ws/.just/repo-toml.sh" # newer than .repo.toml, so -nt passes
 
 	out=$(run_check_recipe "$ws") || rc=$?
 
@@ -277,8 +315,9 @@ test_check_passes_fresh_generated() {
 
 	ws=$(mktemp -d -t repo_toml_stub_ok.XXXXXX)
 	build_check_workspace "$ws"
-	sleep 1 # ensure the file is newer than .repo.toml
+	touch -t "$STAMP_OLD" "$ws/.repo.toml"
 	write_generated_file "$ws"
+	touch -t "$STAMP_NEW" "$ws/.just/repo-toml.sh" # newer than .repo.toml
 
 	out=$(run_check_recipe "$ws") || rc=$?
 
@@ -317,8 +356,8 @@ test_check_flags_stale_generated() {
 	ws=$(mktemp -d -t repo_toml_stub_stale.XXXXXX)
 	build_check_workspace "$ws"
 	write_generated_file "$ws"
-	sleep 1 # ensure .repo.toml becomes newer
-	touch "$ws/.repo.toml"
+	touch -t "$STAMP_NEW" "$ws/.just/repo-toml.sh"
+	touch -t "$STAMP_NEWEST" "$ws/.repo.toml" # newer than the file
 
 	out=$(run_check_recipe "$ws") || rc=$?
 
@@ -330,28 +369,44 @@ test_check_flags_stale_generated() {
 	rm -rf "$ws"
 }
 
+# Gate a recipe-mode section on its tools: skip with a note when a tool
+# is missing, but fail in CI - a missing tool would otherwise let the
+# suite pass vacuously, and this is the only regression coverage for
+# #372 (Claude review of #428). Returns 0 (run the section) or 1
+# (section not run).
+skip_or_require_tools() {
+	local section="$1"
+	shift
+
+	if recipe_tools_available "$@"; then
+		return 0
+	fi
+	if [[ -n "${CI:-}" ]]; then
+		fail "$section must run in CI: missing tool(s) among: $* - this suite does not pass vacuously"
+		return 1
+	fi
+	echo -e "${YELLOW}Skipping $section (need: $*)${NORMAL}"
+	((skipped += 1))
+	return 1
+}
+
 main() {
-	echo -e "${BLUE}Running repo_toml stub tests...${NORMAL}}"
+	echo -e "${BLUE}Running repo_toml stub tests...${NORMAL}"
 	echo
 
 	test_stub_sandboxed_in_source
 	test_sentinel_before_staleness
+	test_stub_covers_generated_variables
 
-	if recipe_tools_available just shellcheck; then
+	if skip_or_require_tools "shellcheck recipe-mode test" just shellcheck; then
 		test_stub_never_touches_real_path
-	else
-		echo -e "${YELLOW}Skipping shellcheck recipe-mode test (need just and shellcheck on PATH)${NORMAL}"
-		((skipped += 1))
 	fi
 
-	if recipe_tools_available just; then
+	if skip_or_require_tools "repo_toml_check recipe-mode tests" just; then
 		test_check_rejects_stub
 		test_check_passes_fresh_generated
 		test_check_fails_missing_file
 		test_check_flags_stale_generated
-	else
-		echo -e "${YELLOW}Skipping repo_toml_check recipe-mode tests (need just on PATH)${NORMAL}"
-		((skipped += 1))
 	fi
 
 	echo

@@ -57,6 +57,26 @@ it already carries, and the new test script ships with matching
 `CLEANED_FILES` and `clean_template` removal entries so derived repos
 do not keep it.
 
+**The review round hardened the suite itself** (Claude review of PR
+#428). A stray `}` in the test banner is gone. The `cue-sync-tests.yml`
+path triggers now include `shellcheck.just` and `repo-toml.just`
+themselves, so a PR that regresses only the modules under test cannot
+skip the suite that guards them. In CI (`$CI` set), a missing
+`just`/`shellcheck` fails the suite instead of skipping it - this is
+the only regression coverage for #372, and a vacuous green run would be
+worse than a red one; locally the skip-with-note behavior is unchanged.
+The sandbox source assertions loosened where they were brittle (flag
+order and `--source-path` long form are both fine, and comment lines no
+longer satisfy the `-P` check) and tightened where it matters: the
+no-write-to-the-real-path pattern now also catches the spaceless `}>`
+redirect form. A new source assertion compares the stub's variable list
+against `repo_toml_generate`'s emit block as sorted sets, so the
+remaining hand-synced duplication from #372 fails the suite when it
+drifts instead of surfacing as SC2154 noise on cue-less machines. The
+`repo_toml_check` recipe-mode cases now use fixed `touch -t` timestamps
+instead of `sleep 1`, making the `-nt` orderings deterministic even on
+coarse-mtime filesystems and trimming the suite runtime.
+
 ### v10.1 - asciinema .cache gitignore guard, sensitive-recording caveat, single-guard pr (2026-11-01)
 
 - Fixes issues [#374](https://github.com/fini-net/template-repo/issues/374)
