@@ -7,6 +7,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 ### v11.0 - release version-order confirmation (#436) (2026-11-02)
 
 - Fixes issue [#436](https://github.com/fini-net/template-repo/issues/436)
+- **Related PR:** [#439](https://github.com/fini-net/template-repo/pull/439)
 
 **`just release` now asks before going backwards.** The recipe validated
 version *format* but never version *order*: `gh release create` happily
