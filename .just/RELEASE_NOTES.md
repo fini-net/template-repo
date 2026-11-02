@@ -6,7 +6,8 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ### v10.4 - compliance review follow-ups: single-quote constraint, missing-tool reporting (2026-11-02)
 
-- **Related PR:** follow-up to [#430](https://github.com/fini-net/template-repo/pull/430)
+- **Related PR:** [#431](https://github.com/fini-net/template-repo/pull/431)
+  (follow-up to [#430](https://github.com/fini-net/template-repo/pull/430))
 
 **Post-merge follow-ups from the Claude review of #430's final head.**
 The classification comment block in `compliance_check` now warns that
