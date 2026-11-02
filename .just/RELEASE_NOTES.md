@@ -70,6 +70,26 @@ semver-aware since `sort -V` orders `1.0.0-rc1` after `1.0.0`, which
 is backwards for precedence. Tracked in
 [#436](https://github.com/fini-net/template-repo/issues/436).
 
+**Review round (PR #437).** Claude's review approved the grammar and
+its security story and flagged one real gap, folded in here: accepting
+`-rc1` tags while publishing them as *normal* releases would let a
+pre-release wear the GitHub Latest crown - the same half-acceptance
+complained about in #379, one layer up. Since the grammar admits a
+hyphen only inside a pre-release suffix, hyphenated versions now
+publish with `--prerelease`; build metadata alone (`v1.0.0+build.5`)
+is not a pre-release per semver and publishes normally. The if/else
+avoids the bash 3.2 `set -u` empty-array expansion trap the test
+harness documents. Fixture 17 now asserts the flag round-trips to
+`gh release create`, while fixtures 12 and 18 pin that plain and
+build-only versions do not get it. The reviewer also suggested a
+tighter dot-separated-identifier suffix class; the looser class stays
+a documented tradeoff - `v1.0.0--` is a semver-legal identifier, and
+the recipe comment owns the choice. And the reviewer's
+`release_age` question, checked: it reads `gh release list --limit 1`,
+which lists pre-releases too, so it keeps reporting time since the
+newest release activity, rc or not - defensible activity-based
+semantics, left as is.
+
 ### v10.7 - copilot_rollback dotglob reset + security-boundary test coverage (2026-11-02)
 
 - Fixes issues [#378](https://github.com/fini-net/template-repo/issues/378)

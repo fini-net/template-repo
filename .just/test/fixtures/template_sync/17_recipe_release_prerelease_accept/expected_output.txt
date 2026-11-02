@@ -1,1 +1,1 @@
-gh-shim: release create v1.0.0-rc1 --generate-notes
+gh-shim: release create v1.0.0-rc1 --prerelease --generate-notes
