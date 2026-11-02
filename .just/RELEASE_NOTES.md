@@ -73,8 +73,9 @@ out; `secrets.BAR` in, `mysecrets.foo` out; `sudo` and `- sudo` in,
 scratch git repo with a fake ELF, a JPEG, a GIF, a favicon.ico, a 1.7MB
 blob, and text files *named* `ELF-notes.md`/`PDF-spec.txt` that must
 classify as neither executable nor media. The pattern extraction is
-content-anchored, not positional: each marker carries a literal filter
-(`'Mach-O'` for executables, `'icon resource'` for the exclusion,
+content-anchored, not positional: every marker carries a literal filter
+(`'secrets\.'` and `'sudo'` for the CI-Tests and sudo boundaries,
+`'Mach-O'` for executables, `'icon resource'` for the exclusion,
 `'JPEG'` for media) so an unrelated grep added earlier in
 `compliance.just` cannot silently re-target the suite, and the
 executables assertion is an exact match (`evil.elf` and nothing else)

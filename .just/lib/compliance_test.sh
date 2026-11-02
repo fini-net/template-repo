@@ -88,7 +88,7 @@ echo -e "${BLUE}Testing compliance_check heuristics...${NORMAL}"
 # ---- Boundary patterns, extracted live from the recipe ----
 echo "Boundary patterns (extracted from compliance.just):"
 
-test_cmds=$(extract_pattern 'test_cmds' "test_cmds='") ||
+test_cmds=$(extract_pattern 'test_cmds' "test_cmds='" 'vitest') ||
 	{ printf '  suite aborted: cannot proceed without the test_cmds pattern\n' >&2; exit 1; }
 assert_matches 'test_cmds word boundaries' "$test_cmds" \
 	'run: tox
@@ -99,7 +99,7 @@ jest
 vitest' \
 	'run: tox|just pr_body_test|jest|vitest|'
 
-secrets_pat=$(extract_pattern 'secrets boundary' "grep -lE '") ||
+secrets_pat=$(extract_pattern 'secrets boundary' "grep -lE '" 'secrets\.') ||
 	{ printf '  suite aborted: cannot proceed without the secrets pattern\n' >&2; exit 1; }
 # the '${{ secrets.* }}' fixtures are literal GitHub Actions expressions,
 # deliberately single-quoted so nothing expands
@@ -111,7 +111,7 @@ secrets.BAR
 FOOsecrets.BAR' \
 	'- ${{ secrets.A }}|secrets.BAR|'
 
-sudo_pat=$(extract_pattern 'sudo boundary' "grep -rlE '") ||
+sudo_pat=$(extract_pattern 'sudo boundary' "grep -rlE '" 'sudo') ||
 	{ printf '  suite aborted: cannot proceed without the sudo pattern\n' >&2; exit 1; }
 assert_matches 'sudo word boundaries' "$sudo_pat" \
 	'run: sudo make install
