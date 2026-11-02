@@ -7,6 +7,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 ### v10.9 - cleaned_files drift guard + not-locally-verifiable note (2026-11-02)
 
 - Fixes issue [#381](https://github.com/fini-net/template-repo/issues/381)
+- **Related PR:** [#438](https://github.com/fini-net/template-repo/pull/438)
 
 **`CLEANED_FILES` now enforces its own sync.** The hand-maintained list in
 `generate_checksums.sh` had to match the `rm` lines of the
