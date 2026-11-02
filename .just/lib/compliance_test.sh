@@ -123,13 +123,13 @@ sudo
 
 # ---- Classification pipeline vs a planted scratch repo ----
 missing=""
-command -v file >/dev/null 2>&1 || missing="file"
-command -v git >/dev/null 2>&1 || missing="git"
+command -v file >/dev/null 2>&1 || missing="${missing:+$missing }file"
+command -v git >/dev/null 2>&1 || missing="${missing:+$missing }git"
 if [[ -n "$missing" ]]; then
 	if [[ -n "${CI:-}" ]]; then
-		fail "classification section: $missing not installed (CI must not pass vacuously)"
+		fail "classification section: missing tool(s): $missing (CI must not pass vacuously)"
 	else
-		echo -e "  ${YELLOW}SKIP${NORMAL}  classification section: $missing not installed, skipping (not CI)"
+		echo -e "  ${YELLOW}SKIP${NORMAL}  classification section: missing tool(s): $missing, skipping (not CI)"
 	fi
 else
 	echo "Classification pipeline (planted scratch repo):"

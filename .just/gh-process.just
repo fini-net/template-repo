@@ -28,7 +28,7 @@ sync:
 # the asciinema flag file, not git state - every path delegates to
 # _pr_inner, so the guard still fires exactly once, inside the recipe
 # body it protects.
-# PR create v10.3
+# PR create v10.4
 [group('Process')]
 pr:
     #!/usr/bin/env bash
