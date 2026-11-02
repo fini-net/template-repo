@@ -4,6 +4,49 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v10.3 - compliance: binary-artifact split, portable grep, SUPPORT.md (2026-11-02)
+
+- Fixes issues
+  [#373](https://github.com/fini-net/template-repo/issues/373),
+  [#380](https://github.com/fini-net/template-repo/issues/380), and
+  [#386](https://github.com/fini-net/template-repo/issues/386)
+
+**`compliance_check` no longer treats images and PDFs as contraband
+([#373](https://github.com/fini-net/template-repo/issues/373)).** The
+OpenSSF-aligned Binary-Artifacts heuristic ran one `file` pass whose `grep`
+lumped `JPEG|PNG|GIF|Web/P|PDF` in with `ELF|Mach-O|PE32|MS Windows`, so any
+derived repo that legitimately ships media - Hugo sites with static images,
+games with sprite/audio assets, docs trees with PDFs - printed red on every
+run, and a permanently red check is noise that gets ignored. The scan now
+classifies each file exactly once: executables stay red (that is what
+Scorecard's Binary-Artifacts check is actually about), while media formats
+become a yellow advisory with a count. `MS Windows icon resource`
+(favicon.ico and friends) classifies as data, not executable, so static
+sites stay clean. Blobs over 1MB moved out of the red branch into their own
+yellow advisory - size hygiene is worth mentioning, but not worth drowning
+the executable signal, and template-repo itself was permanently red on its
+own 1.7MB banner. The green verdict now keys on executables alone.
+
+**The OpenSSF heuristics no longer depend on GNU grep extensions
+([#380](https://github.com/fini-net/template-repo/issues/380)).** `\b` word
+boundaries and `-w` silently degrade under the BSD grep macOS ships -
+boundaries treated literally, matches missed, with no hint to the user that
+the output means less than it does on Linux. All three sites (the CI-Tests
+`test_cmds` pattern, the `pull_request_target` secrets scan, and the `sudo`
+scan) now use POSIX character-class boundaries (`(^|[^a-zA-Z0-9_])` on the
+left, `([^a-zA-Z0-9_]|$)` on the right), verified on both BSD and GNU grep;
+the comments that documented the deliberate GNU dependency now document the
+portable form instead. No runtime GNU-grep detection notice was needed
+because nothing GNU-specific remains.
+
+**`compliance_check` now verifies `.github/SUPPORT.md`
+([#386](https://github.com/fini-net/template-repo/issues/386)).** The README
+links to it, and the link dangled until the file was added - exactly the
+kind of rot a compliance check exists to catch. The check sits with the
+other `.github/*` file checks and carries the `[gh]` label, but SUPPORT.md
+is not part of GitHub's community-standards checklist: it is an
+extra-health check like the custom social preview one.
+
 ### v10.2 - repo-toml stub sandboxing, repo_toml_check stub sentinel (2026-11-01)
 
 - Fixes issue [#372](https://github.com/fini-net/template-repo/issues/372)
