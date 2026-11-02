@@ -396,11 +396,15 @@ security_boundary_selftest() {
 	done
 
 	# sanitize_for_display: control bytes stripped, printables intact.
-	# ESC's literal "[31m" tail is deliberately not part of the input:
-	# the contract strips raw control bytes only (the call sites' printf
-	# '%s' handles any remaining literal backslash text).
+	# Two contracts: pure control bytes disappear, and an escape's
+	# literal tail (here "[31m") survives - the function strips raw
+	# control bytes only; the call sites' printf '%s' is what keeps
+	# remaining literal text inert (Claude review of PR #434 asked
+	# for the tail to be pinned explicitly).
 	out=$(sanitize_for_display $'ab\ncd\033ef\tgh')
 	[[ "$out" == "abcdefgh" ]] || reasons+=("sanitize_for_display: expected 'abcdefgh', got '$out'")
+	out=$(sanitize_for_display $'\033[31mplain')
+	[[ "$out" == "[31mplain" ]] || reasons+=("sanitize_for_display: expected literal tail '[31mplain', got '$out'")
 	out=$(sanitize_for_display "plain-key.just")
 	[[ "$out" == "plain-key.just" ]] || reasons+=("sanitize_for_display mangled plain text: '$out'")
 

@@ -61,6 +61,23 @@ expected output stable across C and en_US.UTF-8 collation.
 triggered the sync workflow before, so a `common.sh` edit ran no sync
 CI at all.
 
+**Review round (PR #434).** Claude's two reviews were LGTM with
+non-blocking suggestions; the actionable ones are folded in here.
+Fixture files now end with a final newline per `.editorconfig`
+(`insert_final_newline`) - the harness matcher tolerates its absence,
+but the existing fixture key files all have it. The
+`sanitize_for_display` self-test grew the explicit literal-tail
+assertion: an escape's remaining `[31m` text survives, pinning that the
+function strips raw control bytes only (the call sites' `printf '%s'`
+is what keeps the tail inert). And fixture 15 carries a README
+recording why its backup names all share a `.just%2F` prefix and
+diverge first at an alphanumeric character: the in-order expected-
+output matcher is locale-collation-sensitive, and C (CI) and
+en_US.UTF-8 (macOS) disagree when punctuation would decide glob order.
+The suggested shared default `gum` shim was declined: three identical
+shims are cheaper than new harness machinery, and the duplication
+should be extracted only when a fourth rollback fixture appears.
+
 ### v10.6 - template_sync_test: mismatch dump + DRY matcher/state helpers (2026-11-02)
 
 - Fixes issues [#376](https://github.com/fini-net/template-repo/issues/376)
