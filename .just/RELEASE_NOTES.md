@@ -45,6 +45,23 @@ repos, making their absent files documented design instead of a puzzle.
 Guard diagnostics go to stderr because stdout is the JSON manifest that
 `checksums_generate` redirects into place.
 
+**Review hardening (Claude review follow-up).** The scratch-file
+exclusion now names its two files (`justfile.tmp`, `.repo.toml.tmp`)
+instead of blanket-matching `*.tmp`, so a real tracked path ending in
+`.tmp` still counts as drift. An extraction that yields zero paths fails
+immediately with a pointed message - the only way the guard could
+otherwise pass vacuously, both sides empty - instead of masquerading as
+a row of listed-but-not-removed reports, which is also what a stale
+extraction pattern or an unreadable recipe file would look like. And the
+scan now starts from indented lines only, because the NOTE documenting
+the required `rm -f "literal path"` form nearly poisoned the extracted
+set with its own example - the guard failed its sandbox run the moment
+that documentation landed. Column-0 comments can no longer contribute
+phantom paths; inside a recipe body a double-quoted variable like
+`"$VAR"` extracts as literal text and is flagged, while single-quoted
+or unquoted arguments are not extracted at all - both routes end in
+loud failure, so removals keep the literal form.
+
 ### v10.8 - release accepts semver pre-release/build tags (2026-11-02)
 
 - Fixes issue [#379](https://github.com/fini-net/template-repo/issues/379)

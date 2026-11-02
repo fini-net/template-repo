@@ -120,7 +120,10 @@ _clean_repo_toml: _on_a_branch
 # remove template-specific files
 # NOTE: Files removed here must also be listed in CLEANED_FILES in
 # .just/lib/generate_checksums.sh. checksums_generate cross-checks the two
-# and fails on drift (#381), so update both sides in the same change.
+# and fails on drift (#381), so update both sides in the same change. The
+# guard extracts double-quoted literal rm paths only, so removals must
+# keep the rm -f "literal path" form (rm -rf likewise); single-quoted,
+# unquoted, or variable arguments cannot be tracked and fail the guard.
 # No [no-cd] - runs at the repo root like the rest of clean_template
 [group('Utility')]
 _remove_template_files: _on_a_branch

@@ -52,12 +52,31 @@ CLEAN_TEMPLATE_JUST="$(dirname "${BASH_SOURCE[0]}")/../clean-template.just"
 if [[ ! -f "$CLEAN_TEMPLATE_JUST" ]]; then
 	echo "Warning: $CLEAN_TEMPLATE_JUST not found - skipping CLEANED_FILES drift check (expected in derived repos)" >&2
 else
-	# Quoted-literal rm paths from the recipe, minus the in-place *.tmp
-	# scratch files (justfile.tmp, .repo.toml.tmp) the recipe also deletes
-	removed_paths=$(grep -oE 'rm -[a-z]+ "[^"]+"' "$CLEAN_TEMPLATE_JUST" \
-		| grep -v '"[^"]*\.tmp"$' \
+	# Double-quoted literal rm paths from the recipe. The scan starts
+	# from indented lines only - recipe bodies - so a column-0 comment
+	# documenting the required form (the NOTE in clean-template.just)
+	# cannot poison the set with example paths. Single-quoted or
+	# unquoted arguments are not extracted, and a double-quoted variable
+	# like "$VAR" extracts as literal text and is flagged, so removals
+	# keep the literal path form the NOTE demands. Only the two named
+	# in-place scratch files are excluded (justfile.tmp, .repo.toml.tmp),
+	# so a real tracked path ending in .tmp still counts as drift
+	removed_paths=$(grep '^[[:space:]]' "$CLEAN_TEMPLATE_JUST" \
+		| grep -oE 'rm -[a-z]+ "[^"]+"' \
+		| grep -vE '"(justfile|\.repo\.toml)\.tmp"$' \
 		| sed -E 's/^rm -[a-z]+ "//; s/"$//' \
 		| sort -u) || removed_paths=""
+
+	# A readable clean-template.just always removes template files, so an
+	# empty extraction means a stale pattern or an unreadable file, not an
+	# empty recipe. Failing here with a pointed message beats a row of
+	# misleading listed-but-not-removed reports - and it is the only way
+	# the guard could otherwise pass vacuously, both sides empty.
+	if [[ -z "$removed_paths" ]]; then
+		echo "Error: the drift guard extracted no rm paths from $CLEAN_TEMPLATE_JUST" >&2
+		echo "  suspect a stale extraction pattern in this script (or an unreadable recipe file)" >&2
+		exit 1
+	fi
 
 	listed_paths=$(printf '%s\n' "${CLEANED_FILES[@]}" | sort -u)
 
