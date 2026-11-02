@@ -7,6 +7,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 ### v10.8 - release accepts semver pre-release/build tags (2026-11-02)
 
 - Fixes issue [#379](https://github.com/fini-net/template-repo/issues/379)
+- **Related PR:** [#437](https://github.com/fini-net/template-repo/pull/437)
 
 **`just release` accepts `v1.0.0-rc1` and `v1.0.0+build.5` again.** The
 v9.7 quote-injection hardening (#359) tightened the release version
