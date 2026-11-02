@@ -27,10 +27,12 @@ inversion this check exists to catch - so the recipe carries a
 bash-native comparator: short forms zero-pad (`v1` -> `1.0.0`), build
 metadata is ignored, numeric identifiers lose to alphanumeric ones,
 and a stable release legitimately follows its own rc. Fixture
-`24_recipe_release_stable_after_rc` pins that inversion, and a battery
-of the semver.org #11 precedence chain (plus octal traps, identifier
-counts, and degenerate tags) ran against the live code before the
-fixture suite.
+`24_recipe_release_stable_after_rc` pins that inversion, and the full
+semver.org #11 precedence chain (plus octal traps, identifier-count
+rules, and degenerate-tag parse failures) is pinned by a committed
+table-driven `semver_selftest` in the test harness, which extracts
+the comparator live from the recipe - drift fails the suite, the
+same contract as the drift-guard selftest.
 
 **Forgiving on the edge cases, by design.** A repo with no releases
 yet (`gh release view` fails), a latest tag outside the grammar
@@ -52,6 +54,16 @@ tools, never hide them.
 unparseable latest (`27`), and short-form padding (`28`); the `gh`
 shims of the five #379/#367 release fixtures now serve the
 order-check lookup so their forward path stays hermetic.
+
+**Review hardening (Claude review of #439).** Pre-release fields with
+empty identifiers (`v1.0.0-rc..1`), which the grammar admits but
+semver forbids, are rejected at parse time instead of masquerading as
+end-of-list in the identifier compare; the ran-out test itself moved
+to array lengths as defense-in-depth. The equal case now says why it
+prompted ("Same precedence - build metadata does not count as an
+advance"), and the missing-gum error says "does not advance past the
+latest" rather than "goes backwards", since semver-equal re-tags hit
+that branch too.
 
 ### v10.9 - cleaned_files drift guard + not-locally-verifiable note (2026-11-02)
 

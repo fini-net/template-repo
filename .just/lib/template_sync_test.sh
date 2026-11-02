@@ -578,6 +578,159 @@ guard_selftest() {
 	fi
 }
 
+# semver_selftest: pin the #436 release comparator beyond fixture reach.
+# The release fixtures exercise only a few comparator branches
+# (confirm, decline, stable-after-rc, equal +build, short form), so
+# the rest - the full semver.org #11 precedence chain, numeric vs
+# alphanumeric identifiers, leading-zero octal traps, identifier
+# counts, degenerate tags - is pinned here, table-driven, against
+# functions extracted LIVE from the release recipe (the same
+# drift-fails-the-suite contract as guard_selftest and the compliance
+# pattern extraction). A moved or reworded marker comment breaks the
+# extraction, and that break is the feature - it is how drift gets
+# caught (Claude review of #439, item 1).
+semver_selftest() {
+	local reasons=()
+	local root extracted driver battery_err rc
+
+	root=$(mktemp -d)
+	extracted="$root/semver_extracted.sh"
+	driver="$root/battery.sh"
+	battery_err="$root/battery_err.txt"
+
+	# Extract the comparator functions live: from the semver_parse
+	# marker comment to the order-check marker that follows it, the
+	# 4-space recipe indent stripped. An extraction without both
+	# functions is a stale marker, not a vacuous pass - fail loudly
+	# (the same trap the drift guard documents, review of #438).
+	sed -n '/^    # semver_parse TAG:/,/^    # Monotonic version-order check/p' \
+		"$SCRIPT_DIR/../gh-process.just" | sed '$d; s/^    //' >"$extracted"
+	if ! grep -q '^semver_parse()' "$extracted" || ! grep -q '^semver_compare()' "$extracted"; then
+		echo -e "${RED}✗${NORMAL} semver_selftest"
+		echo "    extraction found no comparator functions in gh-process.just - suspect a moved/reworded marker comment"
+		(( failed += 1 ))
+		rm -rf "$root"
+		return 0
+	fi
+
+	# Battery rows: want|A|B means semver_compare A B must print want;
+	# rc2|A| means A must fail to parse (rc=2) against v1.0.0. Version
+	# grammar admits no pipes, so the separator is unambiguous.
+	local -a rows=(
+		"-1|v0.9.0|v1.0.0"
+		"1|v1.0|v0.9.0"
+		"1|v1|v0.9.9"
+		"-1|v1|v1.0.1"
+		"1|v1.2.1|v1.2"
+		"0|v1.2|v1.2.0"
+		"0|v1.0.0|v1.0.0"
+		"0|v1.0.0+build.1|v1.0.0+build.2"
+		"0|v1.0.0|v1.0.0+build.9"
+		"-1|v1.0.0-rc1+b2|v1.0.0"
+		"1|v1.0.0+xyz|v1.0.0-rc1"
+		"-1|v1.0.0-1|v1.0.0-alpha"
+		"1|v1.0.0-alpha|v1.0.0-1"
+		"-1|v1.0.0-2|v1.0.0-10"
+		"1|v1.0.0-10|v1.0.0-2"
+		"-1|v1.007|v1.10"
+		"1|v1.10|v1.007"
+		"-1|v1.0.0-007|v1.0.0-10"
+		"1|v1.0.0-rc.1|v1.0.0-rc"
+		"-1|v1.0.0-rc|v1.0.0-rc.1"
+		"-1|v1.0.0-alpha|v1.0.0-beta"
+		"1|v1.0.0-beta|v1.0.0-alpha"
+		"1|v1.0.0|v1.0.0--"
+		"-1|v1.0.0--|v1.0.0"
+		"0|v1.0.0-|v1.0.0"
+		"1|2026-11-02|v1.0.0"
+		"-1|2026-10-02|2026-11-02"
+		"rc2|legacy-2024-tag|"
+		"rc2|v1.2.3.4|"
+		"rc2||"
+		"rc2|v1.0.0-rc..1|"
+		"rc2|v1.0.0-rc.|"
+		"rc2|v1.0.0-.rc|"
+	)
+
+	# Build the driver: one bash process sources the extracted
+	# comparator and walks the rows plus the semver.org #11 chain.
+	# Every miss prints one FAIL line to stderr; the exit code is the
+	# miss count, so the verdict survives set -euo pipefail. The
+	# emitted lines are single-quoted on purpose - the driver must
+	# receive literal bash, not the harness's expansion (SC2016 is
+	# the point here, same as the awk script in match_expected_output).
+	{
+		echo '#!/usr/bin/env bash'
+		echo 'set -euo pipefail'
+		echo "source '$extracted'"
+		echo 'fails=0'
+		echo 'expect() {'
+		echo '    local got rc=0'
+		echo '    got=$(semver_compare "$2" "$3") || rc=$?'
+		echo '    if [[ "$rc" -ne 0 ]]; then'
+		echo '        echo "FAIL parse($2, $3): rc=$rc, wanted a compare" >&2'
+		echo '        fails=$((fails + 1))'
+		echo '        return'
+		echo '    fi'
+		echo '    if [[ "$got" != "$1" ]]; then'
+		echo '        echo "FAIL cmp($2, $3): want $1, got $got" >&2'
+		echo '        fails=$((fails + 1))'
+		echo '    fi'
+		echo '}'
+		echo 'expect_parse_fail() {'
+		echo '    local got rc=0'
+		echo '    got=$(semver_compare "$1" v1.0.0) || rc=$?'
+		echo '    if [[ "$rc" -ne 2 ]]; then'
+		echo '        echo "FAIL parse($1): want rc=2, got rc=$rc ($got)" >&2'
+		echo '        fails=$((fails + 1))'
+		echo '    fi'
+		echo '}'
+		local row want rest a b
+		for row in "${rows[@]}"; do
+			want="${row%%|*}"
+			rest="${row#*|}"
+			a="${rest%%|*}"
+			b="${rest#*|}"
+			if [[ "$want" == "rc2" ]]; then
+				printf 'expect_parse_fail %q\n' "$a"
+			else
+				printf 'expect %q %q %q\n' "$want" "$a" "$b"
+			fi
+		done
+		echo 'chain=(v1.0.0-alpha v1.0.0-alpha.1 v1.0.0-alpha.beta v1.0.0-beta v1.0.0-beta.2 v1.0.0-beta.11 v1.0.0-rc.1 v1.0.0)'
+		echo 'i=0'
+		echo 'while (( i < ${#chain[@]} - 1 )); do'
+		echo '    expect -1 "${chain[$i]}" "${chain[$((i + 1))]}"'
+		echo '    expect 1  "${chain[$((i + 1))]}" "${chain[$i]}"'
+		echo '    i=$((i + 1))'
+		echo 'done'
+		echo 'exit $fails'
+	} >"$driver"
+
+	rc=0
+	bash "$driver" >/dev/null 2>"$battery_err" || rc=$?
+	if [[ "$rc" -ne 0 ]]; then
+		local line
+		while IFS= read -r line || [[ -n "$line" ]]; do
+			[[ -n "$line" ]] && reasons+=("$line")
+		done <"$battery_err"
+	fi
+
+	rm -rf "$root"
+
+	if [[ ${#reasons[@]} -eq 0 ]]; then
+		echo -e "${GREEN}✓${NORMAL} semver_selftest"
+		(( passed += 1 ))
+	else
+		echo -e "${RED}✗${NORMAL} semver_selftest"
+		local reason
+		for reason in "${reasons[@]}"; do
+			echo "    $reason"
+		done
+		(( failed += 1 ))
+	fi
+}
+
 # Recipe mode: run the real `just <recipe> <args...>` inside a temp
 # workspace that mirrors a derived repo (minimal justfile importing a
 # copy of the real template-sync.just + common.sh), with mocked curl
@@ -823,6 +976,13 @@ main() {
 	# regressed extraction pattern would sail through every green run
 	# (review of #438, #381)
 	guard_selftest
+
+	# Pin the #436 release comparator's precedence rules beyond fixture
+	# reach: the release fixtures drive only a few compare branches,
+	# so the semver.org #11 chain and the degenerate-tag parse failures
+	# live here, against functions extracted live from the recipe
+	# (Claude review of #439, item 1)
+	semver_selftest
 
 	# Run each test
 	for test_dir in "$FIXTURES_DIR"/*; do

@@ -389,6 +389,17 @@ release rel_version:
         else
             SV_PRE=""
         fi
+        # Reject pre-release fields the release grammar still admits
+        # but semver forbids: empty identifiers (rc..1, rc., .rc)
+        # would otherwise masquerade as end-of-list in the identifier
+        # compare below. Trailing-hyphen tags (v1.0.0-) keep their
+        # bare-core meaning - empty pre equals no pre. Only the
+        # LATEST tag can reach this with garbage; the release version
+        # itself passed the grammar gate and degenerate forms simply
+        # skip the order check (Claude review of #439, item 2).
+        if [[ -n "$SV_PRE" && ! "$SV_PRE" =~ ^[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*$ ]]; then
+            return 2
+        fi
         local parts
         IFS='.' read -ra parts <<< "$SV_CORE"
         if [[ ${#parts[@]} -lt 1 || ${#parts[@]} -gt 3 ]]; then
@@ -464,19 +475,25 @@ release rel_version:
             n=${#b_ids[@]}
         fi
         for (( i = 0; i < n; i++ )); do
-            a_id="${a_ids[$i]:-}"
-            b_id="${b_ids[$i]:-}"
-            if [[ -z "$a_id" || -z "$b_id" ]]; then
-                # One list ran out: earlier mismatches already
-                # returned, so the identifiers so far were equal and
-                # the shorter list is lower precedence.
-                if [[ -z "$a_id" ]]; then
-                    echo "-1"
-                else
-                    echo "1"
-                fi
+            if [[ $i -ge ${#a_ids[@]} ]]; then
+                # a's identifiers ran out: earlier mismatches already
+                # returned, so all identifiers so far were equal and
+                # the shorter list is lower precedence (rc < rc.1) -
+                # semver #11.4. The bounds test is on array length,
+                # not on the identifier being empty, so an empty
+                # identifier (impossible after semver_parse's
+                # validation, but defense-in-depth for a future
+                # loosening) can never masquerade as end-of-list
+                # (Claude review of #439, item 2).
+                echo "-1"
                 return 0
             fi
+            if [[ $i -ge ${#b_ids[@]} ]]; then
+                echo "1"
+                return 0
+            fi
+            a_id="${a_ids[$i]}"
+            b_id="${b_ids[$i]}"
             a_num=0
             b_num=0
             if [[ "$a_id" =~ ^[0-9]+$ ]]; then
@@ -549,14 +566,18 @@ release rel_version:
             echo "{{YELLOW}}Warning: latest release tag '$latest_tag' is not a parseable version - skipping version order check{{NORMAL}}"
         elif [[ "$cmp_result" != "1" ]]; then
             echo "{{RED}}Warning: $rel_version does not advance past the latest release $latest_tag{{NORMAL}}"
-            echo "{{YELLOW}}GitHub's Latest badge follows the newest created release, not the highest version{{NORMAL}}"
+            if [[ "$cmp_result" == "0" ]]; then
+                echo "{{YELLOW}}Same precedence - build metadata does not count as an advance (semver.org #10){{NORMAL}}"
+            else
+                echo "{{YELLOW}}GitHub's Latest badge follows the newest created release, not the highest version{{NORMAL}}"
+            fi
             if command -v gum &>/dev/null; then
                 if ! gum confirm "Create $rel_version anyway?"; then
                     echo "{{BLUE}}Release cancelled{{NORMAL}}"
                     exit 0
                 fi
             else
-                echo "{{RED}}Error: gum is required to confirm a release that goes backwards{{NORMAL}}"
+                echo "{{RED}}Error: gum is required to confirm a release that does not advance past the latest{{NORMAL}}"
                 echo "{{YELLOW}}Install with: brew install gum (macOS){{NORMAL}}"
                 echo "{{YELLOW}}Or see: https://github.com/charmbracelet/gum{{NORMAL}}"
                 exit 1
