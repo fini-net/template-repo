@@ -19,7 +19,10 @@ semver precedence, and confirms via gum before creating anything that
 does not strictly advance - backwards *or* semver-equal (a `+build`
 re-tag). Declining is a clean cancel (exit 0, the copilot_rollback
 convention): backport tags are legitimate, the check exists to catch
-one-shot accidents like `v1.0.0` typed for `v1.3.0`.
+one-shot accidents like `v1.0.0` typed for `v1.3.0`. The major bump
+to v11.0 (not v10.10) is deliberate: a release workflow that used to
+run unattended now stops and asks, which is a real behavior change
+for scripts that released non-advancing versions without a TTY.
 
 **The comparison is real semver, not `sort -V`.** Version-sort orders
 `1.0.0-rc1` *after* `1.0.0`, backwards for precedence - the exact
@@ -55,36 +58,24 @@ unparseable latest (`27`), and short-form padding (`28`); the `gh`
 shims of the five #379/#367 release fixtures now serve the
 order-check lookup so their forward path stays hermetic.
 
-**Review hardening (Claude review of #439).** Pre-release fields with
-empty identifiers (`v1.0.0-rc..1`), which the grammar admits but
-semver forbids, are rejected at parse time instead of masquerading as
-end-of-list in the identifier compare; the ran-out test itself moved
-to array lengths as defense-in-depth. The equal case now says why it
+**Review hardening (three Claude review rounds of #439).** The rounds
+tightened the parse-and-compare edges: pre-release fields with empty
+identifiers (`v1.0.0-rc..1`) and dangling/doubled core dots (`v1.2.`,
+`.1.2`, `1..2`) - both admitted by the grammar but forbidden by
+semver - are rejected at parse time so they skip the check like every
+other unparseable legacy tag, instead of miscomparing; the identifier
+ran-out test reads array lengths, not identifier emptiness. Numeric
+compare no longer uses arithmetic at all: `10#$n` wrapped past 2^63,
+so a calendar- or timestamp-sized field could silently misorder -
+`num_cmp` strips leading zeros and compares significant length, then
+lexically, retiring the overflow class and the octal trap together,
+with the battery pinning 20-digit fields. The equal case says why it
 prompted ("Same precedence - build metadata does not count as an
-advance"), and the missing-gum error says "does not advance past the
-latest" rather than "goes backwards", since semver-equal re-tags hit
-that branch too.
-
-**Review hardening, round 2 (Claude review of #439).** Numeric
-compare no longer uses arithmetic at all: `10#$n` wraps past 2^63,
-so a calendar- or timestamp-sized field (20 digits) could silently
-misorder. `num_cmp` strips leading zeros and compares significant
-length, then lexically - equal-length digit strings order correctly
-as text - which retires the overflow class and the octal trap
-together, and the battery pins 20-digit majors, identifiers, and
-leading-zero forms. Ctrl-C at the gum prompt lands on the same clean
-cancel as "No" (the copilot_rollback behavior); a non-interactive
-`--force`-style escape for automated backports is a possible
-follow-up, deliberately not smuggled into this bump.
-
-**Review round 3 (Claude review of #439): LGTM.** The one parse
-asymmetry it found is closed - a dangling or doubled core dot
-(`v1.2.`, `.1.2`, `1..2`) was silently truncated by `read -ra`
-(`v1.2.` misparsed as 1.2.0) instead of skipping the check like
-every other unparseable legacy tag, and is now rejected at parse
-time and pinned in the battery. Its other two notes - the
-subshell-per-field cost of `num_cmp` (negligible by its own
-assessment) and a docs nit it confirmed fine - stand as-is.
+advance"), the missing-gum error says "does not advance past the
+latest", and Ctrl-C at the gum prompt lands on the same clean cancel
+as "No". A non-interactive `--force`-style escape for automated
+backports is a known follow-up, deliberately not smuggled into this
+bump.
 
 ### v10.9 - cleaned_files drift guard + not-locally-verifiable note (2026-11-02)
 
