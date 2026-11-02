@@ -89,7 +89,7 @@ Thirteen workflows handle automation and quality, all hardened with [StepSecurit
 - ✅ [Priority labels](https://github.com/fini-net/template-repo/labels) - Extra issue labels for better organization
 - ✅ [Prerequisites installation](.just/lib/install-prerequisites.sh) - Script to install required tools
 - ✅ [Pre-commit hooks](.pre-commit-config.yaml) - Enforces code quality and formatting before commits
-- ✅ Release automation - `just release <version>` creates GitHub releases with auto-generated notes and age monitoring
+- ✅ Release automation - `just release <version>` creates GitHub releases with auto-generated notes, version-order confirmation, and age monitoring
 
 ## Usage
 

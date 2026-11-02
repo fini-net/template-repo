@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# gum shim for the #436 backwards-release fixture: confirm the prompt
+# so the release is created anyway
+exit 0

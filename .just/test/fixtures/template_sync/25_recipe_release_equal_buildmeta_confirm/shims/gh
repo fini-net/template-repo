@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Shim gh: serve the #436 order-check lookup the same core as the
+# fixture's release - build metadata is precedence-irrelevant, so
+# v1.0.0+build.2 EQUALS v1.0.0 and the recipe must ask. The recorded
+# create must still carry no --prerelease (build-only suffix, #379)
+if [[ "$1 $2" == "release view" ]]; then
+    printf 'v1.0.0\n'
+    exit 0
+fi
+echo "gh-shim: $*"

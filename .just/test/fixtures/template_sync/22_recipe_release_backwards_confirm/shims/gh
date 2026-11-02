@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Shim gh: serve the #436 order-check lookup a tag ABOVE the
+# fixture's release, so the recipe must ask before creating
+if [[ "$1 $2" == "release view" ]]; then
+    printf 'v1.2.0\n'
+    exit 0
+fi
+echo "gh-shim: $*"

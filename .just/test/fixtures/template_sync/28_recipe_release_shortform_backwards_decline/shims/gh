@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Shim gh: serve the #436 order-check lookup a short-form tag - the
+# compare must zero-pad both sides (v1.1 -> 1.1.0 < v1.2 -> 1.2.0)
+# before concluding the release goes backwards
+if [[ "$1 $2" == "release view" ]]; then
+    printf 'v1.2\n'
+    exit 0
+fi
+echo "gh-shim: $*"

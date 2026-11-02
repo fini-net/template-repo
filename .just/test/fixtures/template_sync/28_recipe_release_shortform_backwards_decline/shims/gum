@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# gum shim for the #436 backwards-release fixture: decline the prompt
+# so the release is cancelled before gh release create
+exit 1

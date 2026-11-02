@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
-# Shim gh: record the release command so the fixture can assert a
-# hyphen inside BUILD metadata does not trigger --prerelease - semver
-# build identifiers may hyphenate (v1.0.0+build-5 is a normal
-# release) (#379 review round 2 regression pin)
+# Shim gh: serve the #436 order-check lookup (a latest tag below the
+# fixture's release, so the forward path needs no confirmation), and
+# record the create command so the fixture can assert a hyphen inside
+# BUILD metadata does not trigger --prerelease - semver build
+# identifiers may hyphenate (v1.0.0+build-5 is a normal release)
+# (#379 review round 2 regression pin)
+if [[ "$1 $2" == "release view" ]]; then
+    printf 'v0.9.0\n'
+    exit 0
+fi
 echo "gh-shim: $*"

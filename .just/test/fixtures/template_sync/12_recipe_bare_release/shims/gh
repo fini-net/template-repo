@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
-# Shim gh: record the release command so the fixture can assert the
-# version arrived intact (pre-#367: `$1: unbound variable`, exit 1)
+# Shim gh: serve the #436 order-check lookup (a latest tag below the
+# fixture's release, so the forward path needs no confirmation), and
+# record the create command so the fixture can assert the version
+# arrived intact (pre-#367: `$1: unbound variable`, exit 1)
+if [[ "$1 $2" == "release view" ]]; then
+    printf 'v0.9.0\n'
+    exit 0
+fi
 echo "gh-shim: $*"
