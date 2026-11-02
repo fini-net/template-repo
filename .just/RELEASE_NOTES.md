@@ -77,6 +77,15 @@ cancel as "No" (the copilot_rollback behavior); a non-interactive
 `--force`-style escape for automated backports is a possible
 follow-up, deliberately not smuggled into this bump.
 
+**Review round 3 (Claude review of #439): LGTM.** The one parse
+asymmetry it found is closed - a dangling or doubled core dot
+(`v1.2.`, `.1.2`, `1..2`) was silently truncated by `read -ra`
+(`v1.2.` misparsed as 1.2.0) instead of skipping the check like
+every other unparseable legacy tag, and is now rejected at parse
+time and pinned in the battery. Its other two notes - the
+subshell-per-field cost of `num_cmp` (negligible by its own
+assessment) and a docs nit it confirmed fine - stand as-is.
+
 ### v10.9 - cleaned_files drift guard + not-locally-verifiable note (2026-11-02)
 
 - Fixes issue [#381](https://github.com/fini-net/template-repo/issues/381)

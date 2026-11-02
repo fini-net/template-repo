@@ -655,6 +655,9 @@ semver_selftest() {
 		"rc2|v1.0.0-rc..1|"
 		"rc2|v1.0.0-rc.|"
 		"rc2|v1.0.0-.rc|"
+		"rc2|v1.2.|"
+		"rc2|.1.2|"
+		"rc2|v1..2|"
 	)
 
 	# Build the driver: one bash process sources the extracted

@@ -373,12 +373,13 @@ release rel_version:
     # precedence-irrelevant, semver.org #10), splits at the FIRST
     # hyphen, and zero-pads short cores so v1 -> 1.0.0 and v1.2 ->
     # 1.2.0 compare on three fields. Returns 2 when the core is
-    # empty, has more than three groups, or a non-numeric group -
-    # which can only happen to the LATEST tag fetched below
-    # ($rel_version already passed the grammar gate above), so
-    # legacy tag schemes in derived repos skip the check instead of
-    # blocking it (#436). Script globals rather than namerefs:
-    # bash 3.2 (macOS) has no local -n.
+    # empty, has more than three groups, has a dangling/doubled dot
+    # (v1.2., .1.2, 1..2), or a non-numeric group - which can only
+    # happen to the LATEST tag fetched below ($rel_version already
+    # passed the grammar gate above), so legacy tag schemes in
+    # derived repos skip the check instead of blocking it (#436).
+    # Script globals rather than namerefs: bash 3.2 (macOS) has no
+    # local -n.
     semver_parse() {
         local tag="$1"
         tag="${tag#v}"
@@ -398,6 +399,15 @@ release rel_version:
         # itself passed the grammar gate and degenerate forms simply
         # skip the order check (Claude review of #439, item 2).
         if [[ -n "$SV_PRE" && ! "$SV_PRE" =~ ^[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*$ ]]; then
+            return 2
+        fi
+        # Reject dangling or doubled core dots (v1.2., .1.2, 1..2):
+        # read -ra drops a trailing empty field, so v1.2. would
+        # silently misparse as 1.2.0 instead of skipping the check
+        # like other unparseable legacy tags (Claude review of #439,
+        # round 3 item 1). Interior empties already fail the numeric
+        # validation below; this closes the edge cases.
+        if [[ "$SV_CORE" == .* || "$SV_CORE" == *. || "$SV_CORE" == *..* ]]; then
             return 2
         fi
         local parts
