@@ -1,0 +1,19 @@
+Fixture note: backup-name ordering is load-bearing
+
+expected_output.txt lines must match the recipe's listing order, and the
+harness matcher checks lines in order. The listing order is bash glob
+expansion order of "$BACKUP_DIR"/*.bak, which sorts by the current
+locale's collation - C (CI) and en_US.UTF-8 (macOS) disagree whenever
+punctuation would decide the order, e.g. a .just%2F name against a
+.just_legacy name (the % sorts before _ in C, but the punctuation is
+ignored in en_US.UTF-8 and the alphanumerics decide).
+
+Every backup name in this fixture therefore shares the `.just%2F`
+prefix and the names diverge first at an alphanumeric character
+(aa < v2 < x < zz), so both collations produce the same order. Keep new
+backup names on that pattern, and put differently-punctuated names
+(legacy _-for-/ names) in a separate fixture - see
+16_recipe_copilot_rollback_legacy_name, which exists for exactly that
+reason.
+
+Suggested in the Claude review of PR #434.

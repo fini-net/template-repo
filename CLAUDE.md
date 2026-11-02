@@ -196,7 +196,7 @@ Workflows in `.github/workflows/`:
 The `.just/testing.just` module provides automated testing:
 
 - **pr_body_test** - Tests PR body update logic using `.just/lib/pr_body_test.sh`
-- **template_sync_test** - Tests template sync logic using `.just/lib/template_sync_test.sh` (update-script fixtures drive `template_update.sh`; recipe fixtures run the actual `just checksums_verify` / `checksums_diff` recipes)
+- **template_sync_test** - Tests template sync logic using `.just/lib/template_sync_test.sh` (update-script fixtures drive `template_update.sh`; recipe fixtures run the actual `just checksums_verify` / `checksums_diff` / `copilot_rollback` recipes, with an optional fixture `stdin` file for recipes that prompt; self-tests assert the harness matchers and the `common.sh` security boundary, #382)
 - **wait_for_copilot_test** - Tests the shared Copilot-wait state machine using `.just/lib/wait_for_copilot_test.sh` (mocked `gh`/`sleep` via PATH shims)
 - **cue_sync_test** - Tests cue-sync-from-github awk logic using `.just/lib/cue_sync_test.sh` (missing and commented-out keys in `[about]`)
 - **repo_urls_test** - Tests `repo_urls.sh` extraction, mismatch classification, and `[urls]` repointing using `.just/lib/repo_urls_test.sh` (driven through the real cue-sync-from-github recipe in a shimmed workspace)

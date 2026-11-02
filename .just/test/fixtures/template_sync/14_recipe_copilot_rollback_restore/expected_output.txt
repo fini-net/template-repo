@@ -1,0 +1,5 @@
+Available backups:
+  1) .just/lib/common.sh (backup: 20260914_120000_424242)
+  Backup: .just/copilot_backups/.just%2Flib%2Fcommon.sh_20260914_120000_424242.bak
+  Target: .just/lib/common.sh
+✓ Restored .just/lib/common.sh from backup

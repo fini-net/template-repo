@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# gum shim for the copilot_rollback fixtures: confirm every prompt
+# except the post-restore push. Declining "Push restored file to PR?"
+# keeps the fixture off `just again` / git push - the scaffolded
+# workspace justfile has no such recipe and no remote.
+if [[ "$*" == *"Push restored file to PR?"* ]]; then
+	exit 1
+fi
+exit 0
