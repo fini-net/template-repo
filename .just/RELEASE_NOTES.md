@@ -19,7 +19,9 @@ recipe pattern would truncate the extraction there and silently
 exercise a partial pattern; the terminal-token assertion makes the
 next suite run fail loudly instead, and the suite self-tests that
 guard on every run by extracting from a quote-injected throwaway copy
-of the recipe and asserting the failure. Extraction diagnostics moved
+of the recipe and asserting the specific truncation diagnostic (a
+stale injection fixture fails loudly rather than passing vacuously).
+Extraction diagnostics moved
 to stderr so they stay visible through command substitution. The
 constraint comment in `compliance.just` no longer writes its examples
 with literal single quotes, so the comment block cannot confuse a
