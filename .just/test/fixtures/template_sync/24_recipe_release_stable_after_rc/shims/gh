@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Shim gh: serve the #436 order-check lookup the fixture's own rc -
+# semver precedence says the stable v1.0.0 ADVANCES past v1.0.0-rc1,
+# the exact case sort -V orders backwards (the pin of this fixture)
+if [[ "$1 $2" == "release view" ]]; then
+    printf 'v1.0.0-rc1\n'
+    exit 0
+fi
+echo "gh-shim: $*"

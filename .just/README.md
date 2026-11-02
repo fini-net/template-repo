@@ -47,7 +47,7 @@ Core PR lifecycle management with these features:
 #### Merge and Release
 
 - **PR merge** - `just merge` squash merges, deletes remote branch, returns to main, and pulls latest
-- **Releases** - `just release <version>` creates GitHub releases with auto-generated notes and pulls the new tag locally
+- **Releases** - `just release <version>` creates GitHub releases with auto-generated notes, confirms (gum) before creating a release that would not advance past the latest, and pulls the new tag locally
 - **Release monitoring** - `just release_age` checks how long ago the last release was published, warns if >60 days old
 
 #### Safety and Automation

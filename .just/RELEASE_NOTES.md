@@ -4,6 +4,79 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v11.0 - release version-order confirmation (#436) (2026-11-02)
+
+- Fixes issue [#436](https://github.com/fini-net/template-repo/issues/436)
+- **Related PR:** [#439](https://github.com/fini-net/template-repo/pull/439)
+
+**`just release` now asks before going backwards.** The recipe validated
+version *format* but never version *order*: `gh release create` happily
+tagged `v1.0.0` after `v1.2.0`, and since GitHub's Latest badge follows
+the newest *created* release rather than the highest version, a
+regressively-tagged release quietly became what users see. The fix
+fetches the latest release (`gh release view --json tagName`), compares
+semver precedence, and confirms via gum before creating anything that
+does not strictly advance - backwards *or* semver-equal (a `+build`
+re-tag). Declining is a clean cancel (exit 0, the copilot_rollback
+convention): backport tags are legitimate, the check exists to catch
+one-shot accidents like `v1.0.0` typed for `v1.3.0`. The major bump
+to v11.0 (not v10.10) is deliberate: a release workflow that used to
+run unattended now stops and asks, which is a real behavior change
+for scripts that released non-advancing versions without a TTY.
+
+**The comparison is real semver, not `sort -V`.** Version-sort orders
+`1.0.0-rc1` *after* `1.0.0`, backwards for precedence - the exact
+inversion this check exists to catch - so the recipe carries a
+bash-native comparator: short forms zero-pad (`v1` -> `1.0.0`), build
+metadata is ignored, numeric identifiers lose to alphanumeric ones,
+and a stable release legitimately follows its own rc. Fixture
+`24_recipe_release_stable_after_rc` pins that inversion, and the full
+semver.org #11 precedence chain (plus octal traps, identifier-count
+rules, and degenerate-tag parse failures) is pinned by a committed
+table-driven `semver_selftest` in the test harness, which extracts
+the comparator live from the recipe - drift fails the suite, the
+same contract as the drift-guard selftest.
+
+**Forgiving on the edge cases, by design.** A repo with no releases
+yet (`gh release view` fails), a latest tag outside the grammar
+(legacy schemes in derived repos - `legacy-2024-tag` fails cleanly,
+while calendar tags like `2026-11-02` degenerate to a consistent
+`2026.0.0` compare), or a gh/network hiccup all skip the check with a
+warning instead of blocking. The baseline is the latest-marked
+release, not the historical semver maximum: a confirmed backport
+(`v1.0.1` after `v1.2.0`) becomes the new baseline rather than nagging
+on every later release below the old high. When a confirmation is
+actually needed gum is required (same as copilot_rollback) - forward
+releases never invoke it - and that missing-gum error branch is the
+one path the fixture harness cannot pin, since shims can only shadow
+tools, never hide them.
+
+**Seven new fixtures** cover confirm (`22`), decline (`23`), the
+`sort -V` inversion (`24`), semver-equal `+build` re-tag without
+`--prerelease` (`25`, also re-pinning #379), no-releases (`26`),
+unparseable latest (`27`), and short-form padding (`28`); the `gh`
+shims of the five #379/#367 release fixtures now serve the
+order-check lookup so their forward path stays hermetic.
+
+**Review hardening (three Claude review rounds of #439).** The rounds
+tightened the parse-and-compare edges: pre-release fields with empty
+identifiers (`v1.0.0-rc..1`) and dangling/doubled core dots (`v1.2.`,
+`.1.2`, `1..2`) - both admitted by the grammar but forbidden by
+semver - are rejected at parse time so they skip the check like every
+other unparseable legacy tag, instead of miscomparing; the identifier
+ran-out test reads array lengths, not identifier emptiness. Numeric
+compare no longer uses arithmetic at all: `10#$n` wrapped past 2^63,
+so a calendar- or timestamp-sized field could silently misorder -
+`num_cmp` strips leading zeros and compares significant length, then
+lexically, retiring the overflow class and the octal trap together,
+with the battery pinning 20-digit fields. The equal case says why it
+prompted ("Same precedence - build metadata does not count as an
+advance"), the missing-gum error says "does not advance past the
+latest", and Ctrl-C at the gum prompt lands on the same clean cancel
+as "No". A non-interactive `--force`-style escape for automated
+backports is a known follow-up, deliberately not smuggled into this
+bump.
+
 ### v10.9 - cleaned_files drift guard + not-locally-verifiable note (2026-11-02)
 
 - Fixes issue [#381](https://github.com/fini-net/template-repo/issues/381)

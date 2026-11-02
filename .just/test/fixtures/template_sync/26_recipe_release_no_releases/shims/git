@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Shim git: no-op any git call the release recipe makes (git pull)
+exit 0

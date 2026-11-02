@@ -1,0 +1,2 @@
+Warning: latest release tag 'legacy-2024-tag' is not a parseable version - skipping version order check
+gh-shim: release create v1.0.0 --generate-notes

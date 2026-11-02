@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Shim gh: gh release view fails on a repo with no releases yet - the
+# #436 order check must skip (not abort) the first-ever release
+if [[ "$1 $2" == "release view" ]]; then
+    exit 1
+fi
+echo "gh-shim: $*"

@@ -1,0 +1,2 @@
+Warning: v1.0.0 does not advance past the latest release v1.2.0
+Release cancelled

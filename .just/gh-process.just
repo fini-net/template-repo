@@ -367,6 +367,256 @@ release rel_version:
         exit 1
     fi
 
+    # semver_parse TAG: normalize TAG into SV_CORE (major.minor.patch)
+    # and SV_PRE (pre-release identifiers, or empty). Strips the
+    # leading v and the +build suffix (build metadata is
+    # precedence-irrelevant, semver.org #10), splits at the FIRST
+    # hyphen, and zero-pads short cores so v1 -> 1.0.0 and v1.2 ->
+    # 1.2.0 compare on three fields. Returns 2 when the core is
+    # empty, has more than three groups, has a dangling/doubled dot
+    # (v1.2., .1.2, 1..2), or a non-numeric group - which can only
+    # happen to the LATEST tag fetched below ($rel_version already
+    # passed the grammar gate above), so legacy tag schemes in
+    # derived repos skip the check instead of blocking it (#436).
+    # Script globals rather than namerefs: bash 3.2 (macOS) has no
+    # local -n.
+    semver_parse() {
+        local tag="$1"
+        tag="${tag#v}"
+        tag="${tag%%+*}"
+        SV_CORE="${tag%%-*}"
+        if [[ "$tag" == *-* ]]; then
+            SV_PRE="${tag#*-}"
+        else
+            SV_PRE=""
+        fi
+        # Reject pre-release fields the release grammar still admits
+        # but semver forbids: empty identifiers (rc..1, rc., .rc)
+        # would otherwise masquerade as end-of-list in the identifier
+        # compare below. Trailing-hyphen tags (v1.0.0-) keep their
+        # bare-core meaning - empty pre equals no pre. Only the
+        # LATEST tag can reach this with garbage; the release version
+        # itself passed the grammar gate and degenerate forms simply
+        # skip the order check (Claude review of #439, item 2).
+        if [[ -n "$SV_PRE" && ! "$SV_PRE" =~ ^[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*$ ]]; then
+            return 2
+        fi
+        # Reject dangling or doubled core dots (v1.2., .1.2, 1..2):
+        # read -ra drops a trailing empty field, so v1.2. would
+        # silently misparse as 1.2.0 instead of skipping the check
+        # like other unparseable legacy tags (Claude review of #439,
+        # round 3 item 1). Interior empties already fail the numeric
+        # validation below; this closes the edge cases.
+        if [[ "$SV_CORE" == .* || "$SV_CORE" == *. || "$SV_CORE" == *..* ]]; then
+            return 2
+        fi
+        local parts
+        IFS='.' read -ra parts <<< "$SV_CORE"
+        if [[ ${#parts[@]} -lt 1 || ${#parts[@]} -gt 3 ]]; then
+            return 2
+        fi
+        local p
+        for p in "${parts[@]}"; do
+            [[ "$p" =~ ^[0-9]+$ ]] || return 2
+        done
+        while [[ ${#parts[@]} -lt 3 ]]; do
+            parts+=("0")
+        done
+        SV_CORE="${parts[0]}.${parts[1]}.${parts[2]}"
+    }
+
+    # num_cmp A B: print -1, 0, or 1 for digit-only strings of any
+    # length. 10#$n arithmetic wraps past 2^63 - a calendar or
+    # timestamp-sized field (20 digits) would silently wrap and
+    # misorder - so compare significant length after stripping
+    # leading zeros, then lexically: equal-length digit strings
+    # order correctly as text, and no (( )) ever touches the values
+    # (which also retires the octal trap outright - Claude review of
+    # #439, round 2 item 1).
+    num_cmp() {
+        local a="$1" b="$2"
+        a="${a#"${a%%[!0]*}"}"
+        b="${b#"${b%%[!0]*}"}"
+        if (( ${#a} < ${#b} )); then
+            echo "-1"
+        elif (( ${#a} > ${#b} )); then
+            echo "1"
+        elif [[ "$a" < "$b" ]]; then
+            echo "-1"
+        elif [[ "$a" > "$b" ]]; then
+            echo "1"
+        else
+            echo "0"
+        fi
+    }
+
+    # semver_compare A B: print -1, 0, or 1 per semver precedence
+    # (semver.org #11.4); returns 2 if either side fails to parse.
+    # sort -V cannot substitute: it orders 1.0.0-rc1 AFTER 1.0.0,
+    # backwards for semver precedence and the exact inversion this
+    # check exists to catch (#436). LC_ALL=C is scoped to the
+    # function so identifier compares are ASCII-lexical, not locale
+    # collation.
+    semver_compare() {
+        local LC_ALL=C
+        semver_parse "$1" || return 2
+        local a_core="$SV_CORE" a_pre="$SV_PRE"
+        semver_parse "$2" || return 2
+        local b_core="$SV_CORE" b_pre="$SV_PRE"
+
+        local a_parts b_parts i cres
+        IFS='.' read -ra a_parts <<< "$a_core"
+        IFS='.' read -ra b_parts <<< "$b_core"
+        for i in 0 1 2; do
+            cres=$(num_cmp "${a_parts[$i]}" "${b_parts[$i]}")
+            if [[ "$cres" == "-1" ]]; then
+                echo "-1"
+                return 0
+            elif [[ "$cres" == "1" ]]; then
+                echo "1"
+                return 0
+            fi
+        done
+
+        # Cores equal: a version WITH a pre-release has LOWER
+        # precedence than the same version without (semver #11.4),
+        # so a stable v1.0.0 legitimately follows v1.0.0-rc1 without
+        # tripping this check.
+        if [[ -z "$a_pre" && -n "$b_pre" ]]; then
+            echo "1"
+            return 0
+        fi
+        if [[ -n "$a_pre" && -z "$b_pre" ]]; then
+            echo "-1"
+            return 0
+        fi
+        if [[ -z "$a_pre" ]]; then
+            echo "0"
+            return 0
+        fi
+
+        # Both pre-releases: compare dot-separated identifiers left
+        # to right. Numerics compare numerically and always LOSE to
+        # alphanumerics, alphanumerics compare ASCII-lexically, and
+        # the shorter list loses once identifiers run out (rc <
+        # rc.1) - semver #11.4.
+        local a_ids b_ids n a_id b_id a_num b_num
+        IFS='.' read -ra a_ids <<< "$a_pre"
+        IFS='.' read -ra b_ids <<< "$b_pre"
+        n=${#a_ids[@]}
+        if (( ${#b_ids[@]} > n )); then
+            n=${#b_ids[@]}
+        fi
+        for (( i = 0; i < n; i++ )); do
+            if [[ $i -ge ${#a_ids[@]} ]]; then
+                # a's identifiers ran out: earlier mismatches already
+                # returned, so all identifiers so far were equal and
+                # the shorter list is lower precedence (rc < rc.1) -
+                # semver #11.4. The bounds test is on array length,
+                # not on the identifier being empty, so an empty
+                # identifier (impossible after semver_parse's
+                # validation, but defense-in-depth for a future
+                # loosening) can never masquerade as end-of-list
+                # (Claude review of #439, item 2).
+                echo "-1"
+                return 0
+            fi
+            if [[ $i -ge ${#b_ids[@]} ]]; then
+                echo "1"
+                return 0
+            fi
+            a_id="${a_ids[$i]}"
+            b_id="${b_ids[$i]}"
+            a_num=0
+            b_num=0
+            if [[ "$a_id" =~ ^[0-9]+$ ]]; then
+                a_num=1
+            fi
+            if [[ "$b_id" =~ ^[0-9]+$ ]]; then
+                b_num=1
+            fi
+            if (( a_num != b_num )); then
+                # Mixed: numeric identifiers have lower precedence
+                # than alphanumeric ones.
+                if (( a_num )); then
+                    echo "-1"
+                else
+                    echo "1"
+                fi
+                return 0
+            fi
+            if (( a_num )); then
+                cres=$(num_cmp "$a_id" "$b_id")
+                if [[ "$cres" == "-1" ]]; then
+                    echo "-1"
+                    return 0
+                elif [[ "$cres" == "1" ]]; then
+                    echo "1"
+                    return 0
+                fi
+            else
+                if [[ "$a_id" < "$b_id" ]]; then
+                    echo "-1"
+                    return 0
+                elif [[ "$a_id" > "$b_id" ]]; then
+                    echo "1"
+                    return 0
+                fi
+            fi
+        done
+        echo "0"
+    }
+
+    # Monotonic version-order check (#436): fetch the latest release
+    # tag and require confirmation before creating a release that
+    # does not strictly advance past it - backwards (v1.0.0 after
+    # v1.2.0) or semver-equal (a +build re-tag). GitHub's Latest
+    # badge follows the newest CREATED release, not the highest
+    # version, so a regressively-tagged release quietly becomes what
+    # users see. Deliberately compared against the latest-marked
+    # release (gh release view), not the historical semver maximum:
+    # the check exists to catch one-shot accidents (v1.0.0 typed
+    # for v1.3.0), and a confirmed backport (v1.0.1 after v1.2.0)
+    # becomes the new baseline instead of nagging on every later
+    # release below the historical high. Backport tags are
+    # legitimate, so declining is a clean cancel (exit 0), the
+    # copilot_rollback convention - not a failure. gh release view
+    # fails outright on a repo with no releases yet; that case (and
+    # a gh/network hiccup) skips the check rather than aborting -
+    # guarded per the #326/#327 convention above.
+    latest_rc=0
+    latest_tag=$(gh release view --json tagName -q .tagName 2>/dev/null) || latest_rc=$?
+    if [[ "$latest_rc" -ne 0 || -z "$latest_tag" ]]; then
+        echo "{{YELLOW}}No existing releases found - skipping version order check{{NORMAL}}"
+    else
+        cmp_rc=0
+        cmp_result=$(semver_compare "$rel_version" "$latest_tag") || cmp_rc=$?
+        if [[ "$cmp_rc" -ne 0 ]]; then
+            # Unparseable latest tag: derived repos may carry legacy
+            # schemes outside the grammar - warn and skip, never
+            # block on an existing tag's shape (#436 design notes).
+            echo "{{YELLOW}}Warning: latest release tag '$latest_tag' is not a parseable version - skipping version order check{{NORMAL}}"
+        elif [[ "$cmp_result" != "1" ]]; then
+            echo "{{RED}}Warning: $rel_version does not advance past the latest release $latest_tag{{NORMAL}}"
+            if [[ "$cmp_result" == "0" ]]; then
+                echo "{{YELLOW}}Same precedence - build metadata does not count as an advance (semver.org #10){{NORMAL}}"
+            else
+                echo "{{YELLOW}}GitHub's Latest badge follows the newest created release, not the highest version{{NORMAL}}"
+            fi
+            if command -v gum &>/dev/null; then
+                if ! gum confirm "Create $rel_version anyway?"; then
+                    echo "{{BLUE}}Release cancelled{{NORMAL}}"
+                    exit 0
+                fi
+            else
+                echo "{{RED}}Error: gum is required to confirm a release that does not advance past the latest{{NORMAL}}"
+                echo "{{YELLOW}}Install with: brew install gum (macOS){{NORMAL}}"
+                echo "{{YELLOW}}Or see: https://github.com/charmbracelet/gum{{NORMAL}}"
+                exit 1
+            fi
+        fi
+    fi
+
     # Standard release workflow. A GitHub pre-release flag keeps rcs
     # from wearing the Latest crown over the stable release they
     # precede (semver precedence). Hyphens can appear in BOTH suffix

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Shim gh: serve the #436 order-check lookup a legacy tag outside the
+# release grammar - the check must warn and skip, never block on an
+# existing tag's shape (derived repos have their own schemes)
+if [[ "$1 $2" == "release view" ]]; then
+    printf 'legacy-2024-tag\n'
+    exit 0
+fi
+echo "gh-shim: $*"
