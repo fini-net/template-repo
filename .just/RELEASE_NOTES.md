@@ -8,6 +8,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 - Fixes issues [#378](https://github.com/fini-net/template-repo/issues/378)
   and [#382](https://github.com/fini-net/template-repo/issues/382)
+- **Related PR:** [#434](https://github.com/fini-net/template-repo/pull/434)
 
 **`copilot_rollback` now restores default globbing.** The recipe enables
 `shopt -s dotglob` so the `*.bak` listing matches dot-prefixed backup
