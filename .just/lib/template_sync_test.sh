@@ -421,6 +421,163 @@ security_boundary_selftest() {
 	fi
 }
 
+# Self-test for the CLEANED_FILES drift guard (#381, review of #438):
+# the guard's failure modes - a typo'd entry, an unlisted removal, a
+# column-0 comment example poisoning the scan, a vacuous both-sides-empty
+# pass, and the rm -f vs rm -rf regex miss - were each found by hand, so
+# a future edit to the extraction could regress with the next
+# checksums_generate as the only signal. This drives the REAL
+# generate_checksums.sh in scratch sandboxes - script, common.sh, and
+# clean-template.just copies plus a one-file git repo, so the pass cases
+# run generation end-to-end - and pins every one. The mini repo tracks
+# one .just module and one lib script so both ls-files arrays are
+# non-empty: macOS bash 3.2 with set -u treats empty-array expansion as
+# an unbound variable, and the sandbox would crash after the guard
+# instead of completing. Applies the v10.6 harness_selftest precedent
+# to the guard. Reports through the same passed/failed counters as a
+# fixture.
+guard_selftest() {
+	local reasons=()
+	local root sb out err rc
+
+	# git drives the mini repos and jq validates the generated manifest;
+	# the generator itself hard-requires both. Missing tools skip with a
+	# warning outside CI and fail inside it, mirroring compliance_test
+	# (a skip cannot silently pass in the environment that gates PRs)
+	if ! command -v git &>/dev/null || ! command -v jq &>/dev/null; then
+		if [[ "${CI:-}" == "true" ]]; then
+			echo -e "${RED}✗${NORMAL} guard_selftest - git/jq missing in CI"
+			(( failed += 1 ))
+		else
+			echo -e "${YELLOW}!${NORMAL} guard_selftest - git/jq not installed, drift-guard coverage skipped"
+		fi
+		return 0
+	fi
+
+	root=$(mktemp -d)
+
+	# Build one sandbox: real guard inputs plus a one-file git repo
+	new_guard_sandbox() {
+		local dir="$root/$1"
+		mkdir -p "$dir/.just/lib"
+		cp "$SCRIPT_DIR/generate_checksums.sh" "$SCRIPT_DIR/common.sh" "$dir/.just/lib/"
+		cp "$SCRIPT_DIR/../clean-template.just" "$dir/.just/"
+		git -C "$dir" init -q
+		printf '# sample module\n' >"$dir/.just/sample.just"
+		git -C "$dir" add .just/sample.just .just/lib/common.sh
+		git -C "$dir" -c user.email=selftest@local -c user.name=selftest \
+			commit -qm 'sample v1.0'
+		printf '%s' "$dir"
+	}
+
+	# Run the real generator in the sandbox, capturing rc/stdout/stderr
+	run_guard() {
+		out="$root/out.txt"
+		err="$root/err.txt"
+		rc=0
+		(cd "$1" && bash .just/lib/generate_checksums.sh) >"$out" 2>"$err" || rc=$?
+	}
+
+	expect_rc() {
+		[[ "$rc" -eq "$1" ]] || reasons+=("$2 (rc=$rc, want $1)")
+	}
+
+	expect_err() {
+		grep -qF "$1" "$err" || reasons+=("$2")
+	}
+
+	expect_err_empty() {
+		[[ ! -s "$err" ]] || reasons+=("$1: unexpected guard output: $(cat "$err")")
+	}
+
+	# In sync: full generation passes silently, banner rides in the JSON
+	sb=$(new_guard_sandbox in_sync)
+	run_guard "$sb"
+	expect_rc 0 "in-sync: generation should pass"
+	expect_err_empty "in-sync"
+	jq -e . "$root/out.txt" >/dev/null 2>&1 \
+		|| reasons+=("in-sync: generated manifest is not valid JSON")
+	grep -qF 'docs/template-repo-banner.png' "$root/out.txt" \
+		|| reasons+=("in-sync: cleaned_files missing the banner entry")
+
+	# Recipe removes a path the list never got: fail with a per-path report
+	sb=$(new_guard_sandbox removed_not_listed)
+	printf '\n    rm -f ".just/lib/phantom_test.sh"\n' >>"$sb/.just/clean-template.just"
+	run_guard "$sb"
+	expect_rc 1 "removed-not-listed: drift must fail generation"
+	expect_err 'removed by clean_template but not listed in CLEANED_FILES: .just/lib/phantom_test.sh' \
+		"removed-not-listed: missing per-path report"
+
+	# Typo'd list entry: both directions in one report (the typo as
+	# listed-but-not-removed, the real path as removed-but-not-listed)
+	sb=$(new_guard_sandbox listed_not_removed)
+	sed -i.tmp 's/compliance_test\.sh/complance_test.sh/' "$sb/.just/lib/generate_checksums.sh"
+	rm -f "$sb/.just/lib/generate_checksums.sh.tmp"
+	run_guard "$sb"
+	expect_rc 1 "listed-not-removed: drift must fail generation"
+	expect_err 'listed in CLEANED_FILES but not removed by clean_template: .just/lib/complance_test.sh' \
+		"listed-not-removed: missing the typo'd entry report"
+	expect_err 'removed by clean_template but not listed in CLEANED_FILES: .just/lib/compliance_test.sh' \
+		"listed-not-removed: missing the real path report"
+
+	# A column-0 comment example must not poison the scan (the NOTE
+	# documenting the form nearly did, review of #438)
+	sb=$(new_guard_sandbox comment_poison)
+	printf '# keep the rm -f "literal path" form (rm -rf likewise)\n' >>"$sb/.just/clean-template.just"
+	run_guard "$sb"
+	expect_rc 0 "comment-poison: a column-0 example must not count as a removal"
+	expect_err_empty "comment-poison"
+
+	# No extractable rm lines at all: pointed stale-pattern error, not a
+	# vacuous pass and not a wall of mismatches
+	sb=$(new_guard_sandbox zero_extraction)
+	printf 'clean_template:\n    rm -f .just/unquoted.just\n' >"$sb/.just/clean-template.just"
+	run_guard "$sb"
+	expect_rc 1 "zero-extraction: must fail, not pass vacuously"
+	expect_err 'the drift guard extracted no rm paths' "zero-extraction: missing the pointed error"
+	expect_err 'stale extraction pattern' "zero-extraction: missing the stale-pattern hint"
+
+	# Missing recipe (derived repos): warn and skip, generation still passes
+	sb=$(new_guard_sandbox missing_recipe)
+	rm "$sb/.just/clean-template.just"
+	run_guard "$sb"
+	expect_rc 0 "missing-recipe: generation must proceed"
+	expect_err 'skipping CLEANED_FILES drift check' "missing-recipe: missing the skip warning"
+
+	# Double-quoted variable rm: surfaces as its literal text, not lost
+	sb=$(new_guard_sandbox variable_rm)
+	# shellcheck disable=SC2016  # $SOME_VAR must reach the recipe literally
+	printf '\n    rm -f "$SOME_VAR"\n' >>"$sb/.just/clean-template.just"
+	run_guard "$sb"
+	expect_rc 1 "variable-rm: extraction must flag it, not lose it"
+	# shellcheck disable=SC2016  # matching the literal $SOME_VAR text
+	expect_err 'removed by clean_template but not listed in CLEANED_FILES: $SOME_VAR' \
+		"variable-rm: \$SOME_VAR not reported"
+
+	# Quoted scratch files stay excluded by name: the exclusion currently
+	# matches nothing in the real recipe (both scratch removals are
+	# unquoted), so this case is what keeps it live defense-in-depth
+	sb=$(new_guard_sandbox scratch_tmp)
+	printf '\n    rm -f "justfile.tmp"\n    rm -f ".repo.toml.tmp"\n' >>"$sb/.just/clean-template.just"
+	run_guard "$sb"
+	expect_rc 0 "scratch-tmp: quoted scratch files must stay excluded"
+	expect_err_empty "scratch-tmp"
+
+	rm -rf "$root"
+
+	if [[ ${#reasons[@]} -eq 0 ]]; then
+		echo -e "${GREEN}✓${NORMAL} guard_selftest"
+		(( passed += 1 ))
+	else
+		echo -e "${RED}✗${NORMAL} guard_selftest"
+		local reason
+		for reason in "${reasons[@]}"; do
+			echo "    $reason"
+		done
+		(( failed += 1 ))
+	fi
+}
+
 # Recipe mode: run the real `just <recipe> <args...>` inside a temp
 # workspace that mirrors a derived repo (minimal justfile importing a
 # copy of the real template-sync.just + common.sh), with mocked curl
@@ -659,6 +816,13 @@ main() {
 	# actual gate (#347), and no fixture pins their rejection classes
 	# individually (#382)
 	security_boundary_selftest
+
+	# Drive the CLEANED_FILES drift guard's failure modes through the
+	# real generate_checksums.sh in scratch sandboxes: the guard's red
+	# paths fire only when a bump PR is mid-drift, so without this a
+	# regressed extraction pattern would sail through every green run
+	# (review of #438, #381)
+	guard_selftest
 
 	# Run each test
 	for test_dir in "$FIXTURES_DIR"/*; do

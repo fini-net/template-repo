@@ -4,6 +4,83 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v10.9 - cleaned_files drift guard + not-locally-verifiable note (2026-11-02)
+
+- Fixes issue [#381](https://github.com/fini-net/template-repo/issues/381)
+- **Related PR:** [#438](https://github.com/fini-net/template-repo/pull/438)
+
+**`CLEANED_FILES` now enforces its own sync.** The hand-maintained list in
+`generate_checksums.sh` had to match the `rm` lines of the
+`_remove_template_files` recipe with nothing catching drift - an entry
+typo'd, or a newly removed file missing its entry, failed silently in
+both directions. Two v9.9 sync reviews flagged exactly that confusion
+([datadog-service-analyzer#49](https://github.com/fini-net/datadog-service-analyzer/pull/49#issuecomment-5684131628),
+[gh-amp#43](https://github.com/fini-net/gh-amp/pull/43#issuecomment-5704618428)):
+the list names files that do not exist in derived repos, and reviewers
+could not tell documented design from stray sync debris.
+
+**The guard compares both directions at every manifest generation.**
+`checksums_generate` now extracts the quoted-literal `rm` paths from
+`clean-template.just` (minus the in-place `*.tmp` scratch files) and
+fails with a per-path report unless they equal `CLEANED_FILES`. Since
+every CHECKSUMS-tracked change requires the bump's
+`checksums_generate` run, drift is caught the moment it is introduced -
+and `template-sync.yml` now also triggers on `clean-template.just`
+edits, so the recipe side runs the guard in template-repo CI too. One
+extraction subtlety worth pinning: the match is `rm -[a-z]+ "..."`
+because `rm -rf?` alone silently misses every plain `rm -f`, leaving
+only the `rm -rf` directory removal in the extracted set.
+
+**The list is now complete.** `docs/template-repo-banner.png` was removed
+by the recipe but absent from `CLEANED_FILES` - the one real divergence
+the guard found on arrival. Listing it is behavior-neutral:
+`cleaned_files` is only consulted for manifest-tracked paths
+(`.just/*.just`, `.just/lib/*.{sh,awk}`), and the workflow entries were
+already informational.
+
+**Derived repos get a note, not a failure.** `clean_template` removes
+`clean-template.just`, so the guard warns and skips when the recipe file
+is missing. The header comment now states that the list runs only in
+template-repo and is intentionally not locally verifiable in derived
+repos, making their absent files documented design instead of a puzzle.
+Guard diagnostics go to stderr because stdout is the JSON manifest that
+`checksums_generate` redirects into place.
+
+**Review hardening (Claude review follow-up).** The scratch-file
+exclusion now names its two files (`justfile.tmp`, `.repo.toml.tmp`)
+instead of blanket-matching `*.tmp`, so a real tracked path ending in
+`.tmp` still counts as drift. An extraction that yields zero paths fails
+immediately with a pointed message - the only way the guard could
+otherwise pass vacuously, both sides empty - instead of masquerading as
+a row of listed-but-not-removed reports, which is also what a stale
+extraction pattern or an unreadable recipe file would look like. And the
+scan now starts from indented lines only, because the NOTE documenting
+the required `rm -f "literal path"` form nearly poisoned the extracted
+set with its own example - the guard failed its sandbox run the moment
+that documentation landed. Column-0 comments can no longer contribute
+phantom paths; inside a recipe body a double-quoted variable like
+`"$VAR"` extracts as literal text and is flagged, while single-quoted
+or unquoted arguments are not extracted at all - both routes end in
+loud failure, so removals keep the literal form.
+
+**Guard self-test (second review round).** The guard's failure modes
+were each found by hand, so the review conditioned approval on
+coverage. `template_sync_test.sh` now runs a `guard_selftest` that
+drives the real `generate_checksums.sh` in scratch sandboxes - script,
+`common.sh`, and recipe copies plus a one-file git repo, so the pass
+cases run generation end-to-end - across eight scenarios: in-sync
+pass, removed-but-not-listed, typo'd entry (both directions in one
+report), a column-0 comment example that must not poison the scan,
+zero-extraction with the pointed stale-pattern error, the
+missing-recipe warn-and-skip, a double-quoted `"$VAR"` removal
+surfacing as its literal text, and quoted scratch files staying
+excluded. Every scenario was red-checked by breaking the real guard
+three ways (regex narrowed, indent filter dropped, exclusion dropped)
+and watching the suite fail. That last scenario also keeps the scratch
+exclusion honest: both real scratch removals are unquoted, so the
+exclusion currently matches nothing - it defends the day someone
+quotes them.
+
 ### v10.8 - release accepts semver pre-release/build tags (2026-11-02)
 
 - Fixes issue [#379](https://github.com/fini-net/template-repo/issues/379)
