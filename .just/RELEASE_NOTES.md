@@ -65,6 +65,18 @@ advance"), and the missing-gum error says "does not advance past the
 latest" rather than "goes backwards", since semver-equal re-tags hit
 that branch too.
 
+**Review hardening, round 2 (Claude review of #439).** Numeric
+compare no longer uses arithmetic at all: `10#$n` wraps past 2^63,
+so a calendar- or timestamp-sized field (20 digits) could silently
+misorder. `num_cmp` strips leading zeros and compares significant
+length, then lexically - equal-length digit strings order correctly
+as text - which retires the overflow class and the octal trap
+together, and the battery pins 20-digit majors, identifiers, and
+leading-zero forms. Ctrl-C at the gum prompt lands on the same clean
+cancel as "No" (the copilot_rollback behavior); a non-interactive
+`--force`-style escape for automated backports is a possible
+follow-up, deliberately not smuggled into this bump.
+
 ### v10.9 - cleaned_files drift guard + not-locally-verifiable note (2026-11-02)
 
 - Fixes issue [#381](https://github.com/fini-net/template-repo/issues/381)

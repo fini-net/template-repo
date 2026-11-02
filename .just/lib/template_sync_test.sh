@@ -582,13 +582,13 @@ guard_selftest() {
 # The release fixtures exercise only a few comparator branches
 # (confirm, decline, stable-after-rc, equal +build, short form), so
 # the rest - the full semver.org #11 precedence chain, numeric vs
-# alphanumeric identifiers, leading-zero octal traps, identifier
-# counts, degenerate tags - is pinned here, table-driven, against
-# functions extracted LIVE from the release recipe (the same
-# drift-fails-the-suite contract as guard_selftest and the compliance
-# pattern extraction). A moved or reworded marker comment breaks the
-# extraction, and that break is the feature - it is how drift gets
-# caught (Claude review of #439, item 1).
+# alphanumeric identifiers, leading-zero octal traps, 2^63 overflow
+# traps, identifier counts, degenerate tags - is pinned here,
+# table-driven, against functions extracted LIVE from the release
+# recipe (the same drift-fails-the-suite contract as guard_selftest
+# and the compliance pattern extraction). A moved or reworded marker
+# comment breaks the extraction, and that break is the feature - it
+# is how drift gets caught (Claude review of #439, item 1).
 semver_selftest() {
 	local reasons=()
 	local root extracted driver battery_err rc
@@ -635,6 +635,11 @@ semver_selftest() {
 		"-1|v1.007|v1.10"
 		"1|v1.10|v1.007"
 		"-1|v1.0.0-007|v1.0.0-10"
+		"1|v99999999999999999999|v1"
+		"-1|v1|v99999999999999999999"
+		"1|v1.0.0-99999999999999999999|v1.0.0-9"
+		"-1|v1.0.0-9|v1.0.0-99999999999999999999"
+		"0|v00000000000000000001|v1"
 		"1|v1.0.0-rc.1|v1.0.0-rc"
 		"-1|v1.0.0-rc|v1.0.0-rc.1"
 		"-1|v1.0.0-alpha|v1.0.0-beta"

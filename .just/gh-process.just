@@ -415,14 +415,38 @@ release rel_version:
         SV_CORE="${parts[0]}.${parts[1]}.${parts[2]}"
     }
 
+    # num_cmp A B: print -1, 0, or 1 for digit-only strings of any
+    # length. 10#$n arithmetic wraps past 2^63 - a calendar or
+    # timestamp-sized field (20 digits) would silently wrap and
+    # misorder - so compare significant length after stripping
+    # leading zeros, then lexically: equal-length digit strings
+    # order correctly as text, and no (( )) ever touches the values
+    # (which also retires the octal trap outright - Claude review of
+    # #439, round 2 item 1).
+    num_cmp() {
+        local a="$1" b="$2"
+        a="${a#"${a%%[!0]*}"}"
+        b="${b#"${b%%[!0]*}"}"
+        if (( ${#a} < ${#b} )); then
+            echo "-1"
+        elif (( ${#a} > ${#b} )); then
+            echo "1"
+        elif [[ "$a" < "$b" ]]; then
+            echo "-1"
+        elif [[ "$a" > "$b" ]]; then
+            echo "1"
+        else
+            echo "0"
+        fi
+    }
+
     # semver_compare A B: print -1, 0, or 1 per semver precedence
     # (semver.org #11.4); returns 2 if either side fails to parse.
     # sort -V cannot substitute: it orders 1.0.0-rc1 AFTER 1.0.0,
     # backwards for semver precedence and the exact inversion this
     # check exists to catch (#436). LC_ALL=C is scoped to the
     # function so identifier compares are ASCII-lexical, not locale
-    # collation, and 10#$n keeps leading-zero identifiers (v1.007)
-    # from going octal inside (( )).
+    # collation.
     semver_compare() {
         local LC_ALL=C
         semver_parse "$1" || return 2
@@ -430,16 +454,15 @@ release rel_version:
         semver_parse "$2" || return 2
         local b_core="$SV_CORE" b_pre="$SV_PRE"
 
-        local a_parts b_parts i an bn
+        local a_parts b_parts i cres
         IFS='.' read -ra a_parts <<< "$a_core"
         IFS='.' read -ra b_parts <<< "$b_core"
         for i in 0 1 2; do
-            an=$((10#${a_parts[$i]}))
-            bn=$((10#${b_parts[$i]}))
-            if (( an < bn )); then
+            cres=$(num_cmp "${a_parts[$i]}" "${b_parts[$i]}")
+            if [[ "$cres" == "-1" ]]; then
                 echo "-1"
                 return 0
-            elif (( an > bn )); then
+            elif [[ "$cres" == "1" ]]; then
                 echo "1"
                 return 0
             fi
@@ -513,12 +536,11 @@ release rel_version:
                 return 0
             fi
             if (( a_num )); then
-                an=$((10#$a_id))
-                bn=$((10#$b_id))
-                if (( an < bn )); then
+                cres=$(num_cmp "$a_id" "$b_id")
+                if [[ "$cres" == "-1" ]]; then
                     echo "-1"
                     return 0
-                elif (( an > bn )); then
+                elif [[ "$cres" == "1" ]]; then
                     echo "1"
                     return 0
                 fi
