@@ -4,6 +4,31 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v10.5 - compliance suite: enforced terminal-token extraction guard (2026-11-02)
+
+- **Related PR:** [#432](https://github.com/fini-net/template-repo/pull/432)
+  (follow-up to [#431](https://github.com/fini-net/template-repo/pull/431))
+
+**The single-quote constraint is now enforced, not just documented.**
+`compliance_test.sh`'s `extract_pattern` takes a fourth argument - the
+extracted pattern's terminal token - and fails the suite when an
+extraction does not end with it (a suffix match, so a token that also
+appears earlier in the pattern cannot mask a truncation). Because the
+marker regex stops at the first quote, a single quote landing inside a
+recipe pattern would truncate the extraction there and silently
+exercise a partial pattern; the terminal-token assertion makes the
+next suite run fail loudly instead, and the suite self-tests that
+guard on every run by extracting from a quote-injected throwaway copy
+of the recipe and asserting the specific truncation diagnostic (a
+stale injection fixture fails loudly rather than passing vacuously).
+Extraction diagnostics moved
+to stderr so they stay visible through command substitution. The
+constraint comment in `compliance.just` no longer writes its examples
+with literal single quotes, so the comment block cannot confuse a
+future grep-based extraction of the patterns, and a v10.3
+release-notes paragraph that had drifted past the file's wrap style
+was re-wrapped.
+
 ### v10.4 - compliance review follow-ups: single-quote constraint, missing-tool reporting (2026-11-02)
 
 - **Related PR:** [#431](https://github.com/fini-net/template-repo/pull/431)
@@ -41,9 +66,10 @@ classifies each file exactly once: executables stay red (that is what
 Scorecard's Binary-Artifacts check is actually about), while media formats
 become a yellow advisory with a count. `MS Windows icon resource`
 (favicon.ico and friends) is excluded from the red executables branch
-and counted as media, so static sites stay clean. Blobs over 1MB moved out of the red branch into their own
-yellow advisory - size hygiene is worth mentioning, but not worth drowning
-the executable signal, and template-repo itself was permanently red on its
+and counted as media, so static sites stay clean. Blobs over 1MB moved
+out of the red branch into their own yellow advisory - size hygiene
+is worth mentioning, but not worth drowning the executable
+signal, and template-repo itself was permanently red on its
 own 1.7MB banner. The green verdict keys on executables alone and stays
 quiet about surgical cleanliness while a size advisory is on the screen.
 The classification greps anchor to the `file` description after
