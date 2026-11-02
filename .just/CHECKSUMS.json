@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-11-02T18:20:07Z",
+  "generated_at": "2026-11-02T18:33:32Z",
   "template_repo": "https://github.com/fini-net/template-repo",
   "files": {
     ".just/claude.just": {"versions": [
@@ -46,11 +46,19 @@
 ]},
     ".just/clean-template.just": {"versions": [
         {
+          "checksum": "f0bb3ecdb551df3dbd19832908d14dc8772fa92e66a90832a696a1838f317b23",
+          "commit": "cf4cad26539c63a968283c0409540e2669cf3efb",
+          "date": "2026-11-02T10:33:32-08:00",
+          "version": "v10.9",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "768b985879742ae8f0e4861327af073a096bfb23554079dfe8e0b47ab5c3a35b",
           "commit": "d0fab8b5fdbc1dbff077e7c99289fc26ae1442de",
           "date": "2026-11-02T10:20:07-08:00",
           "version": "v10.9",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -1533,11 +1541,19 @@
 ]},
     ".just/lib/generate_checksums.sh": {"versions": [
         {
+          "checksum": "e7f57bd179c182555e1554d7b819f6c5a4710e6f16c94e41e9d8ea9ddf8a324b",
+          "commit": "cf4cad26539c63a968283c0409540e2669cf3efb",
+          "date": "2026-11-02T10:33:32-08:00",
+          "version": "v10.9",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "d5c8901bbcf0c5903ae938bd5322e4984825eec101f817fd869ce6e6d2278388",
           "commit": "d0fab8b5fdbc1dbff077e7c99289fc26ae1442de",
           "date": "2026-11-02T10:20:07-08:00",
           "version": "v10.9",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
@@ -1731,11 +1747,19 @@
 ]},
     ".just/lib/template_sync_test.sh": {"versions": [
         {
+          "checksum": "58b2edfa916dbf8dad5d340b7d3d8446161b0e76389449f65097143b38634b49",
+          "commit": "cf4cad26539c63a968283c0409540e2669cf3efb",
+          "date": "2026-11-02T10:33:32-08:00",
+          "version": "v10.9",
+          "is_latest": true
+        }
+,
+        {
           "checksum": "e08c4a111945ac8f9f9494b886032494a3b413fb79a462b7862c973288f606df",
           "commit": "16af1cdc9a29f9fac80c2a6ca7c23b6e5e8a4941",
           "date": "2026-11-01T21:16:04-08:00",
           "version": "v10.7",
-          "is_latest": true
+          "is_latest": false
         }
 ,
         {
