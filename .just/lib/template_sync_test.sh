@@ -84,9 +84,14 @@ run_test() {
 }
 
 # Write the shared mock curl into a target directory. Contract:
-#   - any call with -o writes to the given output file
-#   - a URL ending in .just/CHECKSUMS.json serves the fixture manifest
-#   - any other URL serves template_versions/<basename> if present
+#   - a call without -o fails and serves nothing: the CHECKSUMS.json
+#     branch sits inside the -o branch, so a manifest fetch without
+#     -o falls through to failure too (both real call sites use -o;
+#     noted in #377 after the branch nesting narrowed)
+#   - a call with -o writes to the given output file; a URL ending
+#     in .just/CHECKSUMS.json serves the fixture manifest
+#   - with -o, any other URL serves template_versions/<basename> if
+#     present
 # Both the recipe-mode and update-script-mode mocks must honor this
 # exact contract, so it lives in one place (Claude review of #360,
 # finding 2 - it was two copy-pasted heredocs that could drift).
@@ -141,6 +146,182 @@ fi
 exit 1
 MOCK_EOF
 	chmod +x "$mock_curl"
+}
+
+# Expected-output check shared by both fixture modes (#377): every
+# non-empty line in expected_output.txt must appear, in order, in the
+# normalized output. On a mismatch, builds the failure diagnostic in
+# $output_mismatch - the first expected line with no match at/after
+# the search position, plus both sides dumped with the exact
+# normalization the matcher uses (mktemp/pid paths already scrubbed)
+# - so a red fixture answers "what did it actually print" without a
+# manual re-run (#376).
+#
+# Globals set: output_ok, output_mismatch
+match_expected_output() {
+	local output="$1" test_dir="$2" test_name="$3"
+	output_ok=true
+	output_mismatch=""
+	[[ -f "$test_dir/expected_output.txt" ]] || return 0
+
+	# Normalize output (remove color codes, blank lines, temp paths).
+	# The mismatch dump below reuses this exact normalization so
+	# expected and actual compare line for line.
+	local normalized_output
+	# shellcheck disable=SC2016  # awk script is intentionally single-quoted
+	normalized_output=$(echo "$output" | LC_ALL=C awk '{ gsub(/\033\[[0-9;]*m/, ""); print }' | \
+		grep -v "^$" | \
+		sed 's|/tmp/[^[:space:]]*||g')
+
+	# Every non-empty expected line must appear in order in the output
+	local expected_lines=()
+	local line
+	while IFS= read -r line || [[ -n "$line" ]]; do
+		[[ -n "$line" ]] && expected_lines+=("$line")
+	done < "$test_dir/expected_output.txt"
+
+	if [[ ${#expected_lines[@]} -eq 0 ]]; then
+		echo -e "${YELLOW}!${NORMAL} $test_name - expected_output.txt is empty, output not checked"
+		return 0
+	fi
+
+	local search_start=1
+	local line_num i=1
+	for line in "${expected_lines[@]}"; do
+		# -e: expected lines may start with dashes (e.g. diff output).
+		# grep exits 1 when the line is missing - a handled case here,
+		# not a crash - but under `set -euo pipefail` the substitution
+		# would abort the whole suite before the mismatch could be
+		# reported (a latent harness bug surfaced by the bare-justfile
+		# fixtures, #368, whose whole point is failing recipes). The
+		# `|| true` guard keeps the loop alive; the -z check below
+		# reports the mismatch.
+		line_num=$(echo "$normalized_output" | grep -nF -e "$line" | awk -F: -v s="$search_start" '$1 >= s {print $1; exit}') \
+			|| true
+		if [[ -z "$line_num" ]]; then
+			output_ok=false
+			# First-difference hint, then both sides, normalized (#376)
+			output_mismatch=$(
+				echo "      First unmatched expected line $i: \"$line\""
+				echo "      (searched for it from normalized output line $search_start onward)"
+				echo "      expected:"
+				printf '        %s\n' "${expected_lines[@]}"
+				echo "      actual:"
+				if [[ -n "$normalized_output" ]]; then
+					printf '%s\n' "$normalized_output" | sed 's/^/        /'
+				fi
+			)
+			return 0
+		fi
+		search_start=$((line_num + 1))
+		i=$((i + 1))
+	done
+}
+
+# Expected-state check shared by both fixture modes (#377): every file
+# under expected_state/ must exist in the workspace with an identical
+# checksum. On a mismatch, records the offending path and reason in
+# $state_mismatch so the failure report names the file the fix loop
+# needs (the state counterpart of the output dump, #376).
+#
+# Globals set: state_ok, state_mismatch
+verify_expected_state() {
+	local workspace="$1" test_dir="$2"
+	state_ok=true
+	state_mismatch=""
+	[[ -d "$test_dir/expected_state" ]] || return 0
+
+	local expected_file
+	# LC_ALL=C sort: find's order is filesystem-dependent, and the
+	# mismatch report names the first offender, so the reported file
+	# must not vary between runs or machines (review round, #433)
+	while IFS= read -r expected_file; do
+		# Quoted pattern (SC2295): the pre-extraction run_update_test
+		# copy had drifted to the unquoted form (#377)
+		local rel_path="${expected_file#"$test_dir"/expected_state/}"
+		if [[ ! -f "$workspace/$rel_path" ]]; then
+			state_ok=false
+			state_mismatch="missing: $rel_path"
+			return 0
+		fi
+
+		local expected_sum actual_sum
+		expected_sum=$(compute_checksum "$expected_file")
+		actual_sum=$(compute_checksum "$workspace/$rel_path")
+
+		if [[ "$expected_sum" != "$actual_sum" ]]; then
+			state_ok=false
+			state_mismatch="differs: $rel_path"
+			return 0
+		fi
+	done < <(find "$test_dir/expected_state" -type f | LC_ALL=C sort)
+}
+
+# Self-test for the shared matchers (review round, #433): the
+# mismatch diagnostics only print when a fixture fails, and no
+# fixture is supposed to fail, so the dump and state-reason paths
+# would otherwise carry no coverage. Drives the helpers against a
+# deliberately wrong scratch fixture and asserts the diagnostics
+# fire - and stay silent on a clean run - reporting through the
+# same passed/failed counters as a fixture. Applies the v10.5
+# compliance suite's run-on-every-run self-test precedent here.
+harness_selftest() {
+	local scratch ws reasons=()
+	scratch=$(mktemp -d)
+	ws=$(mktemp -d)
+
+	# Scratch fixture: two expected lines, one expected-state file
+	mkdir -p "$scratch/expected_state/.just" "$ws/.just"
+	printf 'alpha line\nomega line\n' > "$scratch/expected_output.txt"
+	printf 'state one\n' > "$scratch/expected_state/.just/state.just"
+
+	# Red case: second expected line missing from the output
+	match_expected_output "alpha line" "$scratch" "harness_selftest"
+	[[ "$output_ok" == false ]] || reasons+=("red output: output_ok not false")
+	[[ "$output_mismatch" == *"First unmatched expected line 2"* ]] \
+		|| reasons+=("red output: dump lacks first-unmatched marker")
+	[[ "$output_mismatch" == *"searched for it from normalized output line 2 onward"* ]] \
+		|| reasons+=("red output: dump lacks search-position hint")
+
+	# Green case: every expected line present in order
+	match_expected_output "alpha line
+omega line" "$scratch" "harness_selftest"
+	[[ "$output_ok" == true ]] || reasons+=("green output: output_ok not true")
+	[[ -z "$output_mismatch" ]] || reasons+=("green output: mismatch detail not empty")
+
+	# Green state: identical checksums
+	printf 'state one\n' > "$ws/.just/state.just"
+	verify_expected_state "$ws" "$scratch"
+	[[ "$state_ok" == true ]] || reasons+=("green state: state_ok not true")
+	[[ -z "$state_mismatch" ]] || reasons+=("green state: mismatch detail not empty")
+
+	# Red state: content differs
+	printf 'state one changed\n' > "$ws/.just/state.just"
+	verify_expected_state "$ws" "$scratch"
+	[[ "$state_ok" == false ]] || reasons+=("differs state: state_ok not false")
+	[[ "$state_mismatch" == "differs: .just/state.just" ]] \
+		|| reasons+=("differs state: got '$state_mismatch'")
+
+	# Red state: file missing
+	rm "$ws/.just/state.just"
+	verify_expected_state "$ws" "$scratch"
+	[[ "$state_ok" == false ]] || reasons+=("missing state: state_ok not false")
+	[[ "$state_mismatch" == "missing: .just/state.just" ]] \
+		|| reasons+=("missing state: got '$state_mismatch'")
+
+	rm -rf "$scratch" "$ws"
+
+	if [[ ${#reasons[@]} -eq 0 ]]; then
+		echo -e "${GREEN}✓${NORMAL} harness_selftest"
+		(( passed += 1 ))
+	else
+		echo -e "${RED}✗${NORMAL} harness_selftest"
+		local reason
+		for reason in "${reasons[@]}"; do
+			echo "    $reason"
+		done
+		(( failed += 1 ))
+	fi
 }
 
 # Recipe mode: run the real `just <recipe> <args...>` inside a temp
@@ -257,65 +438,10 @@ run_recipe_test() {
 		expected_exit=$(cat "$test_dir/expected_exit")
 	fi
 
-	# Check expected output if provided (same normalization + in-order
-	# matching as update-script mode)
-	local output_ok=true
-	if [[ -f "$test_dir/expected_output.txt" ]]; then
-		local normalized_output
-		normalized_output=$(echo "$output" | LC_ALL=C awk '{ gsub(/\033\[[0-9;]*m/, ""); print }' | \
-			grep -v "^$" | \
-			sed 's|/tmp/[^[:space:]]*||g')
-
-		local expected_lines=()
-		local line
-		while IFS= read -r line || [[ -n "$line" ]]; do
-			[[ -n "$line" ]] && expected_lines+=("$line")
-		done < "$test_dir/expected_output.txt"
-
-		if [[ ${#expected_lines[@]} -eq 0 ]]; then
-			echo -e "${YELLOW}!${NORMAL} $test_name - expected_output.txt is empty, output not checked"
-		fi
-		local search_start=1
-		for line in "${expected_lines[@]}"; do
-			local line_num
-			# -e: expected lines may start with dashes (e.g. diff output).
-			# grep exits 1 when the line is missing - a handled case here,
-			# not a crash - but under `set -euo pipefail` the substitution
-			# would abort the whole suite before the mismatch could be
-			# reported (a latent harness bug surfaced by the bare-justfile
-			# fixtures, #368, whose whole point is failing recipes). The
-			# `|| true` guard keeps the loop alive; the -z check below
-			# reports the mismatch.
-			line_num=$(echo "$normalized_output" | grep -nF -e "$line" | awk -F: -v s="$search_start" '$1 >= s {print $1; exit}') \
-				|| true
-			if [[ -z "$line_num" ]]; then
-				output_ok=false
-				break
-			fi
-			search_start=$((line_num + 1))
-		done
-	fi
-
-	# Check expected state if provided
-	local state_ok=true
-	if [[ -d "$test_dir/expected_state" ]]; then
-		while IFS= read -r expected_file; do
-			local rel_path="${expected_file#"$test_dir"/expected_state/}"
-			if [[ ! -f "$workspace/$rel_path" ]]; then
-				state_ok=false
-				break
-			fi
-
-			local expected_sum actual_sum
-			expected_sum=$(compute_checksum "$expected_file")
-			actual_sum=$(compute_checksum "$workspace/$rel_path")
-
-			if [[ "$expected_sum" != "$actual_sum" ]]; then
-				state_ok=false
-				break
-			fi
-		done < <(find "$test_dir/expected_state" -type f)
-	fi
+	# Check expected output and state through the shared helpers, so
+	# the two runner modes cannot drift (#376/#377)
+	match_expected_output "$output" "$test_dir" "$test_name"
+	verify_expected_state "$workspace" "$test_dir"
 
 	# Cleanup
 	cd - >/dev/null
@@ -331,8 +457,8 @@ run_recipe_test() {
 	else
 		echo -e "${RED}✗${NORMAL} $test_name"
 		[[ "$exit_ok" == false ]] && echo "    Exit mismatch: expected $expected_exit, got $actual_exit"
-		[[ "$output_ok" == false ]] && echo "    Output mismatch"
-		[[ "$state_ok" == false ]] && echo "    State mismatch"
+		[[ "$output_ok" == false ]] && { echo "    Output mismatch:"; echo "$output_mismatch"; }
+		[[ "$state_ok" == false ]] && echo "    State mismatch: $state_mismatch"
 		(( failed += 1 ))
 	fi
 }
@@ -386,67 +512,10 @@ run_update_test() {
 	local output
 	output=$("$test_script" 2>&1 || true)
 
-	# Check expected output if provided
-	local output_ok=true
-	if [[ -f "$test_dir/expected_output.txt" ]]; then
-		# Normalize output (remove color codes, timestamps, temp paths)
-		local normalized_output
-		# shellcheck disable=SC2016  # awk script is intentionally single-quoted
-		normalized_output=$(echo "$output" | LC_ALL=C awk '{ gsub(/\033\[[0-9;]*m/, ""); print }' | \
-			grep -v "^$" | \
-			sed 's|/tmp/[^[:space:]]*||g')
-
-		# Every non-empty expected line must appear in order in the output
-		local expected_lines=()
-		local line
-		while IFS= read -r line || [[ -n "$line" ]]; do
-			[[ -n "$line" ]] && expected_lines+=("$line")
-		done < "$test_dir/expected_output.txt"
-
-		if [[ ${#expected_lines[@]} -eq 0 ]]; then
-			echo -e "${YELLOW}!${NORMAL} $test_name - expected_output.txt is empty, output not checked"
-		fi
-		local search_start=1
-		for line in "${expected_lines[@]}"; do
-			local line_num
-			# -e: expected lines may start with dashes (e.g. diff output).
-			# grep exits 1 when the line is missing - a handled case here,
-			# not a crash - but under `set -euo pipefail` the substitution
-			# would abort the whole suite before the mismatch could be
-			# reported (a latent harness bug surfaced by the bare-justfile
-			# fixtures, #368, whose whole point is failing recipes). The
-			# `|| true` guard keeps the loop alive; the -z check below
-			# reports the mismatch.
-			line_num=$(echo "$normalized_output" | grep -nF -e "$line" | awk -F: -v s="$search_start" '$1 >= s {print $1; exit}') \
-				|| true
-			if [[ -z "$line_num" ]]; then
-				output_ok=false
-				break
-			fi
-			search_start=$((line_num + 1))
-		done
-	fi
-
-	# Check expected state if provided
-	local state_ok=true
-	if [[ -d "$test_dir/expected_state" ]]; then
-		while IFS= read -r expected_file; do
-			local rel_path="${expected_file#$test_dir/expected_state/}"
-			if [[ ! -f "$workspace/$rel_path" ]]; then
-				state_ok=false
-				break
-			fi
-
-			local expected_sum actual_sum
-			expected_sum=$(compute_checksum "$expected_file")
-			actual_sum=$(compute_checksum "$workspace/$rel_path")
-
-			if [[ "$expected_sum" != "$actual_sum" ]]; then
-				state_ok=false
-				break
-			fi
-		done < <(find "$test_dir/expected_state" -type f)
-	fi
+	# Check expected output and state through the shared helpers, so
+	# the two runner modes cannot drift (#376/#377)
+	match_expected_output "$output" "$test_dir" "$test_name"
+	verify_expected_state "$workspace" "$test_dir"
 
 	# Cleanup
 	cd - >/dev/null
@@ -458,8 +527,8 @@ run_update_test() {
 		(( passed += 1 ))
 	else
 		echo -e "${RED}✗${NORMAL} $test_name"
-		[[ "$output_ok" == false ]] && echo "    Output mismatch"
-		[[ "$state_ok" == false ]] && echo "    State mismatch"
+		[[ "$output_ok" == false ]] && { echo "    Output mismatch:"; echo "$output_mismatch"; }
+		[[ "$state_ok" == false ]] && echo "    State mismatch: $state_mismatch"
 		(( failed += 1 ))
 	fi
 }
@@ -475,6 +544,12 @@ main() {
 		echo "Tests skipped"
 		return 0
 	fi
+
+	# Self-test the matcher/state helpers before the fixture pass: the
+	# mismatch diagnostics only print on failure, and no fixture is
+	# supposed to fail, so the dump and state-reason paths need their
+	# own coverage (review round, #433)
+	harness_selftest
 
 	# Run each test
 	for test_dir in "$FIXTURES_DIR"/*; do

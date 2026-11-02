@@ -4,6 +4,60 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v10.6 - template_sync_test: mismatch dump + DRY matcher/state helpers (2026-11-02)
+
+- Fixes issues [#376](https://github.com/fini-net/template-repo/issues/376)
+  and [#377](https://github.com/fini-net/template-repo/issues/377)
+- **Related PR:** [#433](https://github.com/fini-net/template-repo/pull/433)
+
+**A red fixture now answers "what did it actually print."** Both
+runner modes in `template_sync_test.sh` reported an output mismatch
+with a bare `Output mismatch` line and nothing else, leaving the
+expected-vs-actual comparison entirely to the developer re-running
+the fixture manually with added echoes. On a mismatch the suite now
+dumps both sides - expected lines and the normalized actual output -
+through the exact normalization the matcher uses (colors stripped,
+blank lines dropped, `/tmp` paths scrubbed, so mktemp/pid noise never
+appears), plus a first-difference hint: the first expected line with
+no match at/after the search position, and the normalized line the
+search had reached. The state report got the same treatment: `State
+mismatch` now names the offending file and reason (`missing:` /
+`differs:`), the state counterpart of the output dump. The suite is
+the standing guard for the "tracked modules must be self-contained"
+invariant (#368) - its failure report now carries the evidence the
+fix loop starts with.
+
+**The matcher and state-check blocks can no longer drift.** The v9.9
+`write_mock_curl` extraction left the expected-output matcher and the
+expected-state checksum loop duplicated verbatim between
+`run_recipe_test` and `run_update_test`, and drift had already begun:
+the state-check loop quoted the fixture-dir expansion in one copy and
+left it unquoted in the other (shellcheck SC2295; harmless today only
+because fixture dir names contain no glob metacharacters - exactly
+the divergence class that motivated the extraction). Both blocks now
+live in shared helpers - `match_expected_output <output> <test_dir>
+<test_name>` and `verify_expected_state <workspace> <test_dir>` -
+keeping the quoted form, and the output-mismatch dump is written
+once for both modes (as #376 suggested, it rode along with the DRY
+cleanup). The `write_mock_curl` contract comment now states the
+narrowed manifest contract: the CHECKSUMS.json branch sits inside the
+`-o` branch, so a manifest fetch without `-o` falls through to
+failure (both real call sites use `-o`).
+
+**Review round (PR #433).** The state walk now sorts before
+checksumming (`find | LC_ALL=C sort`): `find`'s order is
+filesystem-dependent, and the mismatch report names the first
+offender, so which file gets reported must not vary between runs or
+machines. The search-position hint was reworded to "searched for it
+from line N onward" - the first wording could be misread as naming
+the line that failed. And the matchers gained a `harness_selftest`
+pseudo-fixture that runs before every fixture pass: the diagnostics
+only print on failure and no fixture is supposed to fail, so the
+dump and state-reason paths had no coverage - the self-test drives
+the helpers against a deliberately wrong scratch fixture and asserts
+the dump fires (and stays silent on a clean run), the v10.5
+compliance suite's run-on-every-run self-test precedent applied here.
+
 ### v10.5 - compliance suite: enforced terminal-token extraction guard (2026-11-02)
 
 - **Related PR:** [#432](https://github.com/fini-net/template-repo/pull/432)
