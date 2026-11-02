@@ -210,6 +210,11 @@ _remove_template_files: _on_a_branch
         rm -f ".just/lib/repo_toml_stub_test.sh"
     fi
 
+    if [[ -f ".just/lib/compliance_test.sh" ]]; then
+        echo "Removing .just/lib/compliance_test.sh"
+        rm -f ".just/lib/compliance_test.sh"
+    fi
+
     # Remove this cleanup script after use
     if [[ -f ".just/clean-template.just" ]]; then
         echo "Removing .just/clean-template.just"

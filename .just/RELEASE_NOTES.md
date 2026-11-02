@@ -10,6 +10,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
   [#373](https://github.com/fini-net/template-repo/issues/373),
   [#380](https://github.com/fini-net/template-repo/issues/380), and
   [#386](https://github.com/fini-net/template-repo/issues/386)
+- **Related PR:** [#430](https://github.com/fini-net/template-repo/pull/430)
 
 **`compliance_check` no longer treats images and PDFs as contraband
 ([#373](https://github.com/fini-net/template-repo/issues/373)).** The
@@ -25,7 +26,18 @@ become a yellow advisory with a count. `MS Windows icon resource`
 sites stay clean. Blobs over 1MB moved out of the red branch into their own
 yellow advisory - size hygiene is worth mentioning, but not worth drowning
 the executable signal, and template-repo itself was permanently red on its
-own 1.7MB banner. The green verdict now keys on executables alone.
+own 1.7MB banner. The green verdict now keys on executables alone - and,
+after the review round on
+[#430](https://github.com/fini-net/template-repo/pull/430), no longer
+claims surgical cleanliness while a size advisory is on the screen, and
+the classification greps anchor to the `file` description after
+`path: ` rather than the whole line, so a text file *named*
+`ELF-notes.md` or `PDF-spec.txt` is classified by its content instead of
+its name. Output plumbing uses `printf '%s\n'` rather than `echo` so a
+filename starting with `-n` cannot be eaten as a flag. Paths containing
+`:` (or newlines) still confuse the `cut -d: -f1` extraction - a
+pre-existing, now-documented limitation acceptable for an informational
+check.
 
 **The OpenSSF heuristics no longer depend on GNU grep extensions
 ([#380](https://github.com/fini-net/template-repo/issues/380)).** `\b` word
@@ -46,6 +58,26 @@ kind of rot a compliance check exists to catch. The check sits with the
 other `.github/*` file checks and carries the `[gh]` label, but SUPPORT.md
 is not part of GitHub's community-standards checklist: it is an
 extra-health check like the custom social preview one.
+
+**New tests pin the two behaviors that regress invisibly.**
+`.just/lib/compliance_test.sh` (run via `just compliance_test`) does not
+hardcode copies of the patterns - it extracts the live boundary and
+classification pattern strings from `compliance.just` and exercises
+those, so someone "simplifying" a boundary back to GNU `\b` (silently
+literal under the BSD grep macOS ships) or editing a classification
+pattern fails the suite instead of shipping subtly wrong informational
+output. The boundary section asserts exact match sets (`jest`, `tox`,
+`vitest`, and `just pr_body_test` in, `majestic` and `adjust testing`
+out; `secrets.BAR` in, `mysecrets.foo` out; `sudo` and `- sudo` in,
+`sudoers` and `pseudorandom` out). The classification section plants a
+scratch git repo with a fake ELF, a JPEG, a GIF, a favicon.ico, a 1.7MB
+blob, and text files *named* `ELF-notes.md`/`PDF-spec.txt` that must
+classify as neither executable nor media. The suite runs in
+`cue-sync-tests.yml`, whose path triggers now include
+`compliance.just` and the new lib script, and ships with matching
+`CLEANED_FILES` and `clean_template` removal entries so derived repos do
+not keep it. In CI a missing `file`/`git` fails the suite rather than
+letting it pass vacuously; locally that section skips with a note.
 
 ### v10.2 - repo-toml stub sandboxing, repo_toml_check stub sentinel (2026-11-01)
 
