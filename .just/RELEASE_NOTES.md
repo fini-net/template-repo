@@ -4,6 +4,24 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v10.4 - compliance review follow-ups: single-quote constraint, missing-tool reporting (2026-11-02)
+
+- **Related PR:** [#431](https://github.com/fini-net/template-repo/pull/431)
+  (follow-up to [#430](https://github.com/fini-net/template-repo/pull/430))
+
+**Post-merge follow-ups from the Claude review of #430's final head.**
+The classification comment block in `compliance_check` now warns that
+`compliance_test.sh` extracts the live patterns by their single-quoted
+text, so single quotes added to those patterns would silently truncate
+the extraction - and documents the large-blob awk's blind spot for a
+file literally named `total` (low-impact for an informational check).
+The suite's missing-tool gate now reports every missing tool instead of
+only the last one checked, so an environment missing both `file` and
+`git` names both in one message. The release-notes description of
+`MS Windows icon resource` was corrected to match the shipped #373
+behavior: favicon-style files are excluded from the red executables
+branch and counted as media.
+
 ### v10.3 - compliance: binary-artifact split, portable grep, SUPPORT.md (2026-11-02)
 
 - Fixes issues
@@ -22,8 +40,8 @@ run, and a permanently red check is noise that gets ignored. The scan now
 classifies each file exactly once: executables stay red (that is what
 Scorecard's Binary-Artifacts check is actually about), while media formats
 become a yellow advisory with a count. `MS Windows icon resource`
-(favicon.ico and friends) classifies as data, not executable, so static
-sites stay clean. Blobs over 1MB moved out of the red branch into their own
+(favicon.ico and friends) is excluded from the red executables branch
+and counted as media, so static sites stay clean. Blobs over 1MB moved out of the red branch into their own
 yellow advisory - size hygiene is worth mentioning, but not worth drowning
 the executable signal, and template-repo itself was permanently red on its
 own 1.7MB banner. The green verdict keys on executables alone and stays
@@ -63,7 +81,9 @@ extra-health check like the custom social preview one.
 `.just/lib/compliance_test.sh` (run via `just compliance_test`) does not
 hardcode copies of the patterns - it extracts the live boundary and
 classification pattern strings from `compliance.just` and exercises
-those, so someone "simplifying" a boundary back to GNU `\b` (silently
+those (the extraction matches the patterns' single-quoted text, so they
+must stay single-quote-free - noted in the recipe comments), so someone
+"simplifying" a boundary back to GNU `\b` (silently
 literal under the BSD grep macOS ships) or editing a classification
 pattern fails the suite instead of shipping subtly wrong informational
 output. The boundary section asserts exact match sets (`jest`, `tox`,
