@@ -23,7 +23,8 @@
 #     blob in the large-blob count, and - the PR #430 review regression -
 #     text files *named* ELF-notes.md and PDF-spec.txt classify as
 #     neither, because matching anchors to the `file` description after
-#     the first ':' rather than the whole line
+#     the first ':' rather than the whole line, with a word boundary
+#     required before each keyword
 #
 # Needs bash, grep, file, git. Without `file` or `git` the
 # classification section is skipped rather than failed (the boundary
@@ -51,7 +52,10 @@ fail() { printf '  %bFAIL%b  %s\n' "$RED" "$NORMAL" "$1"; failures=$((failures +
 # Extract the single-quoted pattern that follows a marker on a recipe
 # line: grep -oE finds "<marker>'<pattern>'", cut pulls the pattern from
 # between the quotes, and an optional literal filter disambiguates
-# repeated markers. A missing line or empty pattern fails the suite -
+# repeated markers - or pins a nominally unique one, so a new grep
+# added earlier in the recipe cannot silently re-target the
+# first-match extraction (the position-fragility flagged in Claude's
+# PR #430 review). A missing line or empty pattern fails the suite -
 # that is the drift tripwire: this suite cannot go green while the
 # recipe quietly drifts away from it.
 extract_pattern() {
@@ -130,11 +134,11 @@ if [[ -n "$missing" ]]; then
 else
 	echo "Classification pipeline (planted scratch repo):"
 
-	exe_pat=$(extract_pattern 'executables' "grep -E '") ||
+	exe_pat=$(extract_pattern 'executables' "grep -E '" 'Mach-O') ||
 		{ printf '  suite aborted: cannot proceed without the executables pattern\n' >&2; exit 1; }
 	ico_pat=$(extract_pattern 'icon-resource exclusion' "grep -vE '" 'icon resource') ||
 		{ printf '  suite aborted: cannot proceed without the icon exclusion pattern\n' >&2; exit 1; }
-	media_pat=$(extract_pattern 'media_count' "grep -cE '") ||
+	media_pat=$(extract_pattern 'media_count' "grep -cE '" 'JPEG') ||
 		{ printf '  suite aborted: cannot proceed without the media pattern\n' >&2; exit 1; }
 
 	scratch=$(mktemp -d "${TMPDIR:-/tmp}/compliance-test.XXXXXX")
@@ -169,10 +173,10 @@ else
 		printf '    %s\n' "$line"
 	done <<<"$file_types"
 
-	if [[ "$executables" == *evil.elf* && "$executables" != *ELF-notes* ]]; then
-		pass "fake ELF -> executables; ELF-notes.md stays out ($executables)"
+	if [[ "$executables" == "evil.elf" ]]; then
+		pass "executables exactly [evil.elf]; favicon.ico and ELF-notes.md stay out"
 	else
-		fail "executables expected [evil.elf], got [$executables]"
+		fail "executables expected exactly [evil.elf], got [$executables]"
 	fi
 	if [[ "$media_count" == 3 ]]; then
 		pass "jpg/gif/ico -> media_count 3 (PDF-spec.txt stays out)"

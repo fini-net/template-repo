@@ -153,14 +153,18 @@ compliance_check:
         # legitimately ship - Hugo sites, game assets, docs trees - so they
         # get an advisory note, not red.  Blobs over 1MB are size hygiene,
         # not artifacts, so they get the same softening.  See #373.
-        # Patterns anchor to the description after the first ':' so a file
-        # *named* ELF-notes.md or PDF-spec.txt is classified by its content,
-        # not its name.  Paths containing ':' (or newlines) confuse the
-        # anchoring and the cut -d: -f1 extraction alike - a pre-existing
-        # limitation acceptable for an informational check.
+        # Patterns anchor to the description after the first ':' and require
+        # a word boundary before each keyword (the portable #380 form - no
+        # GNU \b), so a file *named* ELF-notes.md or PDF-spec.txt is
+        # classified by its content, not its name, and a keyword embedded
+        # mid-word in a description (a hypothetical 'SELFIE' contains no
+        # matchable 'ELF') cannot match.  Paths containing ':' (or
+        # newlines) confuse the anchoring and the cut -d: -f1 extraction
+        # alike - a pre-existing limitation acceptable for an informational
+        # check.
         file_types=$(git ls-files -z | xargs -0 file -- 2>/dev/null || true)
-        executables=$(printf '%s\n' "$file_types" | grep -E '^[^:]*:.*(ELF|Mach-O|PE32|MS Windows)' | grep -vE '^[^:]*:.*icon resource' | cut -d: -f1 || true)
-        media_count=$(printf '%s\n' "$file_types" | grep -cE '^[^:]*:.*(JPEG|PNG|GIF|Web/P|PDF|icon resource)' || true)
+        executables=$(printf '%s\n' "$file_types" | grep -E '^[^:]*:.*(^|[^a-zA-Z0-9_])(ELF|Mach-O|PE32|MS Windows)' | grep -vE '^[^:]*:.*(^|[^a-zA-Z0-9_])icon resource' | cut -d: -f1 || true)
+        media_count=$(printf '%s\n' "$file_types" | grep -cE '^[^:]*:.*(^|[^a-zA-Z0-9_])(JPEG|PNG|GIF|Web/P|PDF|icon resource)' || true)
         large_blobs=$(git ls-files -z | xargs -0 wc -c 2>/dev/null | awk '$1 > 1000000 && $2 != "total" {found++} END {print found+0}')
         if [[ "${media_count:-0}" -gt 0 ]]; then
             echo "{{YELLOW}}[openssf] $media_count media/data file(s) (image/PDF) in git.  Images are content, not contraband; only executables count against Binary-Artifacts.{{NORMAL}}"

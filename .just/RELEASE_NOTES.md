@@ -26,18 +26,18 @@ become a yellow advisory with a count. `MS Windows icon resource`
 sites stay clean. Blobs over 1MB moved out of the red branch into their own
 yellow advisory - size hygiene is worth mentioning, but not worth drowning
 the executable signal, and template-repo itself was permanently red on its
-own 1.7MB banner. The green verdict now keys on executables alone - and,
-after the review round on
-[#430](https://github.com/fini-net/template-repo/pull/430), no longer
-claims surgical cleanliness while a size advisory is on the screen, and
-the classification greps anchor to the `file` description after
-`path:` rather than the whole line, so a text file *named*
-`ELF-notes.md` or `PDF-spec.txt` is classified by its content instead of
-its name. Output plumbing uses `printf '%s\n'` rather than `echo` so a
-filename starting with `-n` cannot be eaten as a flag. Paths containing
-`:` (or newlines) still confuse the `cut -d: -f1` extraction - a
-pre-existing, now-documented limitation acceptable for an informational
-check.
+own 1.7MB banner. The green verdict keys on executables alone and stays
+quiet about surgical cleanliness while a size advisory is on the screen.
+The classification greps anchor to the `file` description after
+`path:` rather than the whole line and require a word boundary
+(`(^|[^a-zA-Z0-9_])`, the portable #380 form) before each keyword, so a
+text file *named* `ELF-notes.md` or `PDF-spec.txt` is classified by its
+content instead of its name, and a keyword embedded mid-word in a
+description cannot match. Output plumbing uses `printf '%s\n'` rather
+than `echo` so a filename starting with `-n` cannot be eaten as a flag.
+Paths containing `:` (or newlines) still confuse the `cut -d: -f1`
+extraction - a pre-existing, now-documented limitation acceptable for an
+informational check.
 
 **The OpenSSF heuristics no longer depend on GNU grep extensions
 ([#380](https://github.com/fini-net/template-repo/issues/380)).** `\b` word
@@ -72,7 +72,13 @@ out; `secrets.BAR` in, `mysecrets.foo` out; `sudo` and `- sudo` in,
 `sudoers` and `pseudorandom` out). The classification section plants a
 scratch git repo with a fake ELF, a JPEG, a GIF, a favicon.ico, a 1.7MB
 blob, and text files *named* `ELF-notes.md`/`PDF-spec.txt` that must
-classify as neither executable nor media. The suite runs in
+classify as neither executable nor media. The pattern extraction is
+content-anchored, not positional: each marker carries a literal filter
+(`'Mach-O'` for executables, `'icon resource'` for the exclusion,
+`'JPEG'` for media) so an unrelated grep added earlier in
+`compliance.just` cannot silently re-target the suite, and the
+executables assertion is an exact match (`evil.elf` and nothing else)
+so a leaked favicon cannot hide inside a substring check. The suite runs in
 `cue-sync-tests.yml`, whose path triggers now include
 `compliance.just` and the new lib script, and ships with matching
 `CLEANED_FILES` and `clean_template` removal entries so derived repos do
