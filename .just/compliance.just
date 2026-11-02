@@ -163,12 +163,12 @@ compliance_check:
         # flagging it red as an executable - pre-existing behavior kept;
         # the icon-resource exclusion covers the common favicon case.
         # compliance_test.sh extracts these patterns by their
-        # single-quoted text, so keep ' characters out of them or the
+        # single-quoted text, so keep single quotes out of them or the
         # extraction silently truncates.
         # Paths containing ':' (or newlines) confuse the anchoring and the
         # cut -d: -f1 extraction alike - a pre-existing limitation
         # acceptable for an informational check, as is the large-blob
-        # awk's blind spot for a file literally named 'total'.
+        # awk's blind spot for a file literally named total.
         file_types=$(git ls-files -z | xargs -0 file -- 2>/dev/null || true)
         executables=$(printf '%s\n' "$file_types" | grep -E '^[^:]*:.*(^|[^a-zA-Z0-9_])(ELF|Mach-O|PE32|MS Windows)' | grep -vE '^[^:]*:.*(^|[^a-zA-Z0-9_])icon resource' | cut -d: -f1 || true)
         media_count=$(printf '%s\n' "$file_types" | grep -cE '^[^:]*:.*(^|[^a-zA-Z0-9_])(JPEG|PNG|GIF|Web/P|PDF|icon resource)' || true)

@@ -57,16 +57,25 @@ fail() { printf '  %bFAIL%b  %s\n' "$RED" "$NORMAL" "$1"; failures=$((failures +
 # first-match extraction (the position-fragility flagged in Claude's
 # PR #430 review). A missing line or empty pattern fails the suite -
 # that is the drift tripwire: this suite cannot go green while the
-# recipe quietly drifts away from it.
+# recipe quietly drifts away from it. An optional fourth argument pins
+# the pattern's terminal token: the marker regex stops at the first
+# quote, so a single quote inside a recipe pattern would truncate the
+# extraction there and silently exercise a partial pattern - the tail
+# assertion makes that fail loudly instead (Claude's PR #431 review).
 extract_pattern() {
-	local label=$1 marker=$2 filter=${3:-}
-	local match
+	local label=$1 marker=$2 filter=${3:-} tail=${4:-}
+	local match pattern
 	match=$(grep -oE "${marker}[^']*'" "$COMPLIANCE_JUST" | grep -F "$filter" | head -1 || true)
 	if [[ -z "$match" ]]; then
 		fail "extract $label: pattern not found in compliance.just"
 		return 1
 	fi
-	printf '%s' "$match" | cut -d"'" -f2
+	pattern=$(printf '%s' "$match" | cut -d"'" -f2)
+	if [[ -n "$tail" && "$pattern" != *"$tail"* ]]; then
+		fail "extract $label: pattern truncated - missing terminal '$tail' (single quote inside the pattern?)"
+		return 1
+	fi
+	printf '%s' "$pattern"
 }
 
 # assert_matches <label> <pattern> <input> <expected>
@@ -88,7 +97,7 @@ echo -e "${BLUE}Testing compliance_check heuristics...${NORMAL}"
 # ---- Boundary patterns, extracted live from the recipe ----
 echo "Boundary patterns (extracted from compliance.just):"
 
-test_cmds=$(extract_pattern 'test_cmds' "test_cmds='" 'vitest') ||
+test_cmds=$(extract_pattern 'test_cmds' "test_cmds='" 'vitest' 'just [a-z0-9_-]*test') ||
 	{ printf '  suite aborted: cannot proceed without the test_cmds pattern\n' >&2; exit 1; }
 assert_matches 'test_cmds word boundaries' "$test_cmds" \
 	'run: tox
@@ -99,7 +108,7 @@ jest
 vitest' \
 	'run: tox|just pr_body_test|jest|vitest|'
 
-secrets_pat=$(extract_pattern 'secrets boundary' "grep -lE '" 'secrets\.') ||
+secrets_pat=$(extract_pattern 'secrets boundary' "grep -lE '" 'secrets\.' 'secrets\.') ||
 	{ printf '  suite aborted: cannot proceed without the secrets pattern\n' >&2; exit 1; }
 # the '${{ secrets.* }}' fixtures are literal GitHub Actions expressions,
 # deliberately single-quoted so nothing expands
@@ -111,7 +120,7 @@ secrets.BAR
 FOOsecrets.BAR' \
 	'- ${{ secrets.A }}|secrets.BAR|'
 
-sudo_pat=$(extract_pattern 'sudo boundary' "grep -rlE '" 'sudo') ||
+sudo_pat=$(extract_pattern 'sudo boundary' "grep -rlE '" 'sudo' 'sudo([^a-zA-Z0-9_]|$)') ||
 	{ printf '  suite aborted: cannot proceed without the sudo pattern\n' >&2; exit 1; }
 assert_matches 'sudo word boundaries' "$sudo_pat" \
 	'run: sudo make install
@@ -134,11 +143,11 @@ if [[ -n "$missing" ]]; then
 else
 	echo "Classification pipeline (planted scratch repo):"
 
-	exe_pat=$(extract_pattern 'executables' "grep -E '" 'Mach-O') ||
+	exe_pat=$(extract_pattern 'executables' "grep -E '" 'Mach-O' 'MS Windows)') ||
 		{ printf '  suite aborted: cannot proceed without the executables pattern\n' >&2; exit 1; }
-	ico_pat=$(extract_pattern 'icon-resource exclusion' "grep -vE '" 'icon resource') ||
+	ico_pat=$(extract_pattern 'icon-resource exclusion' "grep -vE '" 'icon resource' 'icon resource') ||
 		{ printf '  suite aborted: cannot proceed without the icon exclusion pattern\n' >&2; exit 1; }
-	media_pat=$(extract_pattern 'media_count' "grep -cE '" 'JPEG') ||
+	media_pat=$(extract_pattern 'media_count' "grep -cE '" 'JPEG' 'icon resource)') ||
 		{ printf '  suite aborted: cannot proceed without the media pattern\n' >&2; exit 1; }
 
 	scratch=$(mktemp -d "${TMPDIR:-/tmp}/compliance-test.XXXXXX")
