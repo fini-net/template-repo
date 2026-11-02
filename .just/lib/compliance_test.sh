@@ -60,19 +60,26 @@ fail() { printf '  %bFAIL%b  %s\n' "$RED" "$NORMAL" "$1"; failures=$((failures +
 # recipe quietly drifts away from it. An optional fourth argument pins
 # the pattern's terminal token: the marker regex stops at the first
 # quote, so a single quote inside a recipe pattern would truncate the
-# extraction there and silently exercise a partial pattern - the tail
-# assertion makes that fail loudly instead (Claude's PR #431 review).
+# extraction there and silently exercise a partial pattern - the suffix
+# assertion makes that fail loudly instead (Claude's PR #431/#432
+# reviews). An optional fifth argument overrides the file to scan,
+# used by the quote-injection self-test. Diagnostics go to stderr so
+# they survive command substitution; extraction failures never touch
+# the failures counter - every caller aborts the suite on rc 1.
 extract_pattern() {
-	local label=$1 marker=$2 filter=${3:-} tail=${4:-}
+	local label=$1 marker=$2 filter=${3:-} terminal=${4:-} just_file=${5:-$COMPLIANCE_JUST}
 	local match pattern
-	match=$(grep -oE "${marker}[^']*'" "$COMPLIANCE_JUST" | grep -F "$filter" | head -1 || true)
+	match=$(grep -oE "${marker}[^']*'" "$just_file" | grep -F "$filter" | head -1 || true)
 	if [[ -z "$match" ]]; then
-		fail "extract $label: pattern not found in compliance.just"
+		printf 'extract %s: pattern not found in %s\n' "$label" "$just_file" >&2
 		return 1
 	fi
 	pattern=$(printf '%s' "$match" | cut -d"'" -f2)
-	if [[ -n "$tail" && "$pattern" != *"$tail"* ]]; then
-		fail "extract $label: pattern truncated - missing terminal '$tail' (single quote inside the pattern?)"
+	# Suffix match, not substring: a token appearing earlier in the
+	# pattern satisfies a contains-check even after truncation past it,
+	# while a suffix match pins the pattern's actual end.
+	if [[ -n "$terminal" && "$pattern" != *"$terminal" ]]; then
+		printf 'extract %s: pattern truncated - missing terminal token %s (single quote inside the pattern?)\n' "$label" "$terminal" >&2
 		return 1
 	fi
 	printf '%s' "$pattern"
@@ -129,6 +136,20 @@ pseudorandom
 sudo
 - sudo' \
 	'run: sudo make install|sudo|- sudo|'
+
+# Negative self-test for the terminal-token guard (PR #432 review): a
+# single quote inside a recipe pattern truncates the extraction at that
+# point; the guard must turn that into a hard failure instead of
+# silently exercising a partial pattern. Injected into a throwaway copy
+# of compliance.just so the real recipe is never touched.
+neg_just=$(mktemp "${TMPDIR:-/tmp}/compliance-neg.XXXXXX")
+sed "s/PDF|icon resource)'/PDF|icon resource'x)/" "$COMPLIANCE_JUST" > "$neg_just"
+if extract_pattern 'media_count' "grep -cE '" 'JPEG' 'icon resource)' "$neg_just" >/dev/null 2>&1; then
+	fail "quote-injection: guard did not fire on the truncated media pattern"
+else
+	pass "quote-injection: truncated media pattern fails the guard"
+fi
+rm -f "$neg_just"
 
 # ---- Classification pipeline vs a planted scratch repo ----
 missing=""
