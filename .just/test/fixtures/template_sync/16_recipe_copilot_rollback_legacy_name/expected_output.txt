@@ -1,0 +1,5 @@
+Available backups:
+  1) .just/legacy (backup: 20260914_120000_444)
+  Backup: .just/copilot_backups/.just_legacy_20260914_120000_444.bak
+  Target: .just/legacy
+✓ Restored .just/legacy from backup

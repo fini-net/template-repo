@@ -6,8 +6,10 @@ on:
     paths:
       - '.just/lib/*checksum*.sh'
       - '.just/lib/template_*.sh'
+      - '.just/lib/common.sh'
       - '.just/template-sync.just'
       - '.just/claude.just'
+      - '.just/copilot.just'
       - '.just/gh-process.just'
       - '.just/test/fixtures/template_sync/**'
       - '.github/workflows/template-sync.yml'
@@ -15,8 +17,10 @@ on:
     paths:
       - '.just/lib/*checksum*.sh'
       - '.just/lib/template_*.sh'
+      - '.just/lib/common.sh'
       - '.just/template-sync.just'
       - '.just/claude.just'
+      - '.just/copilot.just'
       - '.just/gh-process.just'
       - '.just/test/fixtures/template_sync/**'
       - '.github/workflows/template-sync.yml'

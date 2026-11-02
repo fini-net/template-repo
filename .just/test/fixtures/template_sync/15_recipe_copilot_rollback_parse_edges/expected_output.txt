@@ -1,0 +1,8 @@
+Available backups:
+Warning: Skipping invalid backup path: .just/aa/../evil
+  1) .just/v2 (backup: 20260914_120000_222)
+  2) .just/x_20200101_130000_9 (backup: 20260102_140000_333)
+Warning: skipping unparseable backup name: .just%2Fzz_unparseable.bak
+  Backup: .just/copilot_backups/.just%2Fx_20200101_130000_9_20260102_140000_333.bak
+  Target: .just/x_20200101_130000_9
+✓ Restored .just/x_20200101_130000_9 from backup

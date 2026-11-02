@@ -38,6 +38,12 @@
 #                     shim precedent wait_for_copilot_test.sh uses for
 #                     gh/sleep). Fixture shims win over the harness mock
 #                     because the whole workspace dir sits first on PATH.
+#   stdin          - optional: file piped to the recipe's stdin, for
+#                     recipes that prompt (copilot_rollback's selection
+#                     read, #382). Absent, stdin is /dev/null, so a
+#                     recipe run can never hang on a TTY waiting for
+#                     input; recipes that never read stdin (the
+#                     checksums_* fixtures) are unaffected by EOF.
 set -euo pipefail
 
 # shellcheck source=.just/lib/common.sh
@@ -324,6 +330,93 @@ omega line" "$scratch" "harness_selftest"
 	fi
 }
 
+# Self-test for the security-boundary functions in common.sh (#382):
+# validate_filepath is the gate every manifest key passes before any
+# filesystem use (#347), and sanitize_for_display is what keeps a
+# rejected key from spoofing output lines or injecting terminal escape
+# sequences when it is printed. Recipe fixtures exercise both
+# end-to-end through the checksums gates, but nothing pinned the
+# specific rejection classes, and the escaping here is dense enough
+# that a future "simplifying" edit could drop a class without any
+# fixture going red. common.sh is already sourced at the top of this
+# harness, so this asserts against the real shipped functions - the
+# v10.6 harness_selftest precedent applied to product code. Reports
+# through the same passed/failed counters as a fixture. Verified to
+# behave identically on bash 3.2 (macOS) and bash 5 (CI).
+security_boundary_selftest() {
+	local reasons=()
+	local path rc out
+
+	# Accept: anything under the .just/ charter, including odd-but-
+	# legal whole segment names like "..." (only whole ".." segments
+	# are traversal)
+	for path in ".just/foo.just" ".just/lib/common.sh" ".just/a/b.sh" ".just/..."; do
+		rc=0
+		validate_filepath "$path" || rc=$?
+		[[ $rc -eq 0 ]] || reasons+=("expected accept, got reject: $path")
+	done
+
+	# Reject: anything not under .just/, relative or absolute (the
+	# prefix check is what makes absolute paths safe)
+	for path in "just/foo.just" "src/main.rs" "/etc/passwd" "../outside.sh"; do
+		rc=0
+		validate_filepath "$path" || rc=$?
+		[[ $rc -ne 0 ]] || reasons+=("non-.just/ path accepted: $path")
+	done
+
+	# Reject: whole ".." segments - leading, mid-path, and final
+	for path in ".just/../evil.sh" ".just/a/../b.sh" ".just/.."; do
+		rc=0
+		validate_filepath "$path" || rc=$?
+		[[ $rc -ne 0 ]] || reasons+=("traversal accepted: $path")
+	done
+
+	# Reject: double quotes and backslashes (both break jq string
+	# interpolation). A single quote is deliberately accepted: call
+	# sites pass keys with jq --arg, which is quote-safe - pin that
+	# so the rejection set can't creep wider without this going red.
+	rc=0
+	validate_filepath '.just/a"b.sh' || rc=$?
+	[[ $rc -ne 0 ]] || reasons+=("double quote accepted: .just/a\"b.sh")
+	rc=0
+	validate_filepath '.just/a\b.sh' || rc=$?
+	[[ $rc -ne 0 ]] || reasons+=("backslash accepted: .just/a\\b.sh")
+	rc=0
+	validate_filepath ".just/a'b.sh" || rc=$?
+	[[ $rc -eq 0 ]] || reasons+=("single quote rejected (call sites use jq --arg): .just/a'b.sh")
+
+	# Reject: control characters - tab, ESC, and the embedded newline
+	# a NUL-delimited manifest key can carry (spoofs extra output
+	# lines). Keep these out of the failure messages: printing them
+	# would be the bug under test.
+	for path in $'.just/a\tb.sh' $'.just/a\033b.sh' $'.just/a\nb.sh'; do
+		rc=0
+		validate_filepath "$path" || rc=$?
+		[[ $rc -ne 0 ]] || reasons+=("control-character key accepted")
+	done
+
+	# sanitize_for_display: control bytes stripped, printables intact.
+	# ESC's literal "[31m" tail is deliberately not part of the input:
+	# the contract strips raw control bytes only (the call sites' printf
+	# '%s' handles any remaining literal backslash text).
+	out=$(sanitize_for_display $'ab\ncd\033ef\tgh')
+	[[ "$out" == "abcdefgh" ]] || reasons+=("sanitize_for_display: expected 'abcdefgh', got '$out'")
+	out=$(sanitize_for_display "plain-key.just")
+	[[ "$out" == "plain-key.just" ]] || reasons+=("sanitize_for_display mangled plain text: '$out'")
+
+	if [[ ${#reasons[@]} -eq 0 ]]; then
+		echo -e "${GREEN}✓${NORMAL} security_boundary_selftest"
+		(( passed += 1 ))
+	else
+		echo -e "${RED}✗${NORMAL} security_boundary_selftest"
+		local reason
+		for reason in "${reasons[@]}"; do
+			echo "    $reason"
+		done
+		(( failed += 1 ))
+	fi
+}
+
 # Recipe mode: run the real `just <recipe> <args...>` inside a temp
 # workspace that mirrors a derived repo (minimal justfile importing a
 # copy of the real template-sync.just + common.sh), with mocked curl
@@ -422,13 +515,19 @@ run_recipe_test() {
 	# shadow both the harness mock curl and real tools). The if/else
 	# branch keeps empty-argument recipes working under set -u on bash
 	# 3.2 (macOS), where "empty_array[@]" is an unbound-variable error.
+	# stdin comes from the fixture's `stdin` file when present, else
+	# /dev/null, so interactive prompts (copilot_rollback's selection
+	# read, #382) get deterministic input and a run can never hang on a
+	# TTY; recipes that never read stdin are unaffected by EOF.
 	cd "$workspace"
 	local output actual_exit=0
+	local stdin_file="/dev/null"
+	[[ -f "$test_dir/stdin" ]] && stdin_file="$test_dir/stdin"
 	if [[ ${#recipe_args[@]} -gt 0 ]]; then
-		output=$(PATH="$workspace:$PATH" just "$recipe_name" "${recipe_args[@]}" 2>&1) \
+		output=$(PATH="$workspace:$PATH" just "$recipe_name" "${recipe_args[@]}" < "$stdin_file" 2>&1) \
 			|| actual_exit=$?
 	else
-		output=$(PATH="$workspace:$PATH" just "$recipe_name" 2>&1) \
+		output=$(PATH="$workspace:$PATH" just "$recipe_name" < "$stdin_file" 2>&1) \
 			|| actual_exit=$?
 	fi
 
@@ -550,6 +649,12 @@ main() {
 	# supposed to fail, so the dump and state-reason paths need their
 	# own coverage (review round, #433)
 	harness_selftest
+
+	# Assert the common.sh security boundary before the fixture pass:
+	# validate_filepath / sanitize_for_display are the sync system's
+	# actual gate (#347), and no fixture pins their rejection classes
+	# individually (#382)
+	security_boundary_selftest
 
 	# Run each test
 	for test_dir in "$FIXTURES_DIR"/*; do

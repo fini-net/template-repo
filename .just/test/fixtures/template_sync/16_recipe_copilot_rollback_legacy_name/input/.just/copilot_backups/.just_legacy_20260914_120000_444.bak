@@ -1,0 +1,1 @@
+legacy underscore-decode payload - .just_legacy has no %2F escapes, so the _-for-/ fallback decodes it to .just/legacy

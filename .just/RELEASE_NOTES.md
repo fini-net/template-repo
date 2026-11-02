@@ -4,6 +4,62 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v10.7 - copilot_rollback dotglob reset + security-boundary test coverage (2026-11-02)
+
+- Fixes issues [#378](https://github.com/fini-net/template-repo/issues/378)
+  and [#382](https://github.com/fini-net/template-repo/issues/382)
+
+**`copilot_rollback` now restores default globbing.** The recipe enables
+`shopt -s dotglob` so the `*.bak` listing matches dot-prefixed backup
+names (#332), but never reset it - harmless while each recipe runs in
+its own bash process, but inconsistent with the set/reset cleanup idiom
+the test harness uses, and a trap for any glob added later in the same
+recipe body, which would silently start matching dotfiles too (#378).
+A matching `shopt -u dotglob` now runs right after the listing loop.
+The subshell-scoping alternative from the issue would have meant
+restructuring the `backups`/`backup_targets` arrays the selection
+prompt uses after the loop, so the one-line reset wins.
+
+**The sync system's security boundary has direct assertions.** Two v9.9
+sync reviews flagged that the boundary itself - `validate_filepath` /
+`sanitize_for_display` in `common.sh`, and the `copilot_rollback`
+backup-name parse - shipped with no unit-level tests for its rejection
+classes (#382). `template_sync_test.sh` grew a
+`security_boundary_selftest` pseudo-fixture (the v10.6
+`harness_selftest` precedent applied to product code) which asserts
+every documented `validate_filepath` rejection class against the real
+sourced `common.sh`: non-`.just/` prefixes, absolute paths, whole
+`..` segments, double quotes and backslashes, and control characters
+including the embedded-newline NUL-delimited-key case - plus the
+odd-but-legal `...` accept case, the deliberate single-quote accept
+(call sites pass keys with jq `--arg`, which is quote-safe), and
+`sanitize_for_display` control-byte stripping. `common.sh` also gained
+the worked example the gh-amp review asked for, since the escaping
+there is dense and easy to break on a future "simplifying" edit.
+
+**`copilot_rollback` is now fixture-covered end to end.** A new `stdin`
+fixture key pipes a fixture file to the recipe (default `/dev/null`),
+so the recipe's interactive selection read gets deterministic input and
+no recipe run can hang on a TTY. Three new recipe fixtures drive the
+real recipe in a shimmed workspace (a `gum` shim confirms the restore
+and declines the push): a happy-path restore of a dot-prefixed
+URL-encoded backup - which doubles as the regression test for the
+dotglob listing, since it fails if `*.bak` ever stops matching
+dot-prefixed names - a parse-edge fixture pinning the greedy
+timestamp-suffix split (a digit-heavy safe path, a safe path that
+itself ends in a timestamp-like suffix, an unparseable loud-skip, and
+a `../`-decoding skip), and a legacy `_`-for-`/` fixture pinning the
+fallback decode branch. The fixtures feed names through the real regex
+in the real recipe, so neither can lose a rejection class without a red
+fixture. Fixture backup names share a `.just%2F` prefix and differ
+first at an alphanumeric character, keeping the in-order matcher for
+expected output stable across C and en_US.UTF-8 collation.
+
+**`template-sync.yml` triggers.** The workflow now also fires on
+`.just/copilot.just` and `.just/lib/common.sh` - neither path
+triggered the sync workflow before, so a `common.sh` edit ran no sync
+CI at all.
+
 ### v10.6 - template_sync_test: mismatch dump + DRY matcher/state helpers (2026-11-02)
 
 - Fixes issues [#376](https://github.com/fini-net/template-repo/issues/376)
