@@ -6,7 +6,8 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ### v10.5 - compliance suite: enforced single-quote extraction guard (2026-11-02)
 
-- **Related PR:** follow-up to [#431](https://github.com/fini-net/template-repo/pull/431)
+- **Related PR:** [#432](https://github.com/fini-net/template-repo/pull/432)
+  (follow-up to [#431](https://github.com/fini-net/template-repo/pull/431))
 
 **The single-quote constraint is now enforced, not just documented.**
 `compliance_test.sh`'s `extract_pattern` takes a fourth argument - the
