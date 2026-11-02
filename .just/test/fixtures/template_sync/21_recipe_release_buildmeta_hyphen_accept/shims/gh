@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Shim gh: record the release command so the fixture can assert a
+# hyphen inside BUILD metadata does not trigger --prerelease - semver
+# build identifiers may hyphenate (v1.0.0+build-5 is a normal
+# release) (#379 review round 2 regression pin)
+echo "gh-shim: $*"

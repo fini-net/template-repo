@@ -74,10 +74,11 @@ is backwards for precedence. Tracked in
 its security story and flagged one real gap, folded in here: accepting
 `-rc1` tags while publishing them as *normal* releases would let a
 pre-release wear the GitHub Latest crown - the same half-acceptance
-complained about in #379, one layer up. Since the grammar admits a
-hyphen only inside a pre-release suffix, hyphenated versions now
-publish with `--prerelease`; build metadata alone (`v1.0.0+build.5`)
-is not a pre-release per semver and publishes normally. The if/else
+complained about in #379, one layer up. Pre-release detection strips
+the `+build` suffix first, then tests the remainder for a hyphen, so
+`v1.0.0-rc1` publishes with `--prerelease`; build metadata alone
+(`v1.0.0+build.5`) is not a pre-release per semver and publishes
+normally. The if/else
 avoids the bash 3.2 `set -u` empty-array expansion trap the test
 harness documents. Fixture 17 now asserts the flag round-trips to
 `gh release create`, while fixtures 12 and 18 pin that plain and
@@ -89,6 +90,26 @@ the recipe comment owns the choice. And the reviewer's
 which lists pre-releases too, so it keeps reporting time since the
 newest release activity, rc or not - defensible activity-based
 semantics, left as is.
+
+**Review round two (PR #437).** The second review caught a real bug in
+the first cut of the pre-release flag: it tested the whole version for
+a hyphen, and semver build identifiers may hyphenate, so
+`v1.0.0+build-5` would have published with `--prerelease`. The test now
+runs on the version with build metadata stripped
+(`rel_core="${rel_version%%+*}"`), and two fixtures grew from the same
+note: `20_recipe_release_combined_suffix_accept` pins that a combined
+`-rc.1+build.5` tag keeps the flag, and
+`21_recipe_release_buildmeta_hyphen_accept` pins that `+build-5` does
+not get it. The reviewer also asked whether the fixture-19 injection
+probe really arrives intact: a scratch `just` run confirmed `$1`
+carries `v1.0.0";touch${IFS}pwn#` byte for byte (no execution, no
+mangling), so the rejection is the regex, not argument loss on the way
+in. And the two v10.8 entries the review spotted for `gh-process.just`
+in CHECKSUMS.json are the manifest's normal shape - version labels
+come from commit subjects, one entry per distinct checksum, and
+twelve tracked files already carry same-version entries; the
+hash/date refresh on unchanged files is the same
+regenerating-from-git-history behavior.
 
 ### v10.7 - copilot_rollback dotglob reset + security-boundary test coverage (2026-11-02)
 

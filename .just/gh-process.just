@@ -367,15 +367,17 @@ release rel_version:
         exit 1
     fi
 
-    # Standard release workflow. The grammar admits a hyphen only in
-    # a pre-release suffix, so a hyphenated version publishes as a
-    # GitHub pre-release - rcs cannot wear the Latest crown over the
-    # stable release they precede (semver precedence). Build metadata
-    # alone (v1.0.0+build.5) is not a pre-release per semver and
-    # publishes as a normal release. The if/else instead of an
-    # optional-args array sidesteps the bash 3.2 set -u empty-array
-    # expansion trap the test harness documents.
-    if [[ "$rel_version" == *-* ]]; then
+    # Standard release workflow. A GitHub pre-release flag keeps rcs
+    # from wearing the Latest crown over the stable release they
+    # precede (semver precedence). Hyphens can appear in BOTH suffix
+    # classes - semver build identifiers may contain them
+    # (v1.0.0+build-5) - so the pre-release test strips the +build
+    # suffix first; a hyphen left in the core or pre-release part
+    # triggers --prerelease, build metadata alone does not. The if/else
+    # instead of an optional-args array sidesteps the bash 3.2 set -u
+    # empty-array expansion trap the test harness documents.
+    rel_core="${rel_version%%+*}"
+    if [[ "$rel_core" == *-* ]]; then
         gh release create "$rel_version" --prerelease --generate-notes
     else
         gh release create "$rel_version" --generate-notes
