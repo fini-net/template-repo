@@ -60,7 +60,11 @@ else
 	# like "$VAR" extracts as literal text and is flagged, so removals
 	# keep the literal path form the NOTE demands. Only the two named
 	# in-place scratch files are excluded (justfile.tmp, .repo.toml.tmp),
-	# so a real tracked path ending in .tmp still counts as drift
+	# so a real tracked path ending in .tmp still counts as drift. Both
+	# scratch removals are unquoted today, so the exclusion currently
+	# matches nothing - it is defense-in-depth for the day someone
+	# quotes them, pinned live by the guard self-test in
+	# template_sync_test.sh (review of #438)
 	removed_paths=$(grep '^[[:space:]]' "$CLEAN_TEMPLATE_JUST" \
 		| grep -oE 'rm -[a-z]+ "[^"]+"' \
 		| grep -vE '"(justfile|\.repo\.toml)\.tmp"$' \

@@ -28,8 +28,8 @@ every CHECKSUMS-tracked change requires the bump's
 and `template-sync.yml` now also triggers on `clean-template.just`
 edits, so the recipe side runs the guard in template-repo CI too. One
 extraction subtlety worth pinning: the match is `rm -[a-z]+ "..."`
-because `rm -rf?` alone silently misses every plain `rm -f`, which
-would have made the guard vacuously pass on 16 of 17 paths.
+because `rm -rf?` alone silently misses every plain `rm -f`, leaving
+only the `rm -rf` directory removal in the extracted set.
 
 **The list is now complete.** `docs/template-repo-banner.png` was removed
 by the recipe but absent from `CLEANED_FILES` - the one real divergence
@@ -62,6 +62,24 @@ phantom paths; inside a recipe body a double-quoted variable like
 `"$VAR"` extracts as literal text and is flagged, while single-quoted
 or unquoted arguments are not extracted at all - both routes end in
 loud failure, so removals keep the literal form.
+
+**Guard self-test (second review round).** The guard's failure modes
+were each found by hand, so the review conditioned approval on
+coverage. `template_sync_test.sh` now runs a `guard_selftest` that
+drives the real `generate_checksums.sh` in scratch sandboxes - script,
+`common.sh`, and recipe copies plus a one-file git repo, so the pass
+cases run generation end-to-end - across eight scenarios: in-sync
+pass, removed-but-not-listed, typo'd entry (both directions in one
+report), a column-0 comment example that must not poison the scan,
+zero-extraction with the pointed stale-pattern error, the
+missing-recipe warn-and-skip, a double-quoted `"$VAR"` removal
+surfacing as its literal text, and quoted scratch files staying
+excluded. Every scenario was red-checked by breaking the real guard
+three ways (regex narrowed, indent filter dropped, exclusion dropped)
+and watching the suite fail. That last scenario also keeps the scratch
+exclusion honest: both real scratch removals are unquoted, so the
+exclusion currently matches nothing - it defends the day someone
+quotes them.
 
 ### v10.8 - release accepts semver pre-release/build tags (2026-11-02)
 
