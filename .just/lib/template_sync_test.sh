@@ -203,7 +203,7 @@ match_expected_output() {
 			# First-difference hint, then both sides, normalized (#376)
 			output_mismatch=$(
 				echo "      First unmatched expected line $i: \"$line\""
-				echo "      (matching stopped at normalized output line $search_start)"
+				echo "      (searched for it from normalized output line $search_start onward)"
 				echo "      expected:"
 				printf '        %s\n' "${expected_lines[@]}"
 				echo "      actual:"
@@ -232,6 +232,9 @@ verify_expected_state() {
 	[[ -d "$test_dir/expected_state" ]] || return 0
 
 	local expected_file
+	# LC_ALL=C sort: find's order is filesystem-dependent, and the
+	# mismatch report names the first offender, so the reported file
+	# must not vary between runs or machines (review round, #433)
 	while IFS= read -r expected_file; do
 		# Quoted pattern (SC2295): the pre-extraction run_update_test
 		# copy had drifted to the unquoted form (#377)
@@ -251,7 +254,74 @@ verify_expected_state() {
 			state_mismatch="differs: $rel_path"
 			return 0
 		fi
-	done < <(find "$test_dir/expected_state" -type f)
+	done < <(find "$test_dir/expected_state" -type f | LC_ALL=C sort)
+}
+
+# Self-test for the shared matchers (review round, #433): the
+# mismatch diagnostics only print when a fixture fails, and no
+# fixture is supposed to fail, so the dump and state-reason paths
+# would otherwise carry no coverage. Drives the helpers against a
+# deliberately wrong scratch fixture and asserts the diagnostics
+# fire - and stay silent on a clean run - reporting through the
+# same passed/failed counters as a fixture. Applies the v10.5
+# compliance suite's run-on-every-run self-test precedent here.
+harness_selftest() {
+	local scratch ws reasons=()
+	scratch=$(mktemp -d)
+	ws=$(mktemp -d)
+
+	# Scratch fixture: two expected lines, one expected-state file
+	mkdir -p "$scratch/expected_state/.just" "$ws/.just"
+	printf 'alpha line\nomega line\n' > "$scratch/expected_output.txt"
+	printf 'state one\n' > "$scratch/expected_state/.just/state.just"
+
+	# Red case: second expected line missing from the output
+	match_expected_output "alpha line" "$scratch" "harness_selftest"
+	[[ "$output_ok" == false ]] || reasons+=("red output: output_ok not false")
+	[[ "$output_mismatch" == *"First unmatched expected line 2"* ]] \
+		|| reasons+=("red output: dump lacks first-unmatched marker")
+	[[ "$output_mismatch" == *"searched for it from normalized output line 2 onward"* ]] \
+		|| reasons+=("red output: dump lacks search-position hint")
+
+	# Green case: every expected line present in order
+	match_expected_output "alpha line
+omega line" "$scratch" "harness_selftest"
+	[[ "$output_ok" == true ]] || reasons+=("green output: output_ok not true")
+	[[ -z "$output_mismatch" ]] || reasons+=("green output: mismatch detail not empty")
+
+	# Green state: identical checksums
+	printf 'state one\n' > "$ws/.just/state.just"
+	verify_expected_state "$ws" "$scratch"
+	[[ "$state_ok" == true ]] || reasons+=("green state: state_ok not true")
+	[[ -z "$state_mismatch" ]] || reasons+=("green state: mismatch detail not empty")
+
+	# Red state: content differs
+	printf 'state one changed\n' > "$ws/.just/state.just"
+	verify_expected_state "$ws" "$scratch"
+	[[ "$state_ok" == false ]] || reasons+=("differs state: state_ok not false")
+	[[ "$state_mismatch" == "differs: .just/state.just" ]] \
+		|| reasons+=("differs state: got '$state_mismatch'")
+
+	# Red state: file missing
+	rm "$ws/.just/state.just"
+	verify_expected_state "$ws" "$scratch"
+	[[ "$state_ok" == false ]] || reasons+=("missing state: state_ok not false")
+	[[ "$state_mismatch" == "missing: .just/state.just" ]] \
+		|| reasons+=("missing state: got '$state_mismatch'")
+
+	rm -rf "$scratch" "$ws"
+
+	if [[ ${#reasons[@]} -eq 0 ]]; then
+		echo -e "${GREEN}✓${NORMAL} harness_selftest"
+		(( passed += 1 ))
+	else
+		echo -e "${RED}✗${NORMAL} harness_selftest"
+		local reason
+		for reason in "${reasons[@]}"; do
+			echo "    $reason"
+		done
+		(( failed += 1 ))
+	fi
 }
 
 # Recipe mode: run the real `just <recipe> <args...>` inside a temp
@@ -474,6 +544,12 @@ main() {
 		echo "Tests skipped"
 		return 0
 	fi
+
+	# Self-test the matcher/state helpers before the fixture pass: the
+	# mismatch diagnostics only print on failure, and no fixture is
+	# supposed to fail, so the dump and state-reason paths need their
+	# own coverage (review round, #433)
+	harness_selftest
 
 	# Run each test
 	for test_dir in "$FIXTURES_DIR"/*; do

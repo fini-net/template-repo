@@ -19,8 +19,8 @@ dumps both sides - expected lines and the normalized actual output -
 through the exact normalization the matcher uses (colors stripped,
 blank lines dropped, `/tmp` paths scrubbed, so mktemp/pid noise never
 appears), plus a first-difference hint: the first expected line with
-no match at/after the search position, and the normalized line where
-matching stopped. The state report got the same treatment: `State
+no match at/after the search position, and the normalized line the
+search had reached. The state report got the same treatment: `State
 mismatch` now names the offending file and reason (`missing:` /
 `differs:`), the state counterpart of the output dump. The suite is
 the standing guard for the "tracked modules must be self-contained"
@@ -43,6 +43,20 @@ cleanup). The `write_mock_curl` contract comment now states the
 narrowed manifest contract: the CHECKSUMS.json branch sits inside the
 `-o` branch, so a manifest fetch without `-o` falls through to
 failure (both real call sites use `-o`).
+
+**Review round (PR #433).** The state walk now sorts before
+checksumming (`find | LC_ALL=C sort`): `find`'s order is
+filesystem-dependent, and the mismatch report names the first
+offender, so which file gets reported must not vary between runs or
+machines. The search-position hint was reworded to "searched for it
+from line N onward" - the first wording could be misread as naming
+the line that failed. And the matchers gained a `harness_selftest`
+pseudo-fixture that runs before every fixture pass: the diagnostics
+only print on failure and no fixture is supposed to fail, so the
+dump and state-reason paths had no coverage - the self-test drives
+the helpers against a deliberately wrong scratch fixture and asserts
+the dump fires (and stays silent on a clean run), the v10.5
+compliance suite's run-on-every-run self-test precedent applied here.
 
 ### v10.5 - compliance suite: enforced terminal-token extraction guard (2026-11-02)
 
