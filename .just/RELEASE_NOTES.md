@@ -31,7 +31,7 @@ after the review round on
 [#430](https://github.com/fini-net/template-repo/pull/430), no longer
 claims surgical cleanliness while a size advisory is on the screen, and
 the classification greps anchor to the `file` description after
-`path: ` rather than the whole line, so a text file *named*
+`path:` rather than the whole line, so a text file *named*
 `ELF-notes.md` or `PDF-spec.txt` is classified by its content instead of
 its name. Output plumbing uses `printf '%s\n'` rather than `echo` so a
 filename starting with `-n` cannot be eaten as a flag. Paths containing
