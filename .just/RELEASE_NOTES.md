@@ -4,6 +4,71 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v10.8 - release accepts semver pre-release/build tags (2026-11-02)
+
+- Fixes issue [#379](https://github.com/fini-net/template-repo/issues/379)
+
+**`just release` accepts `v1.0.0-rc1` and `v1.0.0+build.5` again.** The
+v9.7 quote-injection hardening (#359) tightened the release version
+regex to `^v[0-9]+(\.[0-9]+){0,2}$`, silently rejecting semver
+pre-release and build-metadata tags the old loose `^v[0-9]` check had
+allowed. The rejection was deliberate - the v9.7 entry below says so -
+but it was documented only in these notes, not in the recipe comment
+or the error message, so two v9.9 sync reviews
+([fini-domains#62](https://github.com/fini-net/fini-domains/pull/62#issuecomment-5717899954),
+[fini-projects#34](https://github.com/fini-net/fini-projects/pull/34#issuecomment-5670582615))
+could not tell rejection-by-design from breakage. The regex now takes
+optional `-prerelease` and `+build` suffixes -
+`^v[0-9]+(\.[0-9]+){0,2}(-[0-9A-Za-z.-]+)?([+][0-9A-Za-z.-]+)?$` -
+each independently optional, so `v1`, `v1.0`, `v1.0.0`, `v1.0.0-rc1`,
+`v1.0.0+build.5` and both suffixes together all pass.
+
+**The #359 guard is unchanged in strength.** The suffix character
+classes admit no shell metacharacters - alphanumerics, hyphen, dot,
+and a bracketed `[+]` (the escaped `\+` spelling happens to work on
+glibc and macOS libc alike, but the class form is unambiguous
+everywhere) - and both anchors stay, so the original
+`v1"; touch /tmp/pwned #` payload still fails validation.
+`rel_version` continues to flow only into the quoted
+`gh release create "$rel_version"` call. This is a grammar guard, not
+a semver validator: degenerate but metacharacter-free suffixes like
+`v1.0.0--` pass, and the recipe comment says so.
+
+**Accepting at the template level beats documenting the rejection.**
+The v9.7 entry called loosening a one-line change for any repo that
+ever needs pre-releases, but for derived repos it is not:
+`gh-process.just` is CHECKSUMS-tracked, so a locally loosened line
+would show up as modified-file drift in `checksums_verify` and
+template sync - the template would be advising an edit its own drift
+detector flags. Template-repo itself keeps its plain `vX`/`vX.Y` tag
+history and simply never uses the suffixes. The error message now
+states the full accepted grammar with examples, so any future
+rejection is self-explanatory either way.
+
+**Fixtures pin both acceptances and a rejection.** Two new recipe
+fixtures reuse the fixture-12 gh/git shim pattern to drive the real
+recipe: `17_recipe_release_prerelease_accept` asserts `release
+v1.0.0-rc1` reaches `gh release create` intact, and
+`18_recipe_release_buildmeta_accept` does the same for
+`v1.0.0+build.5` - a tag the old regex could never admit.
+`19_recipe_release_reject` feeds the single-token injection probe
+`v1.0.0";touch${IFS}pwn#` - the shape of the original #359 payload,
+squeezed into one token because the harness parses the fixture recipe
+line by whitespace - and asserts the grammar error and exit 1. All
+three feed versions through the real regex in the real recipe, so
+loosening can never silently lose a rejection class.
+
+**Monotonic ordering deliberately deferred.** The #379 thread also
+surfaced that `release` never checks that the new version sorts after
+the previous one - `v1.0.0` after `v1.2.0` succeeds today, and GitHub
+marks the newest created release as latest regardless of version
+order. That stays out of scope here because its design choices are a
+separate conversation - warn vs prompt vs fail (backport tagging like
+`v1.1.1` after `v2.0.0` is legitimate), and the comparison must be
+semver-aware since `sort -V` orders `1.0.0-rc1` after `1.0.0`, which
+is backwards for precedence. Tracked in
+[#436](https://github.com/fini-net/template-repo/issues/436).
+
 ### v10.7 - copilot_rollback dotglob reset + security-boundary test coverage (2026-11-02)
 
 - Fixes issues [#378](https://github.com/fini-net/template-repo/issues/378)

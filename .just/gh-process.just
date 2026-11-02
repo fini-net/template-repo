@@ -28,7 +28,7 @@ sync:
 # the asciinema flag file, not git state - every path delegates to
 # _pr_inner, so the guard still fires exactly once, inside the recipe
 # body it protects.
-# PR create v10.7
+# PR create v10.8
 [group('Process')]
 pr:
     #!/usr/bin/env bash
@@ -349,11 +349,21 @@ release rel_version:
         exit 0
     fi
 
-    # Validate version format - must be v, digits, with up to two
-    # .digits groups, nothing else (start-anchored-only regexes let
-    # quote-injection through, #359)
-    if [[ ! "$rel_version" =~ ^v[0-9]+(\.[0-9]+){0,2}$ ]]; then
-        echo "{{RED}}Error: Release version must be v followed by digits and up to two .digits groups (e.g., v1, v1.0, v1.0.0){{NORMAL}}"
+    # Validate version format: v, digits, up to two .digits groups,
+    # then optionally a semver -prerelease and/or +build suffix
+    # (v1.0.0-rc1, v1.0.0+build.5). The suffix character classes are
+    # confined to [0-9A-Za-z.-] and a bracketed [+] (unambiguous on
+    # glibc and macOS libc alike), so they admit no shell
+    # metacharacters, and both anchors stay intact - the #359
+    # quote-injection guard is unchanged in strength. Suffix
+    # acceptance is a deliberate template-level default (#379):
+    # derived repos may tag pre-releases, and locally loosening this
+    # CHECKSUMS-tracked line would show up as drift in
+    # checksums_verify. This is a grammar guard, not a semver
+    # validator - degenerate but metacharacter-free suffixes like
+    # v1.0.0-- pass; anything outside the classes fails.
+    if [[ ! "$rel_version" =~ ^v[0-9]+(\.[0-9]+){0,2}(-[0-9A-Za-z.-]+)?([+][0-9A-Za-z.-]+)?$ ]]; then
+        echo "{{RED}}Error: Release version must be v plus digits with up to two .digits groups (v1, v1.0, v1.0.0), optionally with a -pre or +build suffix (v1.0.0-rc1, v1.0.0+build.5){{NORMAL}}"
         exit 1
     fi
 
