@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Shim gh: the reject fixture never reaches gh - the shims are a
+# hermetic backstop so a regression that lets the injection probe
+# through stays off real GitHub (#359 / #379)
+echo "gh-shim: $*"

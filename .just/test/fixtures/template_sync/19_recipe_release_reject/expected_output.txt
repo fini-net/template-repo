@@ -1,0 +1,1 @@
+Error: Release version must be v plus digits with up to two .digits groups (v1, v1.0, v1.0.0), optionally with a -pre or +build suffix (v1.0.0-rc1, v1.0.0+build.5)

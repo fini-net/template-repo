@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Shim gh: record the release command so the fixture can assert a
+# combined pre-release + build tag keeps its --prerelease flag (#379)
+echo "gh-shim: $*"

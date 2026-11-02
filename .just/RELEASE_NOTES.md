@@ -4,6 +4,113 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v10.8 - release accepts semver pre-release/build tags (2026-11-02)
+
+- Fixes issue [#379](https://github.com/fini-net/template-repo/issues/379)
+- **Related PR:** [#437](https://github.com/fini-net/template-repo/pull/437)
+
+**`just release` accepts `v1.0.0-rc1` and `v1.0.0+build.5` again.** The
+v9.7 quote-injection hardening (#359) tightened the release version
+regex to `^v[0-9]+(\.[0-9]+){0,2}$`, silently rejecting semver
+pre-release and build-metadata tags the old loose `^v[0-9]` check had
+allowed. The rejection was deliberate - the v9.7 entry below says so -
+but it was documented only in these notes, not in the recipe comment
+or the error message, so two v9.9 sync reviews
+([fini-domains#62](https://github.com/fini-net/fini-domains/pull/62#issuecomment-5717899954),
+[fini-projects#34](https://github.com/fini-net/fini-projects/pull/34#issuecomment-5670582615))
+could not tell rejection-by-design from breakage. The regex now takes
+optional `-prerelease` and `+build` suffixes -
+`^v[0-9]+(\.[0-9]+){0,2}(-[0-9A-Za-z.-]+)?([+][0-9A-Za-z.-]+)?$` -
+each independently optional, so `v1`, `v1.0`, `v1.0.0`, `v1.0.0-rc1`,
+`v1.0.0+build.5` and both suffixes together all pass.
+
+**The #359 guard is unchanged in strength.** The suffix character
+classes admit no shell metacharacters - alphanumerics, hyphen, dot,
+and a bracketed `[+]` (the escaped `\+` spelling happens to work on
+glibc and macOS libc alike, but the class form is unambiguous
+everywhere) - and both anchors stay, so the original
+`v1"; touch /tmp/pwned #` payload still fails validation.
+`rel_version` continues to flow only into the quoted
+`gh release create "$rel_version"` call. This is a grammar guard, not
+a semver validator: degenerate but metacharacter-free suffixes like
+`v1.0.0--` pass, and the recipe comment says so.
+
+**Accepting at the template level beats documenting the rejection.**
+The v9.7 entry called loosening a one-line change for any repo that
+ever needs pre-releases, but for derived repos it is not:
+`gh-process.just` is CHECKSUMS-tracked, so a locally loosened line
+would show up as modified-file drift in `checksums_verify` and
+template sync - the template would be advising an edit its own drift
+detector flags. Template-repo itself keeps its plain `vX`/`vX.Y` tag
+history and simply never uses the suffixes. The error message now
+states the full accepted grammar with examples, so any future
+rejection is self-explanatory either way.
+
+**Fixtures pin both acceptances and a rejection.** Two new recipe
+fixtures reuse the fixture-12 gh/git shim pattern to drive the real
+recipe: `17_recipe_release_prerelease_accept` asserts `release
+v1.0.0-rc1` reaches `gh release create` intact, and
+`18_recipe_release_buildmeta_accept` does the same for
+`v1.0.0+build.5` - a tag the old regex could never admit.
+`19_recipe_release_reject` feeds the single-token injection probe
+`v1.0.0";touch${IFS}pwn#` - the shape of the original #359 payload,
+squeezed into one token because the harness parses the fixture recipe
+line by whitespace - and asserts the grammar error and exit 1. All
+three feed versions through the real regex in the real recipe, so
+loosening can never silently lose a rejection class.
+
+**Monotonic ordering deliberately deferred.** The #379 thread also
+surfaced that `release` never checks that the new version sorts after
+the previous one - `v1.0.0` after `v1.2.0` succeeds today, and GitHub
+marks the newest created release as latest regardless of version
+order. That stays out of scope here because its design choices are a
+separate conversation - warn vs prompt vs fail (backport tagging like
+`v1.1.1` after `v2.0.0` is legitimate), and the comparison must be
+semver-aware since `sort -V` orders `1.0.0-rc1` after `1.0.0`, which
+is backwards for precedence. Tracked in
+[#436](https://github.com/fini-net/template-repo/issues/436).
+
+**Review round (PR #437).** Claude's review approved the grammar and
+its security story and flagged one real gap, folded in here: accepting
+`-rc1` tags while publishing them as *normal* releases would let a
+pre-release wear the GitHub Latest crown - the same half-acceptance
+complained about in #379, one layer up. Pre-release detection strips
+the `+build` suffix first, then tests the remainder for a hyphen, so
+`v1.0.0-rc1` publishes with `--prerelease`; build metadata alone
+(`v1.0.0+build.5`) is not a pre-release per semver and publishes
+normally. The if/else
+avoids the bash 3.2 `set -u` empty-array expansion trap the test
+harness documents. Fixture 17 now asserts the flag round-trips to
+`gh release create`, while fixtures 12 and 18 pin that plain and
+build-only versions do not get it. The reviewer also suggested a
+tighter dot-separated-identifier suffix class; the looser class stays
+a documented tradeoff - `v1.0.0--` is a semver-legal identifier, and
+the recipe comment owns the choice. And the reviewer's
+`release_age` question, checked: it reads `gh release list --limit 1`,
+which lists pre-releases too, so it keeps reporting time since the
+newest release activity, rc or not - defensible activity-based
+semantics, left as is.
+
+**Review round two (PR #437).** The second review caught a real bug in
+the first cut of the pre-release flag: it tested the whole version for
+a hyphen, and semver build identifiers may hyphenate, so
+`v1.0.0+build-5` would have published with `--prerelease`. The test now
+runs on the version with build metadata stripped
+(`rel_core="${rel_version%%+*}"`), and two fixtures grew from the same
+note: `20_recipe_release_combined_suffix_accept` pins that a combined
+`-rc.1+build.5` tag keeps the flag, and
+`21_recipe_release_buildmeta_hyphen_accept` pins that `+build-5` does
+not get it. The reviewer also asked whether the fixture-19 injection
+probe really arrives intact: a scratch `just` run confirmed `$1`
+carries `v1.0.0";touch${IFS}pwn#` byte for byte (no execution, no
+mangling), so the rejection is the regex, not argument loss on the way
+in. And the two v10.8 entries the review spotted for `gh-process.just`
+in CHECKSUMS.json are the manifest's normal shape - version labels
+come from commit subjects, one entry per distinct checksum, and
+twelve tracked files already carry same-version entries; the
+hash/date refresh on unchanged files is the same
+regenerating-from-git-history behavior.
+
 ### v10.7 - copilot_rollback dotglob reset + security-boundary test coverage (2026-11-02)
 
 - Fixes issues [#378](https://github.com/fini-net/template-repo/issues/378)
