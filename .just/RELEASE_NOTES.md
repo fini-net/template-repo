@@ -4,6 +4,88 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v10.3 - compliance: binary-artifact split, portable grep, SUPPORT.md (2026-11-02)
+
+- Fixes issues
+  [#373](https://github.com/fini-net/template-repo/issues/373),
+  [#380](https://github.com/fini-net/template-repo/issues/380), and
+  [#386](https://github.com/fini-net/template-repo/issues/386)
+- **Related PR:** [#430](https://github.com/fini-net/template-repo/pull/430)
+
+**`compliance_check` no longer treats images and PDFs as contraband
+([#373](https://github.com/fini-net/template-repo/issues/373)).** The
+OpenSSF-aligned Binary-Artifacts heuristic ran one `file` pass whose `grep`
+lumped `JPEG|PNG|GIF|Web/P|PDF` in with `ELF|Mach-O|PE32|MS Windows`, so any
+derived repo that legitimately ships media - Hugo sites with static images,
+games with sprite/audio assets, docs trees with PDFs - printed red on every
+run, and a permanently red check is noise that gets ignored. The scan now
+classifies each file exactly once: executables stay red (that is what
+Scorecard's Binary-Artifacts check is actually about), while media formats
+become a yellow advisory with a count. `MS Windows icon resource`
+(favicon.ico and friends) classifies as data, not executable, so static
+sites stay clean. Blobs over 1MB moved out of the red branch into their own
+yellow advisory - size hygiene is worth mentioning, but not worth drowning
+the executable signal, and template-repo itself was permanently red on its
+own 1.7MB banner. The green verdict keys on executables alone and stays
+quiet about surgical cleanliness while a size advisory is on the screen.
+The classification greps anchor to the `file` description after
+`path:` rather than the whole line and require a word boundary
+(`(^|[^a-zA-Z0-9_])`, the portable #380 form) before each keyword, so a
+text file *named* `ELF-notes.md` or `PDF-spec.txt` is classified by its
+content instead of its name, and a keyword embedded mid-word in a
+description cannot match. Output plumbing uses `printf '%s\n'` rather
+than `echo` so a filename starting with `-n` cannot be eaten as a flag.
+Paths containing `:` (or newlines) still confuse the `cut -d: -f1`
+extraction - a pre-existing, now-documented limitation acceptable for an
+informational check.
+
+**The OpenSSF heuristics no longer depend on GNU grep extensions
+([#380](https://github.com/fini-net/template-repo/issues/380)).** `\b` word
+boundaries and `-w` silently degrade under the BSD grep macOS ships -
+boundaries treated literally, matches missed, with no hint to the user that
+the output means less than it does on Linux. All three sites (the CI-Tests
+`test_cmds` pattern, the `pull_request_target` secrets scan, and the `sudo`
+scan) now use POSIX character-class boundaries (`(^|[^a-zA-Z0-9_])` on the
+left, `([^a-zA-Z0-9_]|$)` on the right), verified on both BSD and GNU grep;
+the comments that documented the deliberate GNU dependency now document the
+portable form instead. No runtime GNU-grep detection notice was needed
+because nothing GNU-specific remains.
+
+**`compliance_check` now verifies `.github/SUPPORT.md`
+([#386](https://github.com/fini-net/template-repo/issues/386)).** The README
+links to it, and the link dangled until the file was added - exactly the
+kind of rot a compliance check exists to catch. The check sits with the
+other `.github/*` file checks and carries the `[gh]` label, but SUPPORT.md
+is not part of GitHub's community-standards checklist: it is an
+extra-health check like the custom social preview one.
+
+**New tests pin the two behaviors that regress invisibly.**
+`.just/lib/compliance_test.sh` (run via `just compliance_test`) does not
+hardcode copies of the patterns - it extracts the live boundary and
+classification pattern strings from `compliance.just` and exercises
+those, so someone "simplifying" a boundary back to GNU `\b` (silently
+literal under the BSD grep macOS ships) or editing a classification
+pattern fails the suite instead of shipping subtly wrong informational
+output. The boundary section asserts exact match sets (`jest`, `tox`,
+`vitest`, and `just pr_body_test` in, `majestic` and `adjust testing`
+out; `secrets.BAR` in, `mysecrets.foo` out; `sudo` and `- sudo` in,
+`sudoers` and `pseudorandom` out). The classification section plants a
+scratch git repo with a fake ELF, a JPEG, a GIF, a favicon.ico, a 1.7MB
+blob, and text files *named* `ELF-notes.md`/`PDF-spec.txt` that must
+classify as neither executable nor media. The pattern extraction is
+content-anchored, not positional: every marker carries a literal filter
+(`'secrets\.'` and `'sudo'` for the CI-Tests and sudo boundaries,
+`'Mach-O'` for executables, `'icon resource'` for the exclusion,
+`'JPEG'` for media) so an unrelated grep added earlier in
+`compliance.just` cannot silently re-target the suite, and the
+executables assertion is an exact match (`evil.elf` and nothing else)
+so a leaked favicon cannot hide inside a substring check. The suite runs in
+`cue-sync-tests.yml`, whose path triggers now include
+`compliance.just` and the new lib script, and ships with matching
+`CLEANED_FILES` and `clean_template` removal entries so derived repos do
+not keep it. In CI a missing `file`/`git` fails the suite rather than
+letting it pass vacuously; locally that section skips with a note.
+
 ### v10.2 - repo-toml stub sandboxing, repo_toml_check stub sentinel (2026-11-01)
 
 - Fixes issue [#372](https://github.com/fini-net/template-repo/issues/372)

@@ -101,3 +101,20 @@ repo_toml_stub_test:
         echo "{{RED}}Some repo_toml stub tests failed{{NORMAL}}"
         exit 1
     fi
+
+# test the #373/#380 compliance heuristics: portable grep boundaries
+# and the media/executable classification, patterns extracted live from
+# compliance.just so recipe drift fails the suite
+[group('Testing/Automation')]
+compliance_test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "{{BLUE}}Testing compliance heuristics...{{NORMAL}}"
+
+    if .just/lib/compliance_test.sh; then
+        echo "{{GREEN}}All compliance heuristic tests passed!{{NORMAL}}"
+    else
+        echo "{{RED}}Some compliance heuristic tests failed{{NORMAL}}"
+        exit 1
+    fi

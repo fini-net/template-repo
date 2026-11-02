@@ -53,6 +53,11 @@ This repo uses `just` (command runner) for all development tasks. The workflow i
 - `just pr_body_test` - Test PR body update logic
 - `just template_sync_test` - Test template sync logic
 - `just wait_for_copilot_test` - Test the shared Copilot-wait state machine
+- `just cue_sync_test` - Test cue-sync-from-github awk logic
+- `just repo_urls_test` - Test repo URL extraction and `[urls]` repointing
+- `just asciinema_cache_test` - Test the asciinema cache ignore guard
+- `just repo_toml_stub_test` - Test repo-toml stub sandboxing and check sentinel
+- `just compliance_test` - Test `compliance_check` heuristics (patterns extracted live from `compliance.just`)
 - `just release <version>` - Create a GitHub release with auto-generated notes
 - `just release_age` - Check how long ago the last release was
 - `just clean_template` - Generate a clean README from template (strips template documentation), repoint `.repo.toml` [urls] at this repo and sync its real description/topics from GitHub, and remove other files that are not required
@@ -193,7 +198,12 @@ The `.just/testing.just` module provides automated testing:
 - **pr_body_test** - Tests PR body update logic using `.just/lib/pr_body_test.sh`
 - **template_sync_test** - Tests template sync logic using `.just/lib/template_sync_test.sh` (update-script fixtures drive `template_update.sh`; recipe fixtures run the actual `just checksums_verify` / `checksums_diff` recipes)
 - **wait_for_copilot_test** - Tests the shared Copilot-wait state machine using `.just/lib/wait_for_copilot_test.sh` (mocked `gh`/`sleep` via PATH shims)
-- **Test fixtures** - Located in `.just/test/fixtures/` (`template_sync/`, `wait_for_copilot/`)
+- **cue_sync_test** - Tests cue-sync-from-github awk logic using `.just/lib/cue_sync_test.sh` (missing and commented-out keys in `[about]`)
+- **repo_urls_test** - Tests `repo_urls.sh` extraction, mismatch classification, and `[urls]` repointing using `.just/lib/repo_urls_test.sh` (driven through the real cue-sync-from-github recipe in a shimmed workspace)
+- **asciinema_cache_test** - Tests the `_ensure_cache_ignored` recording guard using `.just/lib/asciinema_cache_test.sh`
+- **repo_toml_stub_test** - Tests repo-toml stub sandboxing and the `repo_toml_check` stub sentinel using `.just/lib/repo_toml_stub_test.sh`
+- **compliance_test** - Tests the `compliance_check` OpenSSF heuristics using `.just/lib/compliance_test.sh` (portable grep boundaries and media/executable classification, with patterns extracted live from `compliance.just` so recipe drift fails the suite)
+- **Test fixtures** - Located in `.just/test/fixtures/` (`pr_bodies/`, `template_sync/`, `wait_for_copilot/`, `cue_sync/`, `repo_urls/`, `asciinema_cache/`)
 
 All test recipes run via GitHub Actions on every PR to ensure core functionality works.
 
