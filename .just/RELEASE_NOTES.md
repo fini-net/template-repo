@@ -4,6 +4,47 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v10.9 - cleaned_files drift guard + not-locally-verifiable note (2026-11-02)
+
+- Fixes issue [#381](https://github.com/fini-net/template-repo/issues/381)
+
+**`CLEANED_FILES` now enforces its own sync.** The hand-maintained list in
+`generate_checksums.sh` had to match the `rm` lines of the
+`_remove_template_files` recipe with nothing catching drift - an entry
+typo'd, or a newly removed file missing its entry, failed silently in
+both directions. Two v9.9 sync reviews flagged exactly that confusion
+([datadog-service-analyzer#49](https://github.com/fini-net/datadog-service-analyzer/pull/49#issuecomment-5684131628),
+[gh-amp#43](https://github.com/fini-net/gh-amp/pull/43#issuecomment-5704618428)):
+the list names files that do not exist in derived repos, and reviewers
+could not tell documented design from stray sync debris.
+
+**The guard compares both directions at every manifest generation.**
+`checksums_generate` now extracts the quoted-literal `rm` paths from
+`clean-template.just` (minus the in-place `*.tmp` scratch files) and
+fails with a per-path report unless they equal `CLEANED_FILES`. Since
+every CHECKSUMS-tracked change requires the bump's
+`checksums_generate` run, drift is caught the moment it is introduced -
+and `template-sync.yml` now also triggers on `clean-template.just`
+edits, so the recipe side runs the guard in template-repo CI too. One
+extraction subtlety worth pinning: the match is `rm -[a-z]+ "..."`
+because `rm -rf?` alone silently misses every plain `rm -f`, which
+would have made the guard vacuously pass on 16 of 17 paths.
+
+**The list is now complete.** `docs/template-repo-banner.png` was removed
+by the recipe but absent from `CLEANED_FILES` - the one real divergence
+the guard found on arrival. Listing it is behavior-neutral:
+`cleaned_files` is only consulted for manifest-tracked paths
+(`.just/*.just`, `.just/lib/*.{sh,awk}`), and the workflow entries were
+already informational.
+
+**Derived repos get a note, not a failure.** `clean_template` removes
+`clean-template.just`, so the guard warns and skips when the recipe file
+is missing. The header comment now states that the list runs only in
+template-repo and is intentionally not locally verifiable in derived
+repos, making their absent files documented design instead of a puzzle.
+Guard diagnostics go to stderr because stdout is the JSON manifest that
+`checksums_generate` redirects into place.
+
 ### v10.8 - release accepts semver pre-release/build tags (2026-11-02)
 
 - Fixes issue [#379](https://github.com/fini-net/template-repo/issues/379)

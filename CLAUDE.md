@@ -171,7 +171,7 @@ The `.just/template-sync.just` module enables safe updates from template-repo:
 
 The system uses three core scripts in `.just/lib/`:
 
-- **generate_checksums.sh** - Extract checksums from git history with version tracking
+- **generate_checksums.sh** - Extract checksums from git history with version tracking, and fail generation when the `CLEANED_FILES` list drifts from the files `clean_template` removes (#381)
 - **template_update.sh** - Core update logic (compare, download, verify, rollback on failure)
 - **template_sync_test.sh** - Test suite with fixtures in `.just/test/fixtures/template_sync/`
 
