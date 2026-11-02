@@ -8,6 +8,7 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 - Fixes issues [#376](https://github.com/fini-net/template-repo/issues/376)
   and [#377](https://github.com/fini-net/template-repo/issues/377)
+- **Related PR:** [#433](https://github.com/fini-net/template-repo/pull/433)
 
 **A red fixture now answers "what did it actually print."** Both
 runner modes in `template_sync_test.sh` reported an output mismatch
