@@ -4,6 +4,54 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v11.2 - shellcheck clean across .just/lib: glob dedupe match, mktemp exit propagation, fixture-pin drift guard (2026-11-04)
+
+A plain `shellcheck .just/lib/*.sh` sweep now exits 0. Twelve of
+the fifteen lib scripts were already clean; the sweep's value was
+proving it, fixing the two real warnings it found, and converting
+seventeen intentional infos into something the linter can read.
+
+**The dedupe check reads as what it is.** generate_checksums.sh asked
+`[[ " $seen_checksums " =~ " $checksum " ]]` - a quoted right-hand
+side in a regex match, the exact idiom SC2076 exists to flag:
+quoting makes the pattern match literally while most readers expect
+regex semantics. The behavior was correct all along (quoted portions
+of a `=~` pattern match literally, which was the intent, and sha256
+hex has no metacharacters either way) - the idiom was the footgun.
+It is now the glob form shellcheck recommends for literal matching -
+`== *" $checksum "*` - same padded word-membership semantics, no
+double reading required.
+
+**template_update.sh no longer swallows a failed mktemp.** `readonly
+MANIFEST_FILE=$(mktemp)` is SC2155's poster child: the declaration
+masks the command substitution's status, so under `set -euo
+pipefail` a failed mktemp sails through with an empty manifest path.
+The assignment now precedes the readonly mark - failure propagates,
+readonly semantics survive.
+
+**The fixture pin moved in lockstep, and now guards itself.**
+run_update_test patches template_update.sh by string-matching that
+exact line with sed to point fixtures at the workspace manifest -
+the same genre of drift contract as CLEANED_FILES, with the same
+failure mode: edit one side and the sed silently matches nothing,
+so four fixtures fetch into a real mktemp path and fail far away in
+verify_expected_state. The pin now targets the bare assignment line
+(the readonly that follows still applies in the fixture), and a
+drift guard after the sed grep-verifies the rewrite and fails
+pointedly - "fixture pin failed: update both together" - instead of
+obliquely. The guard fired for real before shipping: breaking the
+pattern on purpose failed all four update-script fixtures with the
+message; restoring it went back to 32 green.
+
+**SC2016 is the point here, and now the linter knows it.** The
+seventeen remaining infos were deliberate: semver_selftest's echo
+lines emit literal bash into a generated driver (the file already
+said so in prose - "SC2016 is the point here"), and the pin's sed
+keeps `\$(mktemp)` literal for the pattern match. Two function-scoped
+`# shellcheck disable=SC2016` directives with why-comments turn that
+prose into something the tool reads - the convention compliance.just
+and copilot.just already use for the same code.
+
 ### v11.1 - homebrew-chicks #120 review follow-ups: single-quoted shellcheck trap, || true intent (2026-11-04)
 
 - **Review:** [homebrew-chicks
