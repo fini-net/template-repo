@@ -104,6 +104,31 @@ else
 	fi
 fi
 
+# Version-drift guard (Claude review of #442, item 2): CLAUDE.md names
+# the '# PR create vX.Y' header in gh-process.just as the module's
+# version bump, and that header has drifted before - stuck at v10.9
+# through v10.10 and v11.0, with earlier drifts recorded in
+# RELEASE_NOTES at v5.4 and v6.10. Fail generation when the header
+# disagrees with the newest RELEASE_NOTES.md entry (the first
+# '### vX.Y' heading - entries are newest-first), so a bump cannot
+# mint a manifest while the documented header is stale. Derived repos
+# do not carry RELEASE_NOTES.md (it is not CHECKSUMS-tracked), so a
+# missing input skips silently: that skip is by design, not drift.
+# All diagnostics go to stderr because stdout is the JSON manifest.
+GH_PROCESS_JUST="$(dirname "${BASH_SOURCE[0]}")/../gh-process.just"
+RELEASE_NOTES_MD="$(dirname "${BASH_SOURCE[0]}")/../RELEASE_NOTES.md"
+if [[ -f "$GH_PROCESS_JUST" && -f "$RELEASE_NOTES_MD" ]]; then
+	pr_create_version=$(sed -n 's/^# PR create \(v[0-9][0-9.]*\)$/\1/p' "$GH_PROCESS_JUST" | head -1)
+	notes_version=$(sed -n 's/^### \(v[0-9][0-9.]*\).*/\1/p' "$RELEASE_NOTES_MD" | head -1)
+	if [[ -z "$pr_create_version" || -z "$notes_version" ]]; then
+		echo "Warning: could not read the '# PR create vX.Y' header or the newest RELEASE_NOTES.md entry - skipping version drift check" >&2
+	elif [[ "$pr_create_version" != "$notes_version" ]]; then
+		echo "Error: .just/gh-process.just says '# PR create $pr_create_version' but the newest RELEASE_NOTES.md entry is $notes_version" >&2
+		echo "  CLAUDE.md names the '# PR create vX.Y' header as the version bump - change only its version digits (or fix the notes entry)" >&2
+		exit 1
+	fi
+fi
+
 # Get list of all .just/*.just files
 declare -a just_files
 while IFS= read -r file; do

@@ -26,10 +26,23 @@ stating what it is for: shielding `set -euo pipefail` from `file`
 erroring on individual entries. The missing-binary case the review
 worried about never reaches that line - the `command -v file` guard
 has wrapped the whole block since v10.3, and compliance_test.sh fails
-CI when `file` is absent so the check cannot pass vacuously. This
-file's header now also carries the module version (`git/gh process
-justfile - v11.1`) the way template-sync.just always has - releases
-kept documenting a version the file itself never claimed.
+CI when `file` is absent so the check cannot pass vacuously.
+
+**The version bump now lives where CLAUDE.md says it lives.** A
+first cut of this change stamped v11.1 onto the file's title comment
+instead of the documented bump spot - the `# PR create vX.Y` header
+above the pr recipe - and that header had itself drifted to v10.9,
+stale through v10.10 and v11.0, the same rot these notes previously
+recorded at v5.4 and v6.10 (Claude review of #442). The duplicate
+token is gone, the header reads v11.1, and checksums_generate now
+refuses to mint a manifest while that header disagrees with the
+newest RELEASE_NOTES.md entry - the guard's red paths are pinned by
+the guard_selftest sandboxes, so the drift cannot quietly return.
+The cleanup trap also gained the regression coverage the review
+asked for: repo_toml_stub_test drives the real shellcheck recipe
+with a TMPDIR containing a space and requires the temp tree not to
+survive the run - the exact case the old double-quoted form
+mishandled by word-splitting the path at trap-set time.
 
 ### v11.0 - release version-order confirmation (#436) (2026-11-02)
 

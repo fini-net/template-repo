@@ -1,4 +1,4 @@
-# git/gh process justfile - v11.1
+# git/gh process justfile
 
 # check out the RELEASE_NOTES.md for the detailed history of this file
 # the README.md in this directory also might be useful to you
@@ -28,7 +28,7 @@ sync:
 # the asciinema flag file, not git state - every path delegates to
 # _pr_inner, so the guard still fires exactly once, inside the recipe
 # body it protects.
-# PR create v10.9
+# PR create v11.1
 [group('Process')]
 pr:
     #!/usr/bin/env bash

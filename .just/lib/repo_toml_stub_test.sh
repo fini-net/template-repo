@@ -32,6 +32,10 @@
 # invocation cwd must win over a deliberately broken stub sitting at
 # the sandbox candidates, which is what makes passing -P unconditionally
 # safe (Claude review round 2 on #428).
+# A recipe-mode regression drives the real cleanup trap under a
+# TMPDIR containing a space - the exact case the old double-quoted
+# trap word-split at expansion time - and requires the temp tree not
+# to survive the run (Claude review of #442, item 3).
 #
 # The recipe modes need just and shellcheck; without them a section is
 # skipped rather than failed (source assertions always run) - except in
@@ -506,6 +510,36 @@ test_check_flags_stale_generated() {
 	rm -rf "$ws"
 }
 
+# Cleanup-trap regression (Claude review of #442, item 3): the
+# single-quoted trap defers expansion and quotes CHECKS_TMPDIR,
+# where the old double-quoted form expanded at trap-set time and
+# word-split - so a TMPDIR containing a space is exactly the case it
+# mishandled. Drive the real recipe under such a TMPDIR and require
+# the temp tree not to survive the run: repo_toml_generate (forced
+# to fail by the cue shim) writes no temp files of its own, so
+# anything left under the spaced TMPDIR is the recipe's CHECKS_TMPDIR
+# outliving a broken trap.
+test_recipe_cleans_spaced_tmpdir() {
+	local ws spaced out rc=0 problems=""
+	local label="cleanup trap removes a spaced temp dir (deferred quoted expansion)"
+
+	ws=$(mktemp -d -t repo_toml_trap.XXXXXX)
+	track_workspace "$ws"
+	build_shellcheck_workspace "$ws"
+
+	spaced="$ws/tmp with space"
+	mkdir -p "$spaced"
+
+	out=$(cd "$ws" && TMPDIR="$spaced" PATH="$ws/shims:$PATH" just shellcheck 2>&1) || rc=$?
+
+	[[ $rc -eq 0 ]] || problems+="exit code $rc (want 0); "
+	[[ -z "$(find "$spaced" -mindepth 1 -print -quit 2>/dev/null)" ]] \
+		|| problems+="temp files survived the recipe: $(find "$spaced" -mindepth 1 2>/dev/null | tr '\n' ' '); "
+
+	report_recipe_case "$label" "$problems" "$out"
+	rm -rf "$ws"
+}
+
 # Gate a recipe-mode section on its tools: skip with a note when a tool
 # is missing, but fail in CI - a missing tool would otherwise let the
 # suite pass vacuously, and this is the only regression coverage for
@@ -540,6 +574,7 @@ main() {
 	if skip_or_require_tools "shellcheck recipe-mode test" just shellcheck; then
 		test_stub_never_touches_real_path
 		test_real_file_present_lints_against_it
+		test_recipe_cleans_spaced_tmpdir
 	fi
 
 	if skip_or_require_tools "shellcheck precedence test" shellcheck; then
