@@ -169,6 +169,11 @@ compliance_check:
         # cut -d: -f1 extraction alike - a pre-existing limitation
         # acceptable for an informational check, as is the large-blob
         # awk's blind spot for a file literally named total.
+        # The || true below (and on the greps) only shields
+        # set -euo pipefail from file erroring on individual entries;
+        # a missing file binary never reaches this line - the
+        # command -v guard above skips the whole block for that
+        # (homebrew-chicks #120 review).
         file_types=$(git ls-files -z | xargs -0 file -- 2>/dev/null || true)
         executables=$(printf '%s\n' "$file_types" | grep -E '^[^:]*:.*(^|[^a-zA-Z0-9_])(ELF|Mach-O|PE32|MS Windows)' | grep -vE '^[^:]*:.*(^|[^a-zA-Z0-9_])icon resource' | cut -d: -f1 || true)
         media_count=$(printf '%s\n' "$file_types" | grep -cE '^[^:]*:.*(^|[^a-zA-Z0-9_])(JPEG|PNG|GIF|Web/P|PDF|icon resource)' || true)

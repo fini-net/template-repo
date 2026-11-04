@@ -4,6 +4,33 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v11.1 - homebrew-chicks #120 review follow-ups: single-quoted shellcheck trap, || true intent (2026-11-04)
+
+- **Review:** [homebrew-chicks
+  #120](https://github.com/chicks-net/homebrew-chicks/pull/120) - the
+  v11.0 sync into the Homebrew tap
+
+**The last double-quoted trap is gone.** The Claude review of the v11.0
+sync asked for the cleanup trap in the `shellcheck` recipe to defer
+expansion - `trap "rm -rf $CHECKS_TMPDIR" EXIT` captured the temp path
+the moment the trap was set, safe only because `mktemp` paths never
+contain spaces. It is now the single-quoted idiom the rest of the
+suite already uses, expanding at trap-fire time with the variable
+quoted, and the `# shellcheck disable=SC2064` that papered over the
+old form is gone with it. The review pointed at cue-verify.just; the
+trap actually lives in shellcheck.just - the sync carries all of
+.just/, so the fix ships from here either way.
+
+The compliance `|| true` on the `file_types` pipeline got a comment
+stating what it is for: shielding `set -euo pipefail` from `file`
+erroring on individual entries. The missing-binary case the review
+worried about never reaches that line - the `command -v file` guard
+has wrapped the whole block since v10.3, and compliance_test.sh fails
+CI when `file` is absent so the check cannot pass vacuously. This
+file's header now also carries the module version (`git/gh process
+justfile - v11.1`) the way template-sync.just always has - releases
+kept documenting a version the file itself never claimed.
+
 ### v11.0 - release version-order confirmation (#436) (2026-11-02)
 
 - Fixes issue [#436](https://github.com/fini-net/template-repo/issues/436)
