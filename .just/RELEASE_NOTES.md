@@ -4,6 +4,46 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v11.1 - homebrew-chicks #120 review follow-ups: single-quoted shellcheck trap, || true intent (2026-11-04)
+
+- **Review:** [homebrew-chicks
+  #120](https://github.com/chicks-net/homebrew-chicks/pull/120) - the
+  v11.0 sync into the Homebrew tap
+
+**The last double-quoted trap is gone.** The Claude review of the v11.0
+sync asked for the cleanup trap in the `shellcheck` recipe to defer
+expansion - `trap "rm -rf $CHECKS_TMPDIR" EXIT` captured the temp path
+the moment the trap was set, safe only because `mktemp` paths never
+contain spaces. It is now the single-quoted idiom the rest of the
+suite already uses, expanding at trap-fire time with the variable
+quoted, and the `# shellcheck disable=SC2064` that papered over the
+old form is gone with it. The review pointed at cue-verify.just; the
+trap actually lives in shellcheck.just - the sync carries all of
+.just/, so the fix ships from here either way.
+
+The compliance `|| true` on the `file_types` pipeline got a comment
+stating what it is for: shielding `set -euo pipefail` from `file`
+erroring on individual entries. The missing-binary case the review
+worried about never reaches that line - the `command -v file` guard
+has wrapped the whole block since v10.3, and compliance_test.sh fails
+CI when `file` is absent so the check cannot pass vacuously.
+
+**The version bump now lives where CLAUDE.md says it lives.** A
+first cut of this change stamped v11.1 onto the file's title comment
+instead of the documented bump spot - the `# PR create vX.Y` header
+above the pr recipe - and that header had itself drifted to v10.9,
+stale through v10.10 and v11.0, the same rot these notes previously
+recorded at v5.4 and v6.10 (Claude review of #442). The duplicate
+token is gone, the header reads v11.1, and checksums_generate now
+refuses to mint a manifest while that header disagrees with the
+newest RELEASE_NOTES.md entry - the guard's red paths are pinned by
+the guard_selftest sandboxes, so the drift cannot quietly return.
+The cleanup trap also gained the regression coverage the review
+asked for: repo_toml_stub_test drives the real shellcheck recipe
+with a TMPDIR containing a space and requires the temp tree not to
+survive the run - the exact case the old double-quoted form
+mishandled by word-splitting the path at trap-set time.
+
 ### v11.0 - release version-order confirmation (#436) (2026-11-02)
 
 - Fixes issue [#436](https://github.com/fini-net/template-repo/issues/436)

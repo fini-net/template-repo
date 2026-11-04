@@ -434,8 +434,11 @@ security_boundary_selftest() {
 # non-empty: macOS bash 3.2 with set -u treats empty-array expansion as
 # an unbound variable, and the sandbox would crash after the guard
 # instead of completing. Applies the v10.6 harness_selftest precedent
-# to the guard. Reports through the same passed/failed counters as a
-# fixture.
+# to the guard. The version-drift guard rides the same sandboxes with
+# synthetic version pairs - its red paths (a stale '# PR create'
+# header, the notes-less derived-repo skip, an unparseable pair) are
+# pinned here too (Claude review of #442). Reports through the same
+# passed/failed counters as a fixture.
 guard_selftest() {
 	local reasons=()
 	local root sb out err rc
@@ -462,6 +465,13 @@ guard_selftest() {
 		mkdir -p "$dir/.just/lib"
 		cp "$SCRIPT_DIR/generate_checksums.sh" "$SCRIPT_DIR/common.sh" "$dir/.just/lib/"
 		cp "$SCRIPT_DIR/../clean-template.just" "$dir/.just/"
+		# Synthetic version pair for the version-drift guard: the
+		# guard reads only the '# PR create' header and the first
+		# '### vX.Y' heading, so minimal synthetic files exercise it
+		# without coupling the selftest to the real repo's mid-bump
+		# state (Claude review of #442, item 2)
+		printf '# PR create v9.9\n' >"$dir/.just/gh-process.just"
+		printf '# synthetic notes\n\n### v9.9 - selftest entry\n' >"$dir/.just/RELEASE_NOTES.md"
 		git -C "$dir" init -q
 		printf '# sample module\n' >"$dir/.just/sample.just"
 		git -C "$dir" add .just/sample.just .just/lib/common.sh
@@ -562,6 +572,33 @@ guard_selftest() {
 	run_guard "$sb"
 	expect_rc 0 "scratch-tmp: quoted scratch files must stay excluded"
 	expect_err_empty "scratch-tmp"
+
+	# Version-drift guard red paths (Claude review of #442, item 2):
+	# a '# PR create' header disagreeing with the newest notes entry
+	# must fail generation with a pointed report; a derived-repo
+	# sandbox without RELEASE_NOTES.md must skip silently (the skip is
+	# by design - the notes file is not CHECKSUMS-tracked); and an
+	# unparseable pair warns without blocking, so a future format
+	# change degrades loudly, not fatally
+	sb=$(new_guard_sandbox version_drift)
+	sed -i.tmp -E 's/^# PR create v[0-9.]+/# PR create v0.1/' "$sb/.just/gh-process.just"
+	rm -f "$sb/.just/gh-process.just.tmp"
+	run_guard "$sb"
+	expect_rc 1 "version-drift: header/notes mismatch must fail generation"
+	expect_err 'but the newest RELEASE_NOTES.md entry is' \
+		"version-drift: missing the mismatch report"
+
+	sb=$(new_guard_sandbox version_missing_notes)
+	rm "$sb/.just/RELEASE_NOTES.md"
+	run_guard "$sb"
+	expect_rc 0 "version-missing-notes: derived-repo shape must generate"
+	expect_err_empty "version-missing-notes"
+
+	sb=$(new_guard_sandbox version_unparseable)
+	printf '# no version header here\n' >"$sb/.just/gh-process.just"
+	run_guard "$sb"
+	expect_rc 0 "version-unparseable: warn, do not block"
+	expect_err 'skipping version drift check' "version-unparseable: missing the skip warning"
 
 	rm -rf "$root"
 
