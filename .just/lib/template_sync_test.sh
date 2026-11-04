@@ -626,6 +626,7 @@ guard_selftest() {
 # and the compliance pattern extraction). A moved or reworded marker
 # comment breaks the extraction, and that break is the feature - it
 # is how drift gets caught (Claude review of #439, item 1).
+# shellcheck disable=SC2016  # the echo lines in this function emit literal bash into the driver - the harness must not expand them
 semver_selftest() {
 	local reasons=()
 	local root extracted driver battery_err rc
@@ -922,6 +923,7 @@ run_recipe_test() {
 }
 
 # Update-script mode (legacy): drive a patched copy of template_update.sh
+# shellcheck disable=SC2016  # the sed pin below keeps $(mktemp) literal for the pattern match
 run_update_test() {
 	local test_name="$1"
 	local test_dir="$2"
@@ -962,9 +964,27 @@ run_update_test() {
 	local test_script="$workspace/test_update.sh"
 	# Escape pipe characters in workspace path to prevent sed command breaking
 	local escaped_workspace="${workspace//|/\\|}"
-	sed 's|readonly MANIFEST_FILE=\$(mktemp)|readonly MANIFEST_FILE="'"$escaped_workspace"'/manifest.json"|g' \
+	# template_update.sh assigns MANIFEST_FILE before the readonly mark
+	# (SC2155), so the pin targets the bare assignment line; the readonly
+	# on the next line still applies in the fixture.
+	sed 's|^MANIFEST_FILE=\$(mktemp)$|MANIFEST_FILE="'"$escaped_workspace"'/manifest.json"|g' \
 		"$SCRIPT_DIR/template_update.sh" > "$test_script"
 	chmod +x "$test_script"
+
+	# Drift guard for the pin above: if the MANIFEST_FILE assignment in
+	# template_update.sh ever changes form, the sed silently matches
+	# nothing and the fixture fetches into a real mktemp path, failing
+	# far away in verify_expected_state. Fail here, pointing at the
+	# cause (the pointed-message contract of the CLEANED_FILES drift
+	# guard in generate_checksums.sh).
+	if ! grep -qF "MANIFEST_FILE=\"$workspace/manifest.json\"" "$test_script"; then
+		echo -e "${RED}✗${NORMAL} $test_name"
+		echo "    fixture pin failed: the MANIFEST_FILE assignment in template_update.sh no longer matches the sed pattern above - update both together"
+		(( failed += 1 ))
+		cd - >/dev/null
+		rm -rf "$workspace"
+		return 0
+	fi
 
 	# Capture output
 	local output
