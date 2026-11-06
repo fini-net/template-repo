@@ -43,7 +43,7 @@ jobs:
 
       - name: Run Claude Code Review
         id: claude-review
-        uses: anthropics/claude-code-action@d535f5172dec02b204866b393d6b20b9b2aaf98d # v1.0.266
+        uses: anthropics/claude-code-action@4845bacbb38b3c4b15d948f035349786f678e068 # v1.0.267
         with:
           # change to secrets.CLAUDE_CODE_OAUTH_TOKEN if you're not in fini-net
           claude_code_oauth_token: ${{ secrets.ORG_CLAUDE_CODE_OAUTH_TOKEN }}
