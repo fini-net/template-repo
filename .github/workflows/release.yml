@@ -100,13 +100,16 @@ jobs:
       # Generated after the SBOM so checksums.txt covers both the bundle and
       # the SBOM. Integrity chain: bundle (cosign-signed) -> checksums.txt
       # (SLSA provenance subject) -> SBOM hash pinned inside checksums.txt.
+      # cd dist so the recorded paths are bare basenames; consumers verify
+      # with sha256sum -c checksums.txt right next to the downloaded assets.
       - name: Generate checksums
         env:
           BUNDLE: ${{ steps.bundle.outputs.bundle }}
         run: |
           set -euo pipefail
-          sha256sum "dist/${BUNDLE}" "dist/${BUNDLE}.cdx.json" > dist/checksums.txt
-          cat dist/checksums.txt
+          cd dist
+          sha256sum "${BUNDLE}" "${BUNDLE}.cdx.json" > checksums.txt
+          cat checksums.txt
 
       # Dual provenance is intentional: this step produces GitHub-native
       # attestations (gh attestation verify) while the provenance job below
