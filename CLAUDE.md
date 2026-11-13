@@ -155,6 +155,7 @@ The template includes a standard release workflow controlled by the `standard-re
 
 - **Default behavior** - When enabled (`standard-release = true`), provides `release` and `release_age` recipes
 - **Release creation** - `just release <version>` creates GitHub releases with auto-generated notes
+- **Signed assets** - The tag push fires `.github/workflows/release.yml`, which attaches a cosign-signed tarball, checksums, SBOM, GitHub-native attestations, and SLSA-3 provenance to the release (this is what satisfies OpenSSF Scorecard's Signed-Releases check)
 - **Release monitoring** - `just release_age` checks release freshness and commit count since last release
 - **Custom workflows** - Set `standard-release = false` in `.repo.toml` to disable standard recipes for projects with custom release mechanisms
 - **Graceful degradation** - When disabled, recipes display informational messages and exit cleanly (exit 0)
@@ -190,6 +191,7 @@ Workflows in `.github/workflows/`:
 - **template-sync.yml** - Tests template synchronization system
 - **wait-for-copilot-tests.yml** - Tests the shared Copilot-wait state machine
 - **renovate-validate.yml** - Validates `.github/renovate.json` config
+- **release.yml** - Attaches signed assets (cosign bundle, checksums, SBOM, attestations, SLSA-3 provenance) to `v*` tag releases
 
 ### Testing infrastructure
 

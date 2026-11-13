@@ -51,7 +51,7 @@ The [justfile](justfile) imports 11 modules from the [.just/](.just/) directory 
 
 ### GitHub Actions
 
-Thirteen workflows handle automation and quality, all hardened with [StepSecurity Harden-Runner](https://github.com/step-security/harden-runner) to prevent supply chain attacks:
+Fourteen workflows handle automation and quality, all hardened with [StepSecurity Harden-Runner](https://github.com/step-security/harden-runner) to prevent supply chain attacks:
 
 - ✅ [Auto-assign](.github/workflows/auto-assign.yml) - Automatically assigns issues and PRs to maintainers
 - ✅ [Checkov](.github/workflows/checkov.yml) - Security scanning for GitHub Actions workflows with SARIF output
@@ -63,6 +63,7 @@ Thirteen workflows handle automation and quality, all hardened with [StepSecurit
 - ✅ [CUE verification](.github/workflows/cue-verify.yml) - Validates `.repo.toml` format and flags
 - ✅ [Dependency Review](.github/workflows/dependency-review.yml) - Scans PRs for vulnerable dependency versions
 - ✅ [OpenSSF Scorecard](.github/workflows/scorecards.yml) - Automated security posture assessment with badge
+- ✅ [Signed releases](.github/workflows/release.yml) - Attaches a cosign-signed tarball, checksums, SBOM, GitHub-native attestations, and SLSA-3 provenance to every `v*` release
 - ✅ [Checksums Verification](.github/workflows/checksums-verify.yml) - Verifies CHECKSUMS.json matches all tracked files
 - ✅ [PR Body Tests](.github/workflows/pr-body-tests.yml) - Tests PR body update logic on every PR
 - ✅ [Template Sync Tests](.github/workflows/template-sync.yml) - Tests template synchronization system
@@ -89,7 +90,7 @@ Thirteen workflows handle automation and quality, all hardened with [StepSecurit
 - ✅ [Priority labels](https://github.com/fini-net/template-repo/labels) - Extra issue labels for better organization
 - ✅ [Prerequisites installation](.just/lib/install-prerequisites.sh) - Script to install required tools
 - ✅ [Pre-commit hooks](.pre-commit-config.yaml) - Enforces code quality and formatting before commits
-- ✅ Release automation - `just release <version>` creates GitHub releases with auto-generated notes, version-order confirmation, and age monitoring
+- ✅ Release automation - `just release <version>` creates GitHub releases with auto-generated notes, version-order confirmation, and age monitoring; the [release workflow](.github/workflows/release.yml) attaches signed assets to each release
 
 ## Usage
 

@@ -1,0 +1,194 @@
+---
+name: Release
+
+# Triggered by tag pushes from `just release` (gh release create pushes the
+# tag, which fires this workflow). The workflow attaches signed assets to the
+# already-created release via `gh release upload`, so `just release` itself
+# requires no changes. There is a brief ~60-90s window where the release exists
+# with no assets while signing runs - acceptable for a template repo.
+on:
+  push:
+    tags:
+      - 'v*'
+
+# a re-pushed tag cancels the in-flight run so two runs never race on the
+# same release's assets (e.g. two multiple.intoto.jsonl uploads)
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+# global permissions
+permissions: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # signing, SBOM, and attestation are external round-trips; don't let a
+    # hung step burn the 6h default
+    timeout-minutes: 15
+    permissions:
+      contents: write    # gh release upload / gh release create fallback
+      id-token: write     # cosign keyless OIDC + build attestations
+      attestations: write # GitHub-native artifact attestations
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Full history: the main-reachability check below walks from the
+          # tagged commit back to main, which a depth-1 clone cannot do
+          # reliably.
+          fetch-depth: 0
+
+      - name: Verify the tagged commit is on main
+        run: |
+          set -euo pipefail
+          # A `v*` tag fires this workflow from whatever branch or commit it
+          # points at; require the tagged commit to be reachable from main
+          # so a stray feature-branch tag cannot release unmerged content.
+          # Tags cut by `just release` always point at main, so legitimate
+          # flows pass.
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main; then
+            echo "::error::tag ${GITHUB_REF#refs/tags/} points at a commit not reachable from main - refusing to release unmerged content"
+            exit 1
+          fi
+
+      - name: Build asset bundle
+        id: bundle
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF#refs/tags/}"
+          BUNDLE="template-repo-${TAG}.tar.gz"
+          mkdir -p dist
+          # Distributable artifact: the full tagged tree via git archive;
+          # .gitattributes export-ignore already trims .gitattributes,
+          # .gitignore, and .gitkeep from it. No hand-maintained include
+          # list to drift as the repo evolves.
+          git archive --format=tar.gz --output="dist/${BUNDLE}" "${TAG}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "bundle=${BUNDLE}" >> "$GITHUB_OUTPUT"
+
+      # upload-release-assets is disabled because the explicit upload step
+      # below puts the SBOM on the release with a scorecard-recognized name;
+      # the default auto-attach would add a redundant second SBOM asset
+      # named template-repo-release.cyclonedx.json (family repos ship this
+      # wart as <repo>-release.syft.json).
+      - name: Generate SBOM
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          file: dist/${{ steps.bundle.outputs.bundle }}
+          format: cyclonedx-json
+          output-file: dist/${{ steps.bundle.outputs.bundle }}.cdx.json
+          upload-release-assets: false
+
+      # Generated after the SBOM so checksums.txt covers both the bundle and
+      # the SBOM. Integrity chain: bundle (cosign-signed) -> checksums.txt
+      # (SLSA provenance subject) -> SBOM hash pinned inside checksums.txt.
+      - name: Generate checksums
+        env:
+          BUNDLE: ${{ steps.bundle.outputs.bundle }}
+        run: |
+          set -euo pipefail
+          sha256sum "dist/${BUNDLE}" "dist/${BUNDLE}.cdx.json" > dist/checksums.txt
+          cat dist/checksums.txt
+
+      # Dual provenance is intentional: this step produces GitHub-native
+      # attestations (gh attestation verify) while the provenance job below
+      # produces the SLSA multiple.intoto.jsonl release asset that both
+      # `just compliance`'s signed-releases check and OpenSSF Scorecard's
+      # Signed-Releases check look for. Don't "unify" them.
+      - name: Generate build attestations
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: "${{ github.workspace }}/dist/*"
+
+      - name: Generate subject hashes for SLSA provenance
+        id: hash
+        env:
+          BUNDLE: ${{ steps.bundle.outputs.bundle }}
+        run: |
+          set -euo pipefail
+          cd dist
+          # SLSA generator expects base64-encoded sha256sum lines; hashing
+          # from dist/ keeps the subject names to clean basenames.
+          hashes=$(sha256sum "${BUNDLE}" checksums.txt | base64 -w0)
+          echo "hashes=$hashes" >> "$GITHUB_OUTPUT"
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+      - name: Sign asset bundle with cosign (keyless)
+        env:
+          BUNDLE: ${{ steps.bundle.outputs.bundle }}
+        run: |
+          set -euo pipefail
+          # Keyless signing via GitHub OIDC - no long-lived secrets to
+          # rotate. The --bundle file embeds the signature, certificate,
+          # and Rekor entry; the .sigstore.json name is one OpenSSF
+          # Scorecard's Signed-Releases check recognizes as a signature
+          # (family .bundle naming is not). Verify downstream with:
+          #   cosign verify-blob \
+          #     --bundle template-repo-<TAG>.tar.gz.sigstore.json \
+          #     --certificate-identity-regexp \
+          #       '^https://github\.com/fini-net/template-repo/\.github/workflows/release\.yml@refs/tags/' \
+          #     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+          #     template-repo-<TAG>.tar.gz
+          cosign sign-blob --yes "dist/${BUNDLE}" \
+            --bundle "dist/${BUNDLE}.sigstore.json"
+
+      - name: Upload signed assets to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.bundle.outputs.tag }}
+          BUNDLE: ${{ steps.bundle.outputs.bundle }}
+        run: |
+          set -euo pipefail
+          # `just release` (gh release create) normally fires this workflow
+          # by pushing the tag, so the release already exists. If someone
+          # pushed a v* tag manually without creating the release first,
+          # create it here rather than failing the upload. The hyphen test
+          # mirrors `just release`: pre-release-looking tags do not get the
+          # Latest badge.
+          if ! gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "No release for ${TAG} - creating one (manual tag push?)"
+            if [[ "${TAG%%+*}" == *-* ]]; then
+              gh release create "${TAG}" --prerelease --generate-notes
+            else
+              gh release create "${TAG}" --generate-notes
+            fi
+          fi
+          # cd dist so assets upload under their basenames, like every
+          # other release flow in the family
+          cd dist
+          gh release upload "${TAG}" \
+            "${BUNDLE}" \
+            "checksums.txt" \
+            "${BUNDLE}.cdx.json" \
+            "${BUNDLE}.sigstore.json" \
+            --clobber
+
+  provenance:
+    needs: release
+    # Note: timeout-minutes isn't allowed on a reusable-workflow call job;
+    # the generator's internal jobs set their own timeouts.
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    # SLSA generator requires a tag ref (refs/tags/vX.Y.Z) for its internal
+    # builder checkout; pinning to a git SHA causes "Invalid ref" errors and
+    # provenance generation failure.
+    # See: https://github.com/fini-net/gh-observer/actions/runs/27281001944
+    # The tag ref (not a SHA) is required, so Dependabot cannot track it -
+    # bump the tag deliberately on each SLSA generator release.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0 # zizmor: ignore[unpinned-uses]
+    with:
+      base64-subjects: "${{ needs.release.outputs.hashes }}"
+      upload-assets: true
