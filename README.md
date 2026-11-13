@@ -96,13 +96,15 @@ Fourteen workflows handle automation and quality, all hardened with [StepSecurit
 
 1. To use this template, you can create a new repository by clicking on "Use this
   template" button.
-1. Remember to replace any `chicks-net`, `fini-net`, and `template-repo` references
-  with the right values for your project.  (Github templates do not offer
-  variable substitution, but we still have to call them templates for some reason.)
-1. Ditch the "Template Status", "Usage", and "Kudos" sections in the `README.md`.
-  `just clean_template` will give you a clean `/README.md`, repoint `.repo.toml`
-  [urls] at your repo and sync its real description/topics from GitHub, and
-  remove other files that are not required.
+1. Replace any `chicks-net`, `fini-net`, and `template-repo` references with the
+  right values for your project - notably `.github/CODEOWNERS`,
+  `.github/workflows/auto-assign.yml`, and `.github/SUPPORT.md`.  (GitHub
+  templates do not offer variable substitution, but we still have to call them
+  templates for some reason.)
+1. `just clean_template` will give you a clean `README.md`, repoint `.repo.toml`
+  [urls] at your repo, sync its real description/topics from GitHub, and remove
+  template-only files. If you would rather clean up by hand, rewrite the
+  template-specific sections of the `README.md` yourself.
 
 [Here is a nice checklist](https://github.com/jlcanovas/gh-best-practices-template/blob/main/guidelines.md)
 of things to consider with a new repo.
