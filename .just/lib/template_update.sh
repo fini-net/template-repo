@@ -122,10 +122,12 @@ download_file() {
 			mv "$temp_file" "$filepath"
 			rm -f "$backup_file" "$err_file"
 
-			# Make executable (except common.sh which is only sourced)
-			if [[ "$(basename "$filepath")" != "common.sh" ]]; then
-				chmod +x "$filepath"
-			fi
+			# Make executable, including sourced libraries like common.sh:
+			# super-linter v9's BASH_EXEC fails any shebang'd shell file
+			# without the +x bit, and a raw-content download carries no
+			# git mode, so this chmod is the only way the bit reaches
+			# derived repos (#449)
+			chmod +x "$filepath"
 
 			return 0
 		fi

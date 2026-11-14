@@ -4,6 +4,47 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v11.5 - BASH_EXEC green in derived repos: common.sh ships executable, syncs stop stripping the bit (2026-11-14)
+
+- Fixes issue [#449](https://github.com/fini-net/template-repo/issues/449)
+
+**`common.sh` was the only `.sh` in `.just/lib/` committed without the
+executable bit, and super-linter v9 made that a CI failure.** The
+`BASH_EXEC` check fails any shell file that carries a shebang but not
+the +x bit, and `common.sh` has a shebang on purpose - it is what tells
+shellcheck to parse the file as bash. The failure showed up exactly
+where the issue predicted: chicks-home's v11.2 sync PR went red with
+`Error: File:[/github/workspace/.just/lib/common.sh] is not executable`
+because `VALIDATE_ALL_CODEBASE: false` means any PR that touches
+`common.sh` gets it linted. The check is dormant, not fixed, in
+between syncs - and `common.sh` is the most frequently updated file in
+the tree, so the next red sync was a matter of when.
+
+**The old `download_file` exemption was the root cause, and the issue's
+one-line fix alone would not have survived it.** `template_update.sh`
+explicitly skipped `chmod +x` for `common.sh` ("only sourced"), and a
+raw-content download carries no git mode - the executable bit every
+other lib script ships in derived repos comes from that `chmod +x`
+line, not from mode propagation through the manifest. So a bare
+`git update-index --chmod=+x` in the template would be clobbered the
+next time `common.sh` content changed: the download lands a fresh 644
+file, the exemption skipped the chmod, and derived repos flip back to
+red. The fix is two halves that only work together: the exemption is
+gone, so every synced shell file - sourced libraries included - lands
+executable, and the template's own `common.sh` now ships `100755` as
+the source-of-truth statement.
+
+**No behavior change, and no config workaround was worth taking.**
+Nothing executes `common.sh` directly; it only defines functions, so
+a sourced library with the +x bit is inert. `BASH_EXEC_IGNORE_LIBRARIES`
+was no escape - it only skips shebang-less files, by super-linter
+documented design - and disabling `BASH_EXEC` outright would weaken a
+check every other script in `.just/lib/` legitimately passes. For
+derived repos, the next sync that updates `common.sh` content now lands
+it executable and committed mode follows the working tree; until then
+`common.sh` stays out of sync diffs entirely, so `BASH_EXEC` stays
+green either way.
+
 ### v11.4 - scorecard Pinned-Dependencies 10/10: pinned npm fallback, actionlint download+verify in one step (2026-11-14)
 
 - Fixes issue [#447](https://github.com/fini-net/template-repo/issues/447)
