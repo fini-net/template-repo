@@ -5,7 +5,7 @@ name: Release
 # tag, which fires this workflow). The workflow attaches signed assets to the
 # already-created release via `gh release upload`, so `just release` itself
 # requires no changes. There is a brief ~60-90s window where the release exists
-# with no assets while signing runs - acceptable for a template repo.
+# with no assets while signing runs - acceptable for this flow.
 on:
   push:
     tags:
@@ -74,7 +74,10 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF#refs/tags/}"
-          BUNDLE="template-repo-${TAG}.tar.gz"
+          # GITHUB_REPOSITORY is owner/repo; stripping the owner prefix names
+          # the bundle after whatever repo runs this workflow, so repos
+          # generated from this template need no per-repo edits here.
+          BUNDLE="${GITHUB_REPOSITORY#*/}-${TAG}.tar.gz"
           mkdir -p dist
           # Distributable artifact: the full tagged tree via git archive;
           # .gitattributes export-ignore already trims .gitattributes,
@@ -87,7 +90,7 @@ jobs:
       # upload-release-assets is disabled because the explicit upload step
       # below puts the SBOM on the release with a scorecard-recognized name;
       # the default auto-attach would add a redundant second SBOM asset
-      # named template-repo-release.cyclonedx.json (family repos ship this
+      # named <repo>-release.cyclonedx.json (family repos ship this
       # wart as <repo>-release.syft.json).
       - name: Generate SBOM
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
@@ -147,11 +150,11 @@ jobs:
           # Scorecard's Signed-Releases check recognizes as a signature
           # (family .bundle naming is not). Verify downstream with:
           #   cosign verify-blob \
-          #     --bundle template-repo-<TAG>.tar.gz.sigstore.json \
+          #     --bundle <repo>-<TAG>.tar.gz.sigstore.json \
           #     --certificate-identity-regexp \
-          #       '^https://github\.com/fini-net/template-repo/\.github/workflows/release\.yml@refs/tags/' \
+          #       '^https://github\.com/<owner>/<repo>/\.github/workflows/release\.yml@refs/tags/' \
           #     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-          #     template-repo-<TAG>.tar.gz
+          #     <repo>-<TAG>.tar.gz
           cosign sign-blob --yes "dist/${BUNDLE}" \
             --bundle "dist/${BUNDLE}.sigstore.json"
 
