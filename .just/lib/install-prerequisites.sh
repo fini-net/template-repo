@@ -161,7 +161,11 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 			# match then fails. Version pinning alone (markdownlint-cli2@0.24.1)
 			# never satisfies the heuristic either; only `npm ci` or a git URL
 			# with a 40-hex commit SHA does. The SHA updates by hand when the
-			# pinned release changes - which is what "pinned" means.
+			# pinned release changes - which is what "pinned" means. To bump
+			# the pin: the upstream tags are lightweight, so
+			# git ls-remote https://github.com/DavidAnson/markdownlint-cli2
+			# refs/tags/vX.Y.Z prints the commit SHA directly - no
+			# dereference needed (review rounds on #462).
 			elif command -v npm &>/dev/null && npm install -g github:DavidAnson/markdownlint-cli2#c01a1853c19b175aee6a09f24e2ad9b748c485ad; then
 				INSTALL_SUCCESS+=("markdownlint-cli2")
 				echo -e "${YELLOW}Installed markdownlint-cli2 via npm (brew install failed)${NC}"
