@@ -67,10 +67,16 @@ jobs:
       # superseded. The curl -O + sha256sum -c + tar shape is deliberate:
       # Scorecard's Pinned-Dependencies check flags the
       # `bash <(curl ...)` process-substitution form unconditionally - no
-      # URL pinning satisfies it (#447). --ignore-missing keeps the check
-      # to the single platform tarball in the multi-platform checksums
-      # file; the binary lands in RUNNER_TEMP and the `executable` output
-      # is the contract the lint step below consumes.
+      # URL pinning satisfies it (#447). The checksums file ships in the
+      # same release as the tarball, so verification catches CDN or
+      # transport tampering, not a compromised release - the same trust
+      # domain the old two-step verify had. --ignore-missing keeps the
+      # check to the single platform tarball in the multi-platform
+      # checksums file, and linux_amd64 is hardcoded on purpose:
+      # ubuntu-latest runners are x86_64, so a runner-image change
+      # would need this revisited. The binary lands in RUNNER_TEMP and
+      # the `executable` output is the contract the lint step below
+      # consumes.
       - name: Download and verify actionlint
         id: get_actionlint
         run: |

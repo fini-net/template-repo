@@ -43,7 +43,10 @@ The `raw.githubusercontent.com` allowlist entry left with the
 download script (one fewer egress destination), and so did a
 platform inconsistency nobody had named: the script detected the
 runner platform while the verify step hardcoded `linux_amd64` - the
-workflow is amd64 end to end now.
+workflow is amd64 end to end now. One trust-domain note from the
+Claude review round: the checksums file ships in the same release as
+the tarball, so verification catches CDN or transport tampering, not
+a compromised release - the same domain the old two-step verify had.
 
 **Derived repos split the way the issue predicted.**
 `install-prerequisites.sh` is CHECKSUMS-tracked and flows on the
