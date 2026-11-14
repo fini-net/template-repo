@@ -26,6 +26,8 @@ CLEANED_FILES=(
 	"docs/template-repo-banner.png"
 	".just/testing.just"
 	".just/clean-template.just"
+	".just/CHECKSUMS.json"
+	".just/RELEASE_NOTES.md"
 	".just/lib/pr_body_test.sh"
 	".just/lib/template_sync_test.sh"
 	".just/lib/cue_sync_test.sh"
