@@ -221,6 +221,23 @@ _remove_template_files: _on_a_branch
         rm -f ".just/lib/compliance_test.sh"
     fi
 
+    # Remove the template manifest - derived repos fetch the remote one on
+    # every sync (template_update.sh curls the template URL), so this local
+    # snapshot went stale at fork time (#448)
+    if [[ -f ".just/CHECKSUMS.json" ]]; then
+        echo "Removing .just/CHECKSUMS.json"
+        rm -f ".just/CHECKSUMS.json"
+    fi
+
+    # Remove the template release history - nothing in a derived repo reads
+    # it, it is not CHECKSUMS-tracked so it never flows via
+    # update_from_template, and the '# PR create vX.Y' header in
+    # gh-process.just (which does flow) records the fork point live (#448)
+    if [[ -f ".just/RELEASE_NOTES.md" ]]; then
+        echo "Removing .just/RELEASE_NOTES.md"
+        rm -f ".just/RELEASE_NOTES.md"
+    fi
+
     # Remove this cleanup script after use
     if [[ -f ".just/clean-template.just" ]]; then
         echo "Removing .just/clean-template.just"

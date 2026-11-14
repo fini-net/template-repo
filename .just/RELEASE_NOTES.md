@@ -4,6 +4,46 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v11.3 - clean_template removes fork-time debris: CHECKSUMS.json, RELEASE_NOTES.md (2026-11-14)
+
+`clean_template` now removes two files that only made sense in
+template-repo but rode along to every derived repo at fork time:
+`.just/CHECKSUMS.json` and `.just/RELEASE_NOTES.md` (#448).
+
+**The manifest was stale archaeology the moment it landed.** Derived
+repos never read the local copy - `update_from_template` fetches the
+remote manifest fresh on every sync, and `checksums_verify` /
+`checksums_diff` fetch remote data directly. The one local consumer,
+the checksums-verify workflow, is itself removed by clean_template.
+What lingered instead was 71KB of frozen snapshot: multi-version
+entries for files the derived repo had just deliberately deleted, a
+`generated_at` stamp frozen at fork time, and nothing that ever
+updated it locally. CHECKSUMS.json is not CHECKSUMS-tracked, so
+`update_from_template` cannot even flow it forward.
+
+**The release notes carried the template's whole version story.**
+Nothing in a derived repo reads `.just/RELEASE_NOTES.md` either - it
+is not CHECKSUMS-tracked, so it never flowed through
+`update_from_template`; a fork just inherits the template's entire
+release history. The `# PR create vX.Y` header in gh-process.just is
+the live fork-point record, and that file does flow. Removing the
+notes in derived repos also makes the version-drift guard's
+documented skip condition - "derived repos do not carry
+RELEASE_NOTES.md" - actually true instead of aspirational. #448
+scoped this file to a follow-up issue; it rides this bump instead,
+since either change touches the same two files.
+
+**Both removals follow the coupled-action protocol.** The rm blocks
+in `_remove_template_files` keep the quoted-literal `rm -f "path"`
+form the #381 drift guard extracts, and both paths joined
+`CLEANED_FILES` in generate_checksums.sh in the same commit - the
+guard cross-checks the two lists at generation time and fails on
+divergence. Neither entry changes sync behavior (neither file is a
+manifest `files` key, so the `is_cleaned` prefix check never fires);
+they document intent and keep the guard in sync. Once cleaned, both
+stay gone: neither is CHECKSUMS-tracked, so `update_from_template`
+never re-downloads them.
+
 ### v11.2 - shellcheck clean across .just/lib: glob dedupe match, mktemp exit propagation, fixture-pin drift guard (2026-11-04)
 
 A plain `shellcheck .just/lib/*.sh` sweep now exits 0. Twelve of
