@@ -154,7 +154,15 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 			echo -e "${CYAN}Installing markdownlint-cli2...${NC}"
 			if brew install markdownlint-cli2; then
 				INSTALL_SUCCESS+=("markdownlint-cli2")
-			elif command -v npm &>/dev/null && npm install -g markdownlint-cli2; then
+			# npm fallback: pin the git URL to the v0.24.1 tag commit so OSSF
+			# Scorecard's Pinned-Dependencies check sees a hash-pinned install
+			# (#447). The spec must stay unquoted - Scorecard's shell parser
+			# re-adds quotes to quoted arguments, and its `github:` prefix
+			# match then fails. Version pinning alone (markdownlint-cli2@0.24.1)
+			# never satisfies the heuristic either; only `npm ci` or a git URL
+			# with a 40-hex commit SHA does. The SHA updates by hand when the
+			# pinned release changes - which is what "pinned" means.
+			elif command -v npm &>/dev/null && npm install -g github:DavidAnson/markdownlint-cli2#c01a1853c19b175aee6a09f24e2ad9b748c485ad; then
 				INSTALL_SUCCESS+=("markdownlint-cli2")
 				echo -e "${YELLOW}Installed markdownlint-cli2 via npm (brew install failed)${NC}"
 			else

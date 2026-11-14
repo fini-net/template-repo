@@ -4,6 +4,52 @@ This file tracks the evolution of the Git/GitHub workflow automation module.
 
 ## November 2026
 
+### v11.4 - scorecard Pinned-Dependencies 10/10: pinned npm fallback, actionlint download+verify in one step (2026-11-14)
+
+- Fixes issue [#447](https://github.com/fini-net/template-repo/issues/447)
+
+**Both warnings that capped Pinned-Dependencies at 9/10 are gone, and
+they had to go together.** Scorecard's score math truncates, so
+clearing either single warning still left a 9 - partial fixes were
+pointless. The brew-failure npm fallback in
+`install-prerequisites.sh` and the #399 actionlint download script in
+the lint workflow were the exact two, and both shipped to derived
+repos.
+
+**The npm fallback now installs from a pinned git URL, the only form
+Scorecard's heuristic recognizes.** Version pinning is invisible to
+it - `markdownlint-cli2@0.24.1` still scores unpinned, since the
+heuristic accepts `npm ci` (a lockfile, not applicable to a global
+tool install) or git URLs like `github:owner/repo#<40-hex-sha>` and
+nothing else. The fallback now installs from the v0.24.1 tag commit,
+and the spec stays unquoted on purpose: Scorecard's shell parser
+re-adds quotes to quoted arguments and its `github:` prefix match
+then fails - a parser artifact accommodated rather than argued with.
+markdownlint-cli2 ships no `prepare` script, so the git install is a
+plain clone+pack, only mildly slower than the registry form. The SHA
+updates by hand, which is what "pinned" means. This also settles a
+v7.1-versus-v9.3 tension: v7.1 dropped an *unpinned* npm fallback
+because it defeated this same check, v9.3 re-added one for the
+brew-fails-npm-exists case - a hash-pinned fallback satisfies both.
+
+**The actionlint workflow downloads, verifies, and only then runs.**
+The download and verify steps are one now: `curl -O` the release
+tarball and `checksums.txt`, `sha256sum -c --ignore-missing` before
+extraction, then emit the `executable` output the lint step consumes.
+The `bash <(curl ...)` process-substitution form is gone - Scorecard
+flags it unconditionally, no URL pinning satisfies it, and the #399
+Docker Hub fix was ironically the pattern left holding the warning.
+The `raw.githubusercontent.com` allowlist entry left with the
+download script (one fewer egress destination), and so did a
+platform inconsistency nobody had named: the script detected the
+runner platform while the verify step hardcoded `linux_amd64` - the
+workflow is amd64 end to end now.
+
+**Derived repos split the way the issue predicted.**
+`install-prerequisites.sh` is CHECKSUMS-tracked and flows on the
+next `update_from_template` sync; `actionlint.yml` is not, so
+derived repos patch it locally until they fork from this point.
+
 ### v11.3 - clean_template removes fork-time debris: CHECKSUMS.json, RELEASE_NOTES.md (2026-11-14)
 
 `clean_template` now removes two files that only made sense in
